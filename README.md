@@ -13,6 +13,7 @@ All high-frequency data should be downloaded, backed up, and converted with card
 # Useful Libraries (R and Python)
 
 ## Data Prep and Processing
+* https://github.com/atmos-python/atmos - An atmospheric sciences library for Python
 * https://github.com/adamhsparks/EddyCleanR - Fills gaps and removes outliers in eddy covariance data.
 * https://github.com/bgctw/REddyProc - Processing data from micrometeorological Eddy-Covariance systems 
 * https://github.com/June-Spaceboots/EddyCovarianceProcessing - A collection of code used to processess Eddy Covaraince
