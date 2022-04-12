@@ -19,6 +19,7 @@ All high-frequency data should be downloaded, backed up, and converted with card
 * https://github.com/UofM-CEOS/flux_capacitor - Tools for processing flux data (eddy covariance).
 * https://github.com/wsular/EasyFlux-DL-CR3000 - CR3000 datalogger program for Campbell open-path eddy-covariance systems
 * https://github.com/Open-ET/flux-data-qaqc - Energy Balance Closure Analysis and Eddy Flux Data Post-Processing
+* https://github.com/LI-COR/eddypro-gui - open source software application for processing eddy covariance data
 * https://github.com/lsigut/openeddy - The R Package for Low Frequency Eddy Covariance Data Processing
 
 
