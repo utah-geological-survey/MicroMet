@@ -5,6 +5,11 @@ Scripts to process raw Eddy Covariance data for estimation of evapotranspiration
 
 Based on Visual Basic scripts from Clayton Lewis (Utah Division of Water Resources) that were transcribed from Fortran scripts written by Dr. Lawrence Hipps (Utah State University).
 
+
+# Data preparation from datalogger
+All data should be downloaded, backed up, and converted with card-convert to a CSV array. 
+
+
 # Useful Libraries (R and Python)
 
 ## Data Prep and Processing
