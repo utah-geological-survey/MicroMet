@@ -1,4 +1,37 @@
 # MicroMet
+# Description
+
 Scripts to process raw Eddy Covariance data for estimation of evapotranspiration and for QA/QC of micrometeorology data.
 
 Based on Visual Basic scripts from Clayton Lewis (Utah Division of Water Resources) that were transcribed from Fortran scripts written by Dr. Lawrence Hipps (Utah State University).
+
+# Useful Libraries (R and Python)
+
+## Data Prep and Processing
+* https://github.com/adamhsparks/EddyCleanR - Fills gaps and removes outliers in eddy covariance data.
+* https://github.com/bgctw/REddyProc - Processing data from micrometeorological Eddy-Covariance systems 
+* https://github.com/June-Spaceboots/EddyCovarianceProcessing - A collection of code used to processess Eddy Covaraince
+* https://github.com/UofM-CEOS/flux_capacitor - Tools for processing flux data (eddy covariance).
+* https://github.com/wsular/EasyFlux-DL-CR3000 - CR3000 datalogger program for Campbell open-path eddy-covariance systems
+* https://github.com/Open-ET/flux-data-qaqc - Energy Balance Closure Analysis and Eddy Flux Data Post-Processing
+* https://github.com/lsigut/openeddy - The R Package for Low Frequency Eddy Covariance Data Processing
+
+
+## Partitioning Fluxes
+* https://github.com/usda-ars-ussl/fluxpart - Python module for partitioning eddy covariance flux measurements. 
+* https://github.com/jnelson18/ecosystem-transpiration - Code and examples of how to estimate transpiration from eddy covariance data. 
+
+## Remote Sensing Estimates
+* https://github.com/NASA-DEVELOP/METRIC - For estimating daily evapotranspiration from Landsat data 
+* https://github.com/kratzert/pyTSEB - two Source Energy Balance model for estimation of evapotranspiration with remote sensing data 
+* https://github.com/spizwhiz/openet-ssebop-beta - Earth Engine SSEBop ET Model 
+* https://github.com/pblankenau2/openet-core-beta - OpenET Core Components 
+* https://github.com/tomchor/pymicra - A Python tool for Micrometeorological Analysis
+
+## MISC
+* https://github.com/sunxm19/Planetary_boundary_height_for_FFP - extracting boundary height within North America from NOAA regional data
+
+## Reference ET
+* https://github.com/woodcrafty/PyETo - Python package for calculating reference/potential evapotranspiration (ETo).
+* https://github.com/cgmorton/RefET-GEE - ASCE Standardized Reference Evapotranspiration Functions for Google Earth Engine (GEE) 
+* https://github.com/usbr/et-demands - Dual crop coefficient crop water demand model 
