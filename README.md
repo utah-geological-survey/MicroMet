@@ -7,7 +7,7 @@ Based on Visual Basic scripts from Clayton Lewis (Utah Division of Water Resourc
 
 
 # Data preparation from datalogger
-All data should be downloaded, backed up, and converted with card-convert to a CSV array. 
+All high-frequency data should be downloaded, backed up, and converted with card-convert to a CSV array. 
 
 
 # Useful Libraries (R and Python)
