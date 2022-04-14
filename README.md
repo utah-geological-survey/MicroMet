@@ -10,9 +10,14 @@ Based on Visual Basic scripts from Clayton Lewis (Utah Division of Water Resourc
 All high-frequency data should be downloaded, backed up, and converted with card-convert to a CSV array. 
 
 # Data Processing Workflow
-1 Process data on the fly using EasyfluxDL
-2 QA/QC processed data to see if it meets quality checks
-3 Reprocess data manually, focusing on low quality datasets
+1. Process data on the fly using EasyfluxDL; Provide immediate data through UGS portal 
+2. QA/QC processed data to see if it meets quality checks
+3. Reprocess data manually, focusing on low quality datasets
+4. Upload refined data to Ameriflux
+
+# Ameriflux
+* [Levels of data processing](https://ameriflux.lbl.gov/data/aboutdata/data-processing-levels/)
+* [Ameriflux data pipeline](https://ameriflux.lbl.gov/data/data-processing-pipelines/)
 
 # Useful Libraries (R and Python)
 
