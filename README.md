@@ -9,6 +9,10 @@ Based on Visual Basic scripts from Clayton Lewis (Utah Division of Water Resourc
 # Data preparation from datalogger
 All high-frequency data should be downloaded, backed up, and converted with card-convert to a CSV array. 
 
+# Data Processing Workflow
+1 Process data on the fly using EasyfluxDL
+2 QA/QC processed data to see if it meets quality checks
+3 Reprocess data manually, focusing on low quality datasets
 
 # Useful Libraries (R and Python)
 
