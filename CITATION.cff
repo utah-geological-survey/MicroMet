@@ -1,0 +1,19 @@
+cff-version: 1.2.0
+title: Micromet
+message: Please cite this software using these metadata.
+type: software
+authors:
+  - given-names: Larry
+    family-names: Hipps
+    affiliation: Utah State University
+    orcid: 'https://orcid.org/0000-0002-7658-8571'
+    email: lawrence.hipps@usu.edu
+  - given-names: Clayton
+    family-names: Lewis
+    email: claytonlewis@utah.gov
+    affiliation: DNR Water Resources
+  - given-names: Paul
+    family-names: Inkenbrandt
+    email: paulinkenbrandt@utah.gov
+    affiliation: Utah Geological Survey
+    orcid: 'https://orcid.org/0000-0002-9194-5936'

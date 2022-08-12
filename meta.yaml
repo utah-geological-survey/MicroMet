@@ -1,0 +1,31 @@
+package:
+  name: "micromet"
+  version: "0.1.0"
+
+source:
+  git_rev: v0.1.0
+  git_url: https://github.com/utah-geological-survey/MicroMet
+
+requirements:
+  host:
+    - python
+    - setuptools
+  build:
+    - python >=3.6
+  run:
+    - python >=3.6
+    - numpy
+    - scipy
+    - pandas
+    - numba
+
+about:
+  home: https://github.com/utah-geological-survey/MicroMet
+  license: GPL-3.0-only
+  license_family: GPL
+  license_file: LICENSE
+  summary: "Scripts to process raw Eddy Covariance data for estimation of evapotranspiration."
+
+extra:
+  recipe-maintainers:
+    - inkenbrandt
