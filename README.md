@@ -33,6 +33,7 @@ All high-frequency data should be downloaded, backed up, and converted with card
 * https://github.com/LI-COR/eddypro-gui - open source software application for processing eddy covariance data
 * https://github.com/lsigut/openeddy - The R Package for Low Frequency Eddy Covariance Data Processing
 * https://github.com/FLUXNET/ONEFlux - Open Network-Enabled Flux processing pipeline
+* https://github.com/Open-ET/flux-data-qaqc - Energy Balance Closure Analysis and Eddy Flux Data Post-Processing
 
 
 ## Partitioning Fluxes
@@ -49,8 +50,10 @@ All high-frequency data should be downloaded, backed up, and converted with card
 ## MISC
 * https://github.com/sunxm19/Planetary_boundary_height_for_FFP - extracting boundary height within North America from NOAA regional data
 * https://github.com/chuhousen/amerifluxr - An R programmatic interface for AmeriFlux data and metadata
+* https://github.com/Open-ET - Open-ET packages
 
 ## Reference ET
 * https://github.com/woodcrafty/PyETo - Python package for calculating reference/potential evapotranspiration (ETo).
 * https://github.com/cgmorton/RefET-GEE - ASCE Standardized Reference Evapotranspiration Functions for Google Earth Engine (GEE) 
-* https://github.com/usbr/et-demands - Dual crop coefficient crop water demand model 
+* https://github.com/usbr/et-demands - Dual crop coefficient crop water demand model
+* https://github.com/Open-ET/openet-refet-gee - ASCE Standardized Reference Evapotranspiration Functions for Google Earth Engine (GEE)
