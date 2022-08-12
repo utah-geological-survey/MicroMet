@@ -1,6 +1,7 @@
 channels:
   - conda-forge
   - defaults
+  - mcgibbon
 dependencies:
   - python>=3.6
   - conda-forge
@@ -8,3 +9,4 @@ dependencies:
   - pandas
   - numpy
   - numba
+  - atmos

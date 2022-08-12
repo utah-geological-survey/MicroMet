@@ -51,6 +51,7 @@ All high-frequency data should be downloaded, backed up, and converted with card
 * https://github.com/sunxm19/Planetary_boundary_height_for_FFP - extracting boundary height within North America from NOAA regional data
 * https://github.com/chuhousen/amerifluxr - An R programmatic interface for AmeriFlux data and metadata
 * https://github.com/Open-ET - Open-ET packages
+* https://github.com/atmos-python/atmos - An atmospheric sciences library for Python; good for standards
 
 ## Reference ET
 * https://github.com/woodcrafty/PyETo - Python package for calculating reference/potential evapotranspiration (ETo).
