@@ -4,6 +4,8 @@
 import pandas as pd
 # import scipy
 import numpy as np
+from scipy import signal
+import statsmodels.api as sm
 # import dask as dd
 # Public Module EC
 
@@ -47,20 +49,30 @@ class CalcFlux(object):
     def __init__(self, **kwargs):
 
         self.Rv = 461.51  # Water Vapor Gas Constant, J/[kg*K]
-        self.Ru = 8.314  # Universal Gas Constant, J/[kg*K]
+        self.Ru = 8.3143  # Universal Gas Constant, J/[kg*K]
         self.Cpd = 1005.0  # Specific Heat of Dry Air, J/[kg*K]
         self.Rd = 287.05  # Dry Air Gas Constant, J/[kg*K]
         self.md = 0.02896  # Dry air molar mass, kg/mol
         self.Co = 0.21  # Molar Fraction of Oxygen in the Atmosphere
         self.Mo = 0.032  # Molar Mass of Oxygen (gO2/mole)
 
+        self.Cpw = 1952.0  # specific heat of water vapor at constant pressure [J/(kg K)]
+        self.Cw = 4218.0  # specific heat of liquid water at 0 C [J/(kg K)]
+        self.epsilon = 18.016 / 28.97  # molecular mass ratio of water vapor to dry air
+        self.g = 9.81  # acceleration due to gravity at sea level (m/s^2)
+        self.von_karman = 0.41  # von Karman constant (Dyer & Hicker 1970, Webb 1970)
+        self.MU_WPL = 28.97 / 18.016  # molecular mass ratio of dry air to water vapor (used in WPL correction)
+        self.Omega = 7.292e-5  # Angular velocity of the earth for calculation of Coriolis Force (2PI/sidreal_day, where sidereal day = 23 hr 56 min. [rad/s]
+        self.Sigma_SB = 5.6718e-8  # Stefan-Boltzmann constant in air [J/(K^4 m^2 s), see page 336 in McGee (1988)]
+
+        self.meter_type = 'IRGASON'
         self.XKH20 = 1.412  # Path Length of KH20, cm
         self.XKwC1 = -0.152214126  # First Order Coefficient in Vapor Density-KH20 Output Relationship, cm
         self.XKwC2 = -0.001667836  # Second Order Coefficient in Vapor Density-KH20 Output Relationship, cm
 
         self.sonic_dir = 225  # Degrees clockwise from true North
         self.UHeight = 3.52  # Height of Sonic Anemometer above Ground Surface, m
-        self.PathDist_U = 0.1  # Separation Distance Between Sonic Anemometer and KH20 or IRGA unit, m, 0.1
+        self.PathDist_U = 0.0  # Separation Distance Between Sonic Anemometer and KH20 or IRGA unit, m, 0.1
 
         self.lag = 10  # number of lags to consider
         self.direction_bad_min = 0  # Clockwise Orientation from DirectionKH20_U
@@ -115,10 +127,17 @@ class CalcFlux(object):
         else:
             df['Ea'] = self.tetens(df['Ta'].to_numpy())
 
-        if 'LnKH' in df.columns:
+        if self.meter_type == 'IRGASON':
             pass
         else:
-            df['LnKH'] = np.log(df['volt_KH20'].to_numpy())
+            if 'LnKH' in df.columns:
+                pass
+            elif 'volt_KH20' in df.columns:
+                df['LnKH'] = np.log(df['volt_KH20'].to_numpy())
+            # Calculate the Correct XKw Value for KH20
+            XKw = self.XKwC1 + 2 * self.XKwC2 * (df['pV'].mean() * 1000.)
+            self.Kw = XKw / self.XKH20
+            # TODO Calc pV from lnKH20 and add to dataframe as variable
 
         for col in self.despikefields:
             if col in df.columns:
@@ -136,11 +155,6 @@ class CalcFlux(object):
 
         # Calculate Sums and Means of Parameter Arrays
         df = self.calculated_parameters(df)
-
-        # Calculate the Correct XKw Value for KH20
-        XKw = self.XKwC1 + 2 * self.XKwC2 * (df['pV'].mean() * 1000.)
-        self.Kw = XKw / self.XKH20
-        # TODO Calc pV from lnKH20 and add to dataframe as variable
 
         # Calculate Covariances (Maximum Furthest From Zero With Sign in Lag Period)
         self.calc_covar(df['Ux'].to_numpy(),
@@ -392,6 +406,7 @@ class CalcFlux(object):
         return df.rename(columns={'T_SONIC': 'Ts',
                                   'TA_1_1_1': 'Ta',
                                   'amb_press': 'Pr',
+                                  'PA':'Pr',
                                   'RH_1_1_1': 'Rh',
                                   't_hmp': 'Ta',
                                   'e_hmp': 'Ea',
@@ -421,6 +436,84 @@ class CalcFlux(object):
         if len(x(~nans)) > 0:
             y[nans] = np.interp(x(nans), x(~nans), y[~nans])
         return y
+
+    def despike_rolling_med(self, data, variable, window=1200, cutoff=3.5, drop_spikes=True):
+        """
+
+        Args:
+            data:
+            variable:
+            window:
+            cutoff:
+            drop_spikes:
+
+        Returns:
+
+        """
+        rollmed = data[variable].rolling(window=window, center=True).median().dropna()
+        rollmedall = data[variable].rolling(window=window, center=True).median()
+        # traindata = data.loc[rollmed.first_valid_index():rollmed.last_valid_index(),variable]
+        traindata = data.loc[:, variable]
+
+        rollmedall.loc[:rollmed.first_valid_index()] = data.loc[:rollmed.first_valid_index(), variable].median()
+        rollmedall.loc[rollmed.last_valid_index():] = data.loc[rollmed.last_valid_index():, variable].median()
+
+        mod_rlm = sm.RLM(np.array(rollmedall), np.array(traindata)).fit(maxiter=600, scale_est='mad', update_scale=True)
+
+        spike_dates = rollmedall.index[np.where(np.abs(mod_rlm.resid / mod_rlm.scale) > cutoff)]
+        spike_df = data.loc[spike_dates, variable].to_frame()
+
+        if drop_spikes:
+            data.loc[spike_dates, variable] = None
+
+        return data[variable], spike_dates
+
+    def despike_rolling(self, df, p, win=12, upper_threshold=5, lower_threshold=-1):
+        """Removes spikes from an array of values based on a specified deviation from the rolling median.
+        This is not fast
+
+        Args:
+            df: dataframe with values
+            p: value field to despike
+            win: size of window in data timesteps
+            upper_threshold: max difference from rolling median allowed
+            lower_threshold: min difference from rolling median allowed
+
+        Returns:
+
+        """
+        # https://stackoverflow.com/questions/62692771/outlier-detection-based-on-the-moving-mean-in-python
+        # Set threshold for difference with rolling median
+
+        # Calculate rolling median
+        df['rolling_temp'] = df[p].rolling(window=win).median()
+
+        # Calculate difference
+        df['diff'] = df[p] - df['rolling_temp']
+
+        # Flag rows to be dropped as `1`
+        df['drop_flag'] = np.where((df['diff'] > upper_threshold) | (df['diff'] < lower_threshold), 1, 0)
+
+        # Drop flagged rows
+        df[p + '_ds'] = df[p]
+        df.loc[df['drop_flag'] == 1, p + '_ds'] = None
+        df[p + '_ds'] = df[p + '_ds'].interpolate()
+        df = df.drop(['rolling_temp', 'rolling_temp', 'diff', 'drop_flag'], axis=1)
+        return df
+
+    def get_lag(self, x, y):
+        """Get cross-correlation of a signal against another signal.
+        x = array of signal 1
+        y = array of signal 2
+
+        Notes
+            From https://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.correlation_lags.html#scipy.signal.correlation_lags
+        """
+        correlation = signal.correlate(x, y, mode="full")
+        lags = signal.correlation_lags(x.size, y.size, mode="full")
+        lag = lags[np.argmax(correlation)]
+        return lag
+
 
     # @njit(parallel=True)
     def calc_Td_dewpoint(self, E):
@@ -549,6 +642,29 @@ class CalcFlux(object):
         q = (gamma * e) / (P - 0.378 * e)
         return q
 
+    def calc_tc_air_temp_sonic(self, Ts, pV, P_atm):
+        """Air temperature from sonic temperature, water vapor density, and atmospheric pressure from Campbell Scientific EasyFLux
+
+        Args:
+            Ts: Sonic Temperature (K)
+            pV: h2O density (kg m-3)
+            P_atm: Pressure (atm)
+
+        Returns:
+            Ta Air Temperature
+
+        References:
+            Wallace and Hobbs 2006
+        """
+
+        T_c1 = P_atm + (2 * self.Rv - 3.040446 * self.Rd) * pV * Ts
+        T_c2 = P_atm * P_atm + (1.040446 * self.Rd * pV * Ts) * (
+                    1.040446 * self.Rd * pV * Ts) + 1.696000 * self.Rd * pV * P_atm * Ts
+        T_c3 = 2 * pV * ((self.Rv - 1.944223 * self.Rd) + (self.Rv - self.Rd) * (
+                    self.Rv - 2.040446 * self.Rd) * pV * Ts / P_atm)
+
+        return (T_c1 - np.sqrt(T_c2)) / T_c3
+
     # @njit
     def calc_Tsa_air_temp_sonic(self, Ts, q):
         """Calculate air temperature from sonic temperature and specific humidity
@@ -590,11 +706,7 @@ class CalcFlux(object):
             >>> print(fluxcalc.calc_L(1.2, 292.2, 1.5))
             -85.78348623853208
         """
-        # von Karman constant
-        vonKarman_const = 0.40
-        # acceleration due to gravity (m/s2)
-        grav_acc = 9.81
-        return (-1 * (Ust ** 3) * Tsa) / (grav_acc * vonKarman_const * Uz_Ta)
+        return (-1 * (Ust ** 3) * Tsa) / (self.g * self.von_karman * Uz_Ta)
 
     # @numba.njit#(forceobj=True)
     def calc_Tsa(self, Ts, P, pV, Rv=461.51):
@@ -647,7 +759,7 @@ class CalcFlux(object):
             Saturation Vapor Pressure (Pa)
 
         References:
-            From ITS-90 FORMULATIONS FOR VAPOR PRESSURE, FROSTPOINTTEMPERATURE, DEWPOINT TEMPERATURE,
+            From ITS-90 FORMULATIONS FOR VAPOR PRESSURE, FROST POINT TEMPERATURE, DEWPOINT TEMPERATURE,
             AND ENHANCEMENT FACTORS IN THE RANGE –100 TO +100 C by Bob Hardy see eq 2
             The Proceedings of the Third International Symposium on Humidity & Moisture,
             Teddington, London, England, April 1998
@@ -849,6 +961,27 @@ class CalcFlux(object):
         df['Tsa'] = self.calc_Tsa(df['Ts'], df['Pr'], df['pV'])
         df['E'] = self.calc_E(df['pV'], df['Tsa'])
         df['Q'] = self.calc_Q(df['Pr'], df['E'])
+        df['Sd'] = self.calc_Q(df['Pr'], self.calc_Es(df['Tsa'])) - df['Q']
+        return df
+
+    def calculated_parameters_irga(self, df: pd.DataFrame) -> pd.DataFrame:
+        """ Calculate weather parameters from raw data.
+
+        Args:
+            df: DataFrame containing Ta, Ts, and Pr
+
+        Returns:
+            Adds new fields to dataframe, including pV, Tsa, Q, and Sd
+        """
+        # convert pV to g/m-3
+        df['Ts_K'] = self.convert_CtoK(df['Ts'])
+        df = self.despike_rolling(df, 'pV', win=12, upper_threshold=5, lower_threshold=-1)
+        df['E'] = self.calc_E_vapor_pressure(df['pV_ds'] * 0.001, df['Ts_K'])
+        # convert air pressure from kPa to Pa
+        df['Q'] = self.calc_Q_specific_humidity(df['Pr'] * 1000., df['E'])
+        df['Tsa'] = self.calc_Tsa_air_temp_sonic(df['Ts_K'], df['Q'])
+        df['Es'] = self.calc_Es_sat_vapor_pressure(df['Tsa'])
+
         df['Sd'] = self.calc_Q(df['Pr'], self.calc_Es(df['Tsa'])) - df['Q']
         return df
 
