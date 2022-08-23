@@ -10,3 +10,4 @@ dependencies:
   - numpy
   - numba
   - atmos
+  - statsmodels

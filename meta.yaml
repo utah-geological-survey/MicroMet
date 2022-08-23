@@ -18,6 +18,7 @@ requirements:
     - scipy
     - pandas
     - numba
+    - statsmodels
 
 about:
   home: https://github.com/utah-geological-survey/MicroMet

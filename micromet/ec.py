@@ -407,6 +407,7 @@ class CalcFlux(object):
                                   'TA_1_1_1': 'Ta',
                                   'amb_press': 'Pr',
                                   'PA':'Pr',
+                                  'pV':'H2O_density',
                                   'RH_1_1_1': 'Rh',
                                   't_hmp': 'Ta',
                                   'e_hmp': 'Ea',
@@ -437,69 +438,76 @@ class CalcFlux(object):
             y[nans] = np.interp(x(nans), x(~nans), y[~nans])
         return y
 
-    def despike_rolling_med(self, data, variable, window=1200, cutoff=3.5, drop_spikes=True):
-        """
+    def despike_ewma_fb(self, df_column, span, delta):
+        """Apply forwards, backwards exponential weighted moving average (EWMA) to df_column.
+        Remove data from df_spikey that is > delta from fbewma.
 
         Args:
-            data:
-            variable:
-            window:
-            cutoff:
-            drop_spikes:
+            df_column: pandas Series of data with spikes
+            span: size of window of spikes
+            delta: threshold of spike that is allowable
 
         Returns:
+            despiked data
 
+        Notes:
+            https://stackoverflow.com/questions/37556487/remove-spikes-from-signal-in-python
         """
-        rollmed = data[variable].rolling(window=window, center=True).median().dropna()
-        rollmedall = data[variable].rolling(window=window, center=True).median()
-        # traindata = data.loc[rollmed.first_valid_index():rollmed.last_valid_index(),variable]
-        traindata = data.loc[:, variable]
+        # Forward EWMA.
+        fwd = pd.Series.ewm(df_column, span=span).mean()
+        # Backward EWMA.
+        bwd = pd.Series.ewm(df_column[::-1], span=span).mean()
+        # Add and take the mean of the forwards and backwards EWMA.
+        stacked_ewma = np.vstack((fwd, bwd[::-1]))
+        np_fbewma = np.mean(stacked_ewma, axis=0)
+        np_spikey = np.array(df_column)
+        # np_fbewma = np.array(fb_ewma)
+        cond_delta = (np.abs(np_spikey - np_fbewma) > delta)
+        np_remove_outliers = np.where(cond_delta, np.nan, np_spikey)
+        return np_remove_outliers
 
-        rollmedall.loc[:rollmed.first_valid_index()] = data.loc[:rollmed.first_valid_index(), variable].median()
-        rollmedall.loc[rollmed.last_valid_index():] = data.loc[rollmed.last_valid_index():, variable].median()
-
-        mod_rlm = sm.RLM(np.array(rollmedall), np.array(traindata)).fit(maxiter=600, scale_est='mad', update_scale=True)
-
-        spike_dates = rollmedall.index[np.where(np.abs(mod_rlm.resid / mod_rlm.scale) > cutoff)]
-        spike_df = data.loc[spike_dates, variable].to_frame()
-
-        if drop_spikes:
-            data.loc[spike_dates, variable] = None
-
-        return data[variable], spike_dates
-
-    def despike_rolling(self, df, p, win=12, upper_threshold=5, lower_threshold=-1):
-        """Removes spikes from an array of values based on a specified deviation from the rolling median.
-        This is not fast
+    def despike_quart_filter(self, df_column, win=600, fill_na=True, top_quant=0.97, bot_quant=0.03, thresh=None):
+        """Detects and removes spikes using a moving window quantile filter; if difference from median is > difference
+        between 90% quartile and 10% quartile.
 
         Args:
-            df: dataframe with values
-            p: value field to despike
-            win: size of window in data timesteps
-            upper_threshold: max difference from rolling median allowed
-            lower_threshold: min difference from rolling median allowed
+            df_column: datetime-indexed pandas Series of data with spikes
+            win: size of moving window; default is 1200 (1 minute at 20 Hz).
+            fill_na: fill gaps with linear interpolation with gaussian noise; defaults is true
+            top_quant: Upper Quantile that defines the inter-quartile range; default is 0.9
+            bot_quant: Lower Quantile that defines the inter-quartile range; default is 0.1
+            thresh: threshold of delta that defines a spike; default is None, which is the median of the rolling inter-quartile range
 
         Returns:
+            gap filled pandas Series
 
         """
-        # https://stackoverflow.com/questions/62692771/outlier-detection-based-on-the-moving-mean-in-python
-        # Set threshold for difference with rolling median
+        np_spikey = np.array(df_column)
 
-        # Calculate rolling median
-        df['rolling_temp'] = df[p].rolling(window=win).median()
+        # Get rolling statistics
+        upper = pd.Series(df_column).rolling(window=win, center=True).quantile(top_quant).interpolate().bfill().ffill()
+        lower = pd.Series(df_column).rolling(window=win, center=True).quantile(bot_quant).interpolate().bfill().ffill()
+        med = pd.Series(df_column).rolling(window=win, center=True).median().interpolate().bfill().ffill()
+        iqr = upper - lower
 
-        # Calculate difference
-        df['diff'] = df[p] - df['rolling_temp']
+        if thresh:
+            pass
+        else:
+            thresh = iqr
 
-        # Flag rows to be dropped as `1`
-        df['drop_flag'] = np.where((df['diff'] > upper_threshold) | (df['diff'] < lower_threshold), 1, 0)
+        cond_delta = (np.abs(np_spikey - med) > thresh)
+        np_remove_outliers = np.where(cond_delta, np.nan, np_spikey)
+        nanind = np.array(np.where(np.isnan(np_remove_outliers)))[0]
 
-        # Drop flagged rows
-        df[p + '_ds'] = df[p]
-        df.loc[df['drop_flag'] == 1, p + '_ds'] = None
-        df[p + '_ds'] = df[p + '_ds'].interpolate()
-        df = df.drop(['rolling_temp', 'rolling_temp', 'diff', 'drop_flag'], axis=1)
-        return df
+        if fill_na:
+            data_out = pd.Series(np_remove_outliers, index=df_column.index).interpolate()
+            # data_outnaind = data_out.index[nanind]
+            # rando = np.random.normal(scale=scl, size=len(data_outnaind))
+            # data_out.loc[data_outnaind] = data_out.loc[data_outnaind] #+ rando
+        else:
+            data_out = pd.Series(np_remove_outliers, index=df_column.index)
+        return data_out
+
 
     def get_lag(self, x, y):
         """Get cross-correlation of a signal against another signal.
