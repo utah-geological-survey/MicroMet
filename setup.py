@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="Micromet",
-    version="0.1.0",
+    version="0.2.0",
     author="Paul Inkenbrant",
     author_email="paulinkenbrandt@utah.gov",
     description="Scripts to process raw Eddy Covariance data for estimation of evapotranspiration",
