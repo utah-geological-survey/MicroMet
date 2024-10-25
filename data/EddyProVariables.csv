@@ -1,0 +1,92 @@
+Label,Units,Description
+filename,-,Name of the raw file (or the first of a set) from which the dataset for the current averaging interval was extracted
+date,yyyy-mm-dd,Date of the end of the averaging period
+time,HH:MM,Time of the end of the averaging period
+file_records,#,Number of valid records found in the raw file (or set of raw files)
+used_records,#,Number of valid records used for current the averaging period
+Tau,kg m-1 s-2,Corrected momentum flux
+qc_Tau,#,Quality flag for momentum flux
+rand_err_Tau,kg m-1 s-2,"Random error for momentum flux, if selected"
+H,W m-2,Corrected sensible heat flux
+qc_H,#,Quality flag for sensible heat flux
+rand_err_H,W m-2,"Random error for momentum flux, if selected"
+LE,W m-2,Corrected latent heat flux
+qc_LE,#,Quality flag latent heat flux
+rand_err_LE,W m-2,"Random error for latent heat flux, if selected"
+gas_flux,?mol m-2 s-1(†),Corrected gas flux; water vapor units mmol m-2 s-1
+qc_gas_flux,#,Quality flag for gas flux
+rand_err_gas_flux,?mol s-1 m-2(†),"Random error for gas flux, if selected"
+H_strg,W m-2,Estimate of storage sensible heat flux
+LE_strg,W m-2,Estimate of storage latent heat flux
+gas_strg,?mol s-1 m-2(†),Estimate of storage gas flux
+gas_v-adv,?mol s-1 m-2(†),Estimate of vertical advection flux
+gas_molar_density,mmol m-3,Measured or estimated molar density of gas
+gas_mole_fraction,?mol mol-1(†),Measured or estimated mole fraction of gas
+gas_mixing_ratio,?mol mol-1(†),Measured or estimated mixing ratio of gas
+gas_time_lag,s,Time lag used to synchronize gas time series
+gas_def_timelag,T/F,Flag: whether the reported time lag is the default (T) or calculated (F)
+sonic_temperature,K,Mean temperature of ambient air as measured by the anemometer
+air_temperature,K,"Mean temperature of ambient air, either calculated from high frequency air temperature readings, or estimated from sonic temperature"
+air_pressure,Pa,"Mean pressure of ambient air, either calculated from high frequency air pressure readings, or estimated based on site altitude (barometric pressure)"
+air_density,kg m-3,Density of ambient air
+air_heat_capactiy,J K-1 kg-1,Specific heat at constant pressure of ambient air
+air_molar_volume,m3 mol-1,Molar volume of ambient air
+ET,mm hour-1,Evapotranspiration flux
+water_vapor_density,kg m-3,Ambient mass density of water vapor
+e,Pa,Ambient water vapor partial pressure
+es,Pa,Ambient water vapor partial pressure at saturation
+specific_humidity,kg kg-1,Ambient specific humidity on a mass basis
+RH,%,Ambient relative humidity
+VPD,Pa,Ambient water vapor pressure deficit
+Tdew,K,Ambient dew point temperature
+u_unrot,m s-1,Wind component along the u anemometer axis
+v_unrot,m s-1,Wind component along the v anemometer axis
+w_unrot,m s-1,Wind component along the w anemometer axis
+u_rot,m s-1,Rotated u wind component (mean wind speed)
+v_rot,m s-1,Rotated v wind component (should be zero)
+w_rot,m s-1,Rotated w wind component (should be zero)
+wind_speed,m s-1,Mean wind speed
+max_wind_speed,m s-1,Maximum instantaneous wind speed
+wind_dir,degrees,"Direction from which the wind blows, with respect to Geographic or Magnetic north"
+yaw,degrees,(degrees) First rotation angle
+pitch,degrees,(degrees) Second rotation angle
+u*,m s-1,Friction velocity
+TKE,m2 s-2,Turbulent kinetic energy
+L,M,Monin-Obukhov length
+(z-d)/L,#,Monin-Obukhov stability parameter
+bowen_ratio,#,Sensible heat flux to latent heat flux ratio
+T*,K,Scaling temperature
+(footprint) model,-,Model for footprint estimation
+x_offset,m,Along-wind distance providing <1% contribution to turbulent fluxes
+x_peak,m,Along-wind distance providing the highest (peak) contribution to turbulent fluxes
+x_10%,m,Along-wind distance providing 0.1 (cumulative) contribution to turbulent fluxes
+x_30%,m,Along-wind distance providing 0.3 (cumulative) contribution to turbulent fluxes
+x_50%,m,Along-wind distance providing 0.5 (cumulative) contribution to turbulent fluxes
+x_70%,m,Along-wind distance providing 0.7 (cumulative) contribution to turbulent fluxes
+x_90%,m,Along-wind distance providing 0.9 (cumulative) contribution to turbulent fluxes
+un_Tau,kg m-1 s-2,Uncorrected momentum flux
+Tau_scf,#,Spectral correction factor for momentum flux
+un_H,W m-2,Uncorrected sensible heat flux
+H_scf,#,Spectral correction factor for sensible heat flux
+un_LE,W m-2,Uncorrected latent heat flux
+LE_scf,#,Spectral correction factor for latent heat flux
+un_gas_flux,?mol s-1 m-2(†),Uncorrected gas flux
+gas_scf,#,Spectral correction factor for gas flux
+spikes,8u/v/w/ts/co2/h2o/ch4/none,Hard flags for individual variables for spike test
+amp_res,8u/v/w/ts/co2/h2o/ch4/none,Hard flags for individual variables for amplitude resolution
+drop_out,8u/v/w/ts/co2/h2o/ch4/none,Hard flags for individual variables for drop-out test
+abs_lim,8u/v/w/ts/co2/h2o/ch4/none,Hard flags for individual variables for absolute limits
+skw_kur,8u/v/w/ts/co2/h2o/ch4/none,Hard flags for individual variables for skewness and kurtosis
+skw_kur,8u/v/w/ts/co2/h2o/ch4/none,Soft flags for individual variables for skewness and kurtosis test
+discontinuities,8u/v/w/ts/co2/h2o/ch4/none,Hard flags for individual variables for discontinuities test
+discontinuities,8u/v/w/ts/co2/h2o/ch4/none,Soft flags for individual variables for discontinuities test
+time_lag,8u/v/w/ts/co2/h2o/ch4/none,Hard flags for gas concentration for time lag test
+time_lag,8u/v/w/ts/co2/h2o/ch4/none,Soft flags for gas concentration for time lag test
+attack_angle,"0, 1, 9",Hard flag for attack angle test
+non_steady_wind,"0, 1, 9",Hard flag for non-steady horizontal test
+var_spikes,#,Number of spikes detected and eliminated for variable var
+AGC,#,Mean value of AGC for LI-7500RS or LI-7200RS
+RSSI,#,"Mean value of RSSI for LI-7700, if present"
+var_var,,Variance of variable var
+w/var_cov,,Covariance between w and variable var
+extravar_mean,,Mean value of extravar

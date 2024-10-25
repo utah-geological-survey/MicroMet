@@ -1,9 +1,9 @@
 package:
   name: "micromet"
-  version: "0.1.0"
+  version: "0.2.0"
 
 source:
-  git_rev: v0.1.0
+  git_rev: v0.2.0
   git_url: https://github.com/utah-geological-survey/MicroMet
 
 requirements:
@@ -11,13 +11,21 @@ requirements:
     - python
     - setuptools
   build:
-    - python >=3.6
+    - python >=3.9
   run:
-    - python >=3.6
-    - numpy
+    - python >=3.9
     - scipy
     - pandas
+    - numpy
     - numba
+    - statsmodels
+    - metpy
+    - jupyter
+    - scikit-learn
+    - plotly
+    - fluxdataqaqc
+    - pingouin
+    - sqlalchemy
 
 about:
   home: https://github.com/utah-geological-survey/MicroMet

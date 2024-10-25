@@ -1,10 +1,17 @@
 channels:
   - conda-forge
-  - defaults
+
 dependencies:
-  - python>=3.6
-  - conda-forge
+  - python>=3.9
   - scipy
   - pandas
   - numpy
   - numba
+  - statsmodels
+  - metpy
+  - jupyter
+  - scikit-learn
+  - plotly
+  - fluxdataqaqc
+  - pingouin
+  - sqlalchemy

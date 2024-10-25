@@ -4,11 +4,11 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setuptools.setup(
-    name="Micromet",
-    version="0.1.0",
+    name="micromet",
+    version="0.2.0",
     author="Paul Inkenbrant",
     author_email="paulinkenbrandt@utah.gov",
-    description="Scripts to process raw Eddy Covariance data for estimation of evapotranspiration",
+    description="Scripts to process Eddy Covariance data for estimation of evapotranspiration",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/utah-geological-survey/MicroMet",

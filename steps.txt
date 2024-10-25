@@ -1,0 +1,27 @@
+!  Humidity Values Determined
+!  Calculate Averages and Standard Deviations for Velocities and Humidity
+!  Uncorrected Variance of Sonic Temperature Which is Used Later
+!  Find Average of Square of Deviations from the Mean for Velocity Components and Humidity
+!  Calculate the Correct Average Values for Some Key Variables
+!  Find the Maximum Covariance Values of All the Lags
+!  Calculate Covariances for Wind Components
+!  Traditional Coordinate Rotation
+!  Rotate the Velocity Values
+!  Calculate the Average and Standard Deviations of the Rotated Velocity Components
+!  Correct Covariances for Coordinate Rotation
+!  Calculate Value of Latent Heat of Vaporization
+!  Calculate Variance of Air Temperature From Variance of Sonic Temperature
+!  Determine Saturation Vapor Pressure of the Air Uses Highly Accurate Wexler's Equations Modified by Hardy
+!  Determine Wind Direction
+!  Calculate the Lateral Separation Distance Projected into the Mean Wind Direction. Only Needed When IRGA and Sonic Are Separated.
+!  Frequency Response Corrections for Path Length and Frequency Response (Massman 2000 & 2001)
+!  Calculate z/L and Correct Values of Ustar and Covariance Vertical Wind and Air Temperature -- uz_Ta
+!  Re-calculate Monin-Obukov Length with New Ustar and Uz_Ta.  Calculate High Frequency Corrections
+!  Correct the Covariance Values for High Frequency Effects
+!  Calculate New H and LE Values
+!  Webb, Pearman and Leuning Correction
+!  Calculate Variance, Skewness, and Kurtosis of instantaneous rhov flux
+!  Change the Various T Values to C
+!  Mean of All Individual Tair from Tsonic Values = Tavg
+!  Average Air Temperature from Average Sonic Temperature = Tair_avg
+!  Sum Individual ET Values for Daily Calculation

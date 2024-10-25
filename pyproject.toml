@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "micromet"
+version = "0.2.0"
+description = "A microclimate analysis tool"
+authors = [
+    { name = "Paul Inkenbrandt", email = "paulinkenbrandt@utah.gov" }
+]
+license = { text = "MIT" }
+requires-python = ">=3.9"
+
+[project.dependencies]
+pandas = "^1.2.0"
+numpy = "^1.19.5"
+matplotlib = "^3.3.3"
+scipy = "^1.6.0"
+statsmodels = "^0.14.0"
+metpy = "^1.5.0"
+jupyter = "^7.0.0"
+scikit-learn = "^1.4.0"
+plotly = "^5.0.0"
+fluxdataqaqc = "^0.1.0"
+pingouin = "^0.5.4"
+sqlalchemy = "^2.0.0"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=6.2.2",
+    "black>=20.8b1",
+    "flake8>=3.8.4"
+]
+
+[project.urls]
+homepage = "https://github.com/inkenbrandt/MicroMet"
+repository = "https://github.com/inkenbrandt/MicroMet"
