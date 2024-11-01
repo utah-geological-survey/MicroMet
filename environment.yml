@@ -6,7 +6,6 @@ dependencies:
   - scipy
   - pandas
   - numpy
-  - numba
   - statsmodels
   - metpy
   - jupyter
@@ -15,3 +14,7 @@ dependencies:
   - fluxdataqaqc
   - pingouin
   - sqlalchemy
+  - matplotlib
+  - affine
+  - rasterio
+  - refet

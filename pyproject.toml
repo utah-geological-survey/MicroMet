@@ -21,10 +21,14 @@ statsmodels = "^0.14.0"
 metpy = "^1.5.0"
 jupyter = "^7.0.0"
 scikit-learn = "^1.4.0"
-plotly = "^5.0.0"
 fluxdataqaqc = "^0.1.0"
 pingouin = "^0.5.4"
 sqlalchemy = "^2.0.0"
+plotly = "^2.35.0"
+pynldas2 = "^0.16.0"
+affine = "^2.2.0"
+rasterio = "^1.2.0"
+refet = "^0.3.0"
 
 [project.optional-dependencies]
 dev = [

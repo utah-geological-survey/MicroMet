@@ -8,10 +8,16 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="a09e9df8-2720-44bb-8605-374b38d0d9d1" name="Changes" comment="Add Flux variables CSV and enhance micromet functionality&#10;&#10;Added a comprehensive CSV file for Flux variables, enhancing data tracking. Updated multiple scripts in the micromet package to improve configuration handling, CSV path management, and file compilation. Moreover, introduced new dependencies in the environment file and pyproject.toml to support enhanced data visualization and statistical analysis features.">
-      <change beforePath="$PROJECT_DIR$/Notebooks/DL_test.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/Notebooks/DL_test.ipynb" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/micromet/converter.py" beforeDir="false" afterPath="$PROJECT_DIR$/micromet/converter.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/micromet/graphs.py" beforeDir="false" afterPath="$PROJECT_DIR$/micromet/graphs.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/station_config/US-UTW.ini" beforeDir="false" afterPath="$PROJECT_DIR$/station_config/US-UTW.ini" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/micromet/Run_AMF_Daily.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/micromet/Run_AMF_Monthly.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/micromet/ec.py" beforeDir="false" afterPath="$PROJECT_DIR$/micromet/ec.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/micromet/evaplib.py" beforeDir="false" afterPath="$PROJECT_DIR$/micromet/evaplib.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/micromet/ffp.py" beforeDir="false" afterPath="$PROJECT_DIR$/micromet/ffp.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/micromet/meteolib.py" beforeDir="false" afterPath="$PROJECT_DIR$/micromet/meteolib.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/micromet/tob_converter.py" beforeDir="false" afterPath="$PROJECT_DIR$/micromet/tob_converter.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/micromet/tools.py" beforeDir="false" afterPath="$PROJECT_DIR$/micromet/tools.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pyproject.toml" beforeDir="false" afterPath="$PROJECT_DIR$/pyproject.toml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -34,12 +40,12 @@
     &quot;assignee&quot;: &quot;inkenbrandt&quot;
   }
 }</component>
-  <component name="GithubPullRequestsUISettings">{
-  &quot;selectedUrlAndAccountId&quot;: {
-    &quot;url&quot;: &quot;https://github.com/inkenbrandt/MicroMet&quot;,
-    &quot;accountId&quot;: &quot;d2db7b48-2b8c-4493-906f-bd8f290bcb95&quot;
+  <component name="GithubPullRequestsUISettings"><![CDATA[{
+  "selectedUrlAndAccountId": {
+    "url": "https://github.com/utah-geological-survey/MicroMet.git",
+    "accountId": "d2db7b48-2b8c-4493-906f-bd8f290bcb95"
   }
-}</component>
+}]]></component>
   <component name="MarkdownSettingsMigration">
     <option name="stateVersion" value="1" />
   </component>
@@ -55,9 +61,9 @@
   "keyToString": {
     "RunOnceActivity.OpenProjectViewOnStart": "true",
     "RunOnceActivity.ShowReadmeOnStart": "true",
-    "git-widget-placeholder": "master",
+    "git-widget-placeholder": "main",
     "ignore.virus.scanning.warn.message": "true",
-    "last_opened_file_path": "G:/Shared drives/UGS_Flux/Data_Processing/Jupyter_Notebooks/Micromet",
+    "last_opened_file_path": "C:/Users/paulinkenbrandt/Documents/GitHub/MicroMet",
     "node.js.detected.package.eslint": "true",
     "node.js.detected.package.tslint": "true",
     "node.js.selected.package.eslint": "(autodetect)",
@@ -107,6 +113,7 @@
       <workItem from="1727788416260" duration="5165000" />
       <workItem from="1727808155312" duration="4873000" />
       <workItem from="1729712702607" duration="675000" />
+      <workItem from="1730502603769" duration="1916000" />
     </task>
     <task id="LOCAL-00001" summary="Add 'secrets' and 'station_data' to .gitignore&#10;&#10;The commit introduces two new entries to the .gitignore file. The '/secrets/' and '/station_data/' directories are now ignored to prevent sensitive or unnecessary data from being tracked by git.">
       <option name="closed" value="true" />

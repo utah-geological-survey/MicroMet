@@ -1,12 +1,6 @@
-import os
 import numpy as np
 from datetime import datetime, timedelta
 import re
-
-import struct
-
-import datetime as datetime
-from operator import itemgetter
 
 __author__ = 'spirro00'
 

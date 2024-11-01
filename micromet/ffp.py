@@ -1,34 +1,13 @@
-from __future__ import annotations
-
-import matplotlib.pyplot as plt
-import matplotlib
-import numpy as np
 from matplotlib.colors import LogNorm
 from scipy import signal as sg
-
 import refet
-import utm
 import pynldas2 as nldas
-import scipy
-
-# import calc_footprint_FFP_climatology as myfootprint_s
 import matplotlib.pyplot as plt
 import matplotlib
-import numpy as np
 import pandas as pd
-import xarray as xr
-
-# import shapefile
-import rasterio
-import cv2
+import numpy as np
 from affine import Affine
-import pyproj as proj
 
-# import cartopy.crs as ccrs
-import traceback
-import os
-import datetime as dt
-import scipy
 
 
 class ffp_climatology:
@@ -1400,31 +1379,46 @@ def mask_fp_cutoff(f_array, cutoff=0.9):
     return f_array
 
 
-def find_transform(xs, ys):
+
+
+def calculate_affine_transform(xs, ys):
     """
-    Returns the affine transform for 2d arrays xs and ys
+    Calculate the affine transform for 2D coordinate arrays.
 
     Args:
-        xs (float) : 2D numpy array of x-coordinates
-        ys (float) : 2D numpy array of y-coordinates
+        xs (numpy.ndarray): 2D array of x-coordinates
+        ys (numpy.ndarray): 2D array of y-coordinates
 
     Returns:
-        aff_transform : affine.Affine object
+        affine.Affine: Affine transform object
+
+    Raises:
+        ValueError: If input arrays are not 2D or don't have the same shape
     """
+    # Input validation
+    if xs.ndim != 2 or ys.ndim != 2:
+        raise ValueError("Input arrays must be 2-dimensional")
+    if xs.shape != ys.shape:
+        raise ValueError("Input arrays must have the same shape")
 
-    shape = xs.shape
+    # Calculate pixel sizes
+    cell_width = (xs[0, 1] - xs[0, 0])
+    cell_height = (ys[0, 0] - ys[1, 0])
 
-    # Choose points to calculate affine transform
-    y_points = [0, 0, shape[0] - 1]
-    x_points = [0, shape[0] - 1, shape[1] - 1]
-    in_xy = np.float32([[i, j] for i, j in zip(x_points, y_points)])
-    out_xy = np.float32([[xs[i, j], ys[i, j]] for i, j in zip(y_points, x_points)])
+    # Get rotation angles (if any) from the coordinate differences
+    rotation_x = np.arctan2(ys[0, 1] - ys[0, 0], xs[0, 1] - xs[0, 0])
+    rotation_y = np.arctan2(ys[1, 0] - ys[0, 0], xs[1, 0] - xs[0, 0])
 
-    # Calculate affine transform
-    aff_transform = Affine(*cv2.getAffineTransform(in_xy, out_xy).flatten())
+    # Calculate transform components
+    a = cell_width * np.cos(rotation_x)
+    b = cell_width * np.sin(rotation_x)
+    c = xs[0, 0]  # x-offset
+    d = -cell_height * np.sin(rotation_y)
+    e = -cell_height * np.cos(rotation_y)
+    f = ys[0, 0]  # y-offset
 
-    return aff_transform
-
+    # Create and return the affine transform
+    return Affine(a, b, c, d, e, f)
 
 def ref_et_from_nldas(
     date="2020-07-01 10:00", latitude=41.1, longitude=-112.1, zm=10.0, elevation=1025.0
@@ -1481,105 +1475,6 @@ def ref_et_from_nldas(
     df.index.name = "date"
 
     return df
-
-
-def weight_raster(x_2d, y_2d, f_2d, flux_raster):
-    """
-    Calculates the weighted sum of values in a raster based on the provided x, y coordinates and footprint values.
-
-    Parameters:
-    - x_2d: 2D array-like. The x-coordinates of the raster.
-    - y_2d: 2D array-like. The y-coordinates of the raster.
-    - f_2d: 2D array-like. The footprint values of the raster.
-    - flux_raster: 2D array-like. The raster containing the values to be weighted.
-
-    Returns:
-    - The weighted sum of values in the flux_raster.
-
-    Note: This method uses a KD tree to find the closest points in the raster to the provided coordinates.
-
-    """
-
-    # Flatten arrays and create kd tress from x,y points
-    footprint_df = (
-        pd.DataFrame(
-            {"x_foot": x_2d.ravel(), "y_foot": y_2d.ravel(), "footprint": f_2d.ravel()}
-        )
-        .dropna()
-        .reset_index()
-    )
-    points = np.column_stack(
-        [footprint_df["x_foot"].values, footprint_df["y_foot"].values]
-    )
-    dist, idx = kd_tree.query(list(points))
-    footprint_df["x"] = combine_xy_df.loc[idx, "x_ls"].reset_index()["x_ls"]
-    footprint_df["y"] = combine_xy_df.loc[idx, "y_ls"].reset_index()["y_ls"]
-
-    # Calculate cumulative sum for the footprint weights
-    weights = footprint_df.groupby(["x", "y"], as_index=False).agg({"footprint": "sum"})
-
-    test_weights = []
-    test_efs = []
-
-    # Loop through weights, find closest raster points, and sum up weights for each raster point
-    for p in weights.index:
-        pixel_weight = weights["footprint"][p]
-        x, y = weights["x"][p], weights["y"][p]
-        temp_ef = combine_xy_df[
-            (combine_xy_df["x_ls"] == x) & (combine_xy_df["y_ls"] == y)
-        ]["ef"].values
-        weighted_ef = pixel_weight * temp_ef
-        test_efs.append(temp_ef)
-        test_weights.append(pixel_weight)
-
-    efs = np.array(test_efs).ravel()
-    weights = np.array(test_weights).ravel()
-
-    return np.sum(efs * weights)
-
-
-def footprint_cdktree(
-    raster,
-):
-    # temp_nc = ls8.sel(time=t.strftime('%Y-%m-%d'))
-    # Calculate ckd tree of landsat images
-    ls_x = temp_nc["x"].values
-    ls_y = temp_nc["y"].values
-    ls_xx, ls_yy = np.meshgrid(ls_x, ls_y)
-    ls_xflat = ls_xx.ravel()
-    ls_yflat = ls_yy.ravel()
-    dummy_mask = temp_nc["EF"].values.ravel()
-
-    combine_xy_df = pd.DataFrame({"x_ls": ls_xflat, "y_ls": ls_yflat, "ef": dummy_mask})
-    combine_xy_df = combine_xy_df.dropna().reset_index()
-
-    combine_xy = np.column_stack(
-        [combine_xy_df["x_ls"].values, combine_xy_df["y_ls"].values]
-    )
-
-    kd_tree = scipy.spatial.cKDTree(list(combine_xy))
-
-    return kd_tree
-
-
-def plot_footprint():
-    # Plot out footprints
-    fig, ax = plt.subplots(**{"figsize": (10, 10)})
-    fprint = ax.pcolormesh(x_2d, y_2d, f_2d)
-    cbar = fig.colorbar(fprint)
-    cbar.set_label(
-        label="Footprint Contribution (per point)",
-        fontsize="xx-large",
-        rotation=270,
-        labelpad=40,
-    )
-    time = t.strftime("%Y-%m-%d")
-    ax.grid(ls="--")
-    ax.set_xlim(station_x - origin_d, station_x + origin_d)
-    ax.set_ylim(station_y - origin_d, station_y + origin_d)
-    ax.set_title(t)
-    plt.savefig(f"{time}.png", transparent=True)
-
 
 def read_compiled_input(path):
     """

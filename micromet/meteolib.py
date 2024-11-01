@@ -715,9 +715,3 @@ def windvec(u=scipy.array([]), D=scipy.array([])):
             Dv = vdir
     return uv, Dv  # uv in m/s, Dv in dgerees from North
 
-
-if __name__ == "__main__":
-    import doctest
-
-    doctest.testmod()
-    print('Ran all tests...')

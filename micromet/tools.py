@@ -2,7 +2,6 @@
 import matplotlib.pyplot as plt
 from scipy.signal import find_peaks
 
-
 def find_irr_dates(
     df, swc_col="SWC_1_1_1", do_plot=False, dist=20, height=30, prom=0.6
 ):

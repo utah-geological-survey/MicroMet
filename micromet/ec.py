@@ -2,17 +2,9 @@
 # Transcibed from original Visual Basic scripts by Clayton Lewis and Lawrence Hipps
 
 import pandas as pd
-# import scipy
 import numpy as np
 from scipy import signal
 import statsmodels.api as sm
-# import dask as dd
-# Public Module EC
-
-
-from typing import TypeVar, Generic
-
-from statsmodels.tools.sm_exceptions import MissingDataError
 
 
 # Useful Links to help in solving some calculation issues
