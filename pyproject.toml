@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "micromet"
-version = "0.2.0"
+version = "0.3.0"
 description = "A microclimate analysis tool"
 authors = [
     { name = "Paul Inkenbrandt", email = "paulinkenbrandt@utah.gov" }
@@ -38,5 +38,5 @@ dev = [
 ]
 
 [project.urls]
-homepage = "https://github.com/inkenbrandt/MicroMet"
-repository = "https://github.com/inkenbrandt/MicroMet"
+homepage = "https://github.com/utah-geological-survey/MicroMet"
+repository = "https://github.com/utah-geological-survey/MicroMet"

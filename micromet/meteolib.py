@@ -1,717 +1,1134 @@
-# -*- coding: utf-8 -*-
+
 """
-Library of functions for meteorology.
-modified from: http://python.hydrology-amsterdam.nl/
+Improved Meteorological Library
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Meteorological function names
-=============================
-
-    - cp_calc:    Calculate specific heat
-    - Delta_calc: Calculate slope of vapour pressure curve
-    - es_calc:    Calculate saturation vapour pressures
-    - ea_calc:    Calculate actual vapour pressures
-    - gamma_calc: Calculate psychrometric constant
-    - L_calc:     Calculate latent heat of vapourisation
-    - pottemp:    Calculate potential temperature (1000 hPa reference pressure)
-    - rho_calc:   Calculate air density
-    - sun_NR:     Maximum sunshine duration [h] and extraterrestrial radiation [J/day]
-    - vpd_calc:   Calculate vapour pressure deficits
-    - windvec:    Calculate average wind direction and speed
-
-Module requires and imports math and scipy modules.
-
-Tested for compatibility with Python 2.7.
-
-Function descriptions
-=====================
+A modern Python library for meteorological calculations.
 
 """
 
-# Load relevant python functions
-
-import math  # import math library
+from typing import Union, Tuple, Optional, Dict
 import numpy as np
-import scipy  # import scientific python functions
+from dataclasses import dataclass
+import logging
+from enum import Enum
+import warnings
 
-__author__ = "Maarten J. Waterloo <m.j.waterloo@vu.nl> and J. Delsman"
-__version__ = "1.0"
-__date__ = "November 2014"
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
-
-def meteolib():
-    """
-    A library of functions for the calculation of micrometeorological parameters.
-    This prints a list of functions, and information about the author, version, and last modification date.
-
-    Functions
-    ---------
-    - cp_calc: Calculate specific heat.
-    - Delta_calc: Calculate slope of the vapour pressure curve.
-    - ea_calc: Calculate actual vapour pressures.
-    - es_calc: Calculate saturation vapour pressures.
-    - gamma_calc: Calculate psychrometric constant.
-    - L_calc: Calculate latent heat of vapourisation.
-    - pottemp: Calculate potential temperature (1000 hPa reference pressure).
-    - rho_calc: Calculate air density.
-    - sun_NR: Calculate extraterrestrial radiation and daylength.
-    - vpd_calc: Calculate vapour pressure deficits.
-    - windvec: Calculate average wind direction and speed.
-
-    Author: {}
-    Version: {}
-    Date: {}
-    """.format(__author__, __version__, __date__)
-    print(meteolib.__doc__)
+# Constants
+GRAVITY = 9.81  # Acceleration due to gravity [m/s^2]
+VON_KARMAN = 0.41  # von Karman constant
+STEFAN_BOLTZMANN = 5.67e-8  # Stefan-Boltzmann constant [W/m^2/K^4]
 
 
+def validate_inputs(**kwargs) -> None:
+    """Validate input parameters"""
+    for name, value in kwargs.items():
+        if isinstance(value, (np.ndarray, list, tuple)):
+            if not all(np.isfinite(x) for x in np.asarray(value).flatten()):
+                raise MeteoError(f"Invalid {name}: contains non-finite values")
+        elif not np.isfinite(value):
+            raise MeteoError(f"Invalid {name}: {value} is not finite")
 
-
-def convert_to_array(*args):
-    """
-    Function to convert input parameters in as lists or tuples to
-    arrays, while leaving single values intact.
-    Test function for single values or valid array parameter input.
-    Parameters:
-        args (array, list, tuple, int, float): Input values for functions.
-    Returns:
-        valid_args (array, int, float): Valid single value or array function input.
-    Examples
-    --------
-        >>> convert_to_array(12.76)
-        12.76
-        >>> convert_to_array([(1,2,3,4,5),(6,7,8,9)])
-        array([(1, 2, 3, 4, 5), (6, 7, 8, 9)], dtype=object)
-        >>> x=[1.2,3.6,0.8,1.7]
-        >>> convert_to_array(x)
-        array([ 1.2,  3.6,  0.8,  1.7])
-        >>> convert_to_array('This is a string')
-        'This is a string'
-    """
-    valid_args = []
-    for a in args:
-        if isinstance(a, (list, tuple)):
-            valid_args.append(np.array(a))
+def to_array(*args):
+    """Convert inputs to numpy arrays while preserving single values"""
+    results = []
+    for arg in args:
+        if isinstance(arg, (list, tuple)):
+            results.append(np.array(arg))
         else:
-            valid_args.append(a)
-    return valid_args[0] if len(valid_args) == 1 else valid_args
+            results.append(arg)
+    return results[0] if len(results) == 1 else results
 
 
-def cp_calc(airtemp=scipy.array([]), \
-            rh=scipy.array([]), \
-            airpress=scipy.array([])):
+class TemperatureUnit(Enum):
+    """Temperature unit enumeration"""
+    CELSIUS = "C"
+    KELVIN = "K"
+    FAHRENHEIT = "F"
+
+@dataclass
+class MeteoConfig:
+    """Configuration parameters for meteorological calculations"""
+    temp_unit: TemperatureUnit = TemperatureUnit.CELSIUS
+    validate_inputs: bool = True
+    raise_warnings: bool = True
+
+
+class MeteoError(Exception):
+    """Base exception class for meteorological calculation errors"""
+    pass
+
+
+
+@dataclass
+class SolarResults:
+    """Container for solar calculation results"""
+    max_sunshine_hours: Union[float, np.ndarray]
+    extraterrestrial_radiation: Union[float, np.ndarray]
+
+@dataclass
+class MeteoConfig:
+    """Configuration parameters for meteorological calculations"""
+    temp_unit: TemperatureUnit = TemperatureUnit.CELSIUS
+    validate_inputs: bool = True
+    raise_warnings: bool = True
+
+class MeteoError(Exception):
+    """Base exception class for meteorological calculation errors"""
+    pass
+
+class MeteoCalculator:
     """
-    Function to calculate the specific heat of air.
+    Modern implementation of meteorological calculations.
 
-    Parameters:
-        - airtemp: (array of) air temperature [Celsius].
-        - rh: (array of) relative humidity data [%].
-        - airpress: (array of) air pressure data [Pa].
-
-    Returns:
-        cp: array of saturated c_p values [J kg-1 K-1].
-
-    References
-    ----------
-
-    R.G. Allen, L.S. Pereira, D. Raes and M. Smith (1998). Crop
-    Evaporation Guidelines for computing crop water requirements,
-    FAO - Food and Agriculture Organization of the United Nations.
-    Irrigation and drainage paper 56, Chapter 3. Rome, Italy.
-    (http://www.fao.org/docrep/x0490e/x0490e07.htm)
-
-    Examples
-    --------
-
-        >>> cp_calc(25,60,101300)
-        1014.0749457208065
-        >>> t = [10, 20, 30]
-        >>> rh = [10, 20, 30]
-        >>> airpress = [100000, 101000, 102000]
-        >>> cp_calc(t,rh,airpress)
-        array([ 1005.13411289,  1006.84399787,  1010.83623841])
-
-    """
-
-    # Test input array/value
-    airtemp, rh, airpress = convert_to_array(airtemp, rh, airpress)
-
-    # calculate vapour pressures
-    eact = ea_calc(airtemp, rh)
-    # Calculate cp
-    cp = 0.24 * 4185.5 * (1 + 0.8 * (0.622 * eact / (airpress - eact)))
-    return cp  # in J/kg/K
-
-
-def delta_calc(airtemp=scipy.array([])):
-    """
-    Function to calculate the slope of the temperature - vapour pressure curve
-    (Delta) from air temperatures.
-
-    Parameters:
-        - airtemp: (array of) air temperature [Celsius].
-
-    Returns:
-        - Delta: (array of) slope of saturated vapour curve [Pa K-1].
-
-    References
-    ----------
-
-    Technical regulations 49, World Meteorological Organisation, 1984.
-    Appendix A. 1-Ap-A-3.
-
-    Examples
-    --------
-        >>> delta_calc(30.0)
-        243.34309166827094
-        >>> x = [20, 25]
-        >>> delta_calc(x)
-        array([ 144.6658414 ,  188.62504569])
-
+    Features:
+    - Type checking
+    - Input validation
+    - Vectorized operations
+    - Comprehensive error handling
     """
 
-    # Test input array/value
-    airtemp = convert_to_array(airtemp)
+    def __init__(self, config: Optional[MeteoConfig] = None):
+        """Initialize calculator with optional configuration"""
+        self.config = config or MeteoConfig()
 
-    # calculate saturation vapour pressure at temperature
-    es = es_calc(airtemp)  # in Pa
-    # Convert es (Pa) to kPa
-    es = es / 1000.0
-    # Calculate Delta
-    delta = es * 4098.0 / ((airtemp + 237.3) ** 2) * 1000
-    return delta  # in Pa/K
+    @staticmethod
+    def _validate_inputs(**kwargs) -> None:
+        """
+        Validate meteorological input parameters.
 
+        Args:
+            **kwargs: Keyword arguments containing parameters to validate.
+                Recognized parameters:
+                - airtemp: Air temperature [°C]
+                - rh: Relative humidity [%]
+                - airpress: Air pressure [Pa]
 
-def ea_calc(airtemp=scipy.array([]), rh=scipy.array([])):
-    """
-    Function to calculate actual saturation vapour pressure.
+        Raises:
+            MeteoError: If any input parameter is invalid
+        """
+        # Physical limits
+        LIMITS = {
+            'airtemp': (-273.15, 100),  # Physical minimum to reasonable maximum
+            'rh': (0, 100),  # Physical range for relative humidity
+            'airpress': (1000, 120000)  # From high mountains to deepest valleys
+        }
 
-    Parameters:
-        - airtemp: array of measured air temperatures [Celsius].
-        - rh: Relative humidity [%].
+        for name, value in kwargs.items():
+            # Skip if None (optional parameter)
+            if value is None:
+                continue
 
-    Returns:
-        - ea: array of actual vapour pressure [Pa].
+            # Convert to numpy array for consistent handling
+            value = np.asarray(value)
 
-    Examples
-    --------
+            # Check for non-finite values
+            if np.any(~np.isfinite(value)):
+                raise MeteoError(f"Invalid {name}: contains non-finite values")
 
-        >>> ea_calc(25,60)
-        1900.0946514729308
+            # Check physical limits if defined
+            if name in LIMITS:
+                min_val, max_val = LIMITS[name]
+                if np.any(value < min_val) or np.any(value > max_val):
+                    raise MeteoError(
+                        f"Invalid {name}: must be between {min_val} and {max_val}, "
+                        f"got {value}"
+                    )
 
-    """
+    def specific_heat(self,
+                      airtemp: Union[float, np.ndarray],
+                      rh: Union[float, np.ndarray],
+                      airpress: Union[float, np.ndarray]) -> Union[float, np.ndarray]:
+        """
+        Calculate specific heat of air.
 
-    # Test input array/value
-    airtemp, rh = convert_to_array(airtemp, rh)
+        Args:
+            airtemp: Air temperature [°C]
+            rh: Relative humidity [%]
+            airpress: Air pressure [Pa]
 
-    # Calculate saturation vapour pressures
-    es = es_calc(airtemp)
-    # Calculate actual vapour pressure
-    eact = rh / 100.0 * es
-    return eact  # in Pa
+        Returns:
+            Specific heat [J kg⁻¹ K⁻¹]
+        """
+        # Convert inputs to numpy arrays
+        airtemp = np.asarray(airtemp)
+        rh = np.asarray(rh)
+        airpress = np.asarray(airpress)
 
+        if self.config.validate_inputs:
+            self._validate_inputs(airtemp=airtemp, rh=rh, airpress=airpress)
 
-def calc_sat_vapor_press_ice(temperature):
-    """
-    Calculate the saturation vapor pressure over ice.
+        # Calculate vapor pressures
+        eact = self.actual_vapor_pressure(airtemp, rh)
 
-    This function computes the saturation vapor pressure over ice
-    for a given temperature using the Goff-Gratch equation (1946).
+        # Vectorized calculation
+        cp = 0.24 * 4185.5 * (1 + 0.8 * (0.622 * eact / (airpress - eact)))
+        return cp
 
-    Parameters:
-    -----------
-    temperature : float
-        Air temperature in degrees Celsius.
+    def vapor_pressure_slope(self,
+                             airtemp: Union[float, np.ndarray]) -> Union[float, np.ndarray]:
+        """
+        Calculate slope of temperature-vapor pressure curve.
 
-    Returns:
-    --------
-    float
-        Saturation vapor pressure over ice in hectopascals (hPa).
+        Args:
+            airtemp: Air temperature [°C]
 
-    Notes:
-    ------
-    - This function uses the Goff-Gratch equation for ice, which is considered
-      one of the most accurate formulations for saturation vapor pressure over ice.
-    - The equation is valid for temperatures below 0°C (273.15 K).
-    - The function does not include any error handling for temperatures above freezing.
-      For temperatures above 0°C, consider using a function for saturation vapor pressure
-      over liquid water instead.
+        Returns:
+            Slope [Pa K⁻¹]
+        """
+        airtemp = np.asarray(airtemp)
 
-    Formula:
-    --------
-    The Goff-Gratch equation for ice used in this function is:
+        if self.config.validate_inputs:
+            self._validate_inputs(airtemp=airtemp)
 
-    log10(ei) = -9.09718 * (273.16/T - 1)
-                - 3.56654 * log10(273.16/T)
-                + 0.876793 * (1 - T/273.16)
-                + log10(6.1071)
+        # Calculate saturation vapor pressure
+        es = self.saturation_vapor_pressure(airtemp)
+        es_kpa = es / 1000.0
 
-    where:
-    - ei is the saturation vapor pressure over ice in hPa
-    - T is the absolute temperature in Kelvin
+        # Vectorized calculation using numpy
+        delta = es_kpa * 4098.0 / ((airtemp + 237.3) ** 2) * 1000
+        return delta
 
-    Example:
-    --------
-    >>> calc_sat_vapor_press_ice(-10)
-    2.5989  # Example output, actual value may differ slightly
+    def saturation_vapor_pressure(self, airtemp: Union[float, np.ndarray]) -> Union[float, np.ndarray]:
+        """
+        Calculate saturation vapor pressure using the Buck equation (1981).
 
-    References:
-    -----------
-    Goff, J. A., and S. Gratch (1946) Low-pressure properties of water from -160 to
-    212 F. Transactions of the American Society of Heating and Ventilating Engineers,
-    pp 95-122, presented at the 52nd annual meeting of the American Society of Heating
-    and Ventilating Engineers, New York, 1946.
+        This formulation is simpler than Goff-Gratch but still highly accurate
+        (within 0.05% of full Goff-Gratch equation).
 
-    See Also:
-    ---------
-    calc_sat_vapor_press_water : Function to calculate saturation vapor pressure over liquid water
-    """
-    # Function implementation...
-    log_pi = - 9.09718 * (273.16 / (temperature + 273.15) - 1.0) \
-             - 3.56654 * math.log10(273.16 / (temperature + 273.15)) \
-             + 0.876793 * (1.0 - (temperature + 273.15) / 273.16) \
-             + math.log10(6.1071)
-    return math.pow(10, log_pi)
+        Args:
+            airtemp: Air temperature [°C]
 
+        Returns:
+            Saturation vapor pressure [Pa]
 
-def calc_sat_vapor_press_water(temperature):
-    """
-    Calculate the saturation vapor pressure over liquid water.
+        References:
+            Buck, A.L., 1981: New equations for computing vapor pressure and
+            enhancement factor. J. Appl. Meteorol., 20, 1527-1532.
 
-    This function computes the saturation vapor pressure over liquid water
-    for a given temperature using the Goff-Gratch equation (1946).
+        Warns:
+            UserWarning: If temperature is outside recommended range (-80 to 50°C)
+        """
 
-    Parameters:
-    -----------
-    temperature : float
-        Air temperature in degrees Celsius.
+        airtemp = np.asarray(airtemp)
 
-    Returns:
-    --------
-    float
-        Saturation vapor pressure over liquid water in hectopascals (hPa).
+        # Input validation and warnings
+        if self.config.validate_inputs:
+            self._validate_inputs(airtemp=airtemp)
 
-    Notes:
-    ------
-    - This function uses the Goff-Gratch equation, which is considered one of the most
-      accurate formulations for saturation vapor pressure over liquid water.
-    - The equation is valid for temperatures above 0°C (273.15 K).
-    - The function does not include any error handling for temperatures below freezing.
-      For temperatures below 0°C, consider using a function for saturation vapor pressure
-      over ice instead.
+        # Check temperature range and issue warning
+        TEMP_MIN = -80
+        TEMP_MAX = 50
+        if np.any(airtemp < TEMP_MIN) or np.any(airtemp > TEMP_MAX):
+            warnings.warn(
+                f"Temperature {airtemp}°C is outside recommended range "
+                f"({TEMP_MIN} to {TEMP_MAX}°C). Results may be inaccurate.",
+                UserWarning
+            )
 
-    Formula:
-    --------
-    The Goff-Gratch equation used in this function is:
+        # Constants for Buck equation
+        a_water = 17.502
+        b_water = 240.97
+        a_ice = 22.587
+        b_ice = 273.86
+        es0 = 611.21  # Reference vapor pressure at 0°C
 
-    log10(ew) = 10.79574 * (1 - 273.16/T)
-                - 5.02800 * log10(T/273.16)
-                + 1.50475E-4 * (1 - 10^(-8.2969 * (T/273.16 - 1)))
-                + 0.42873E-3 * (10^(4.76955 * (1 - 273.16/T)) - 1)
-                + 0.78614
+        # For better numerical stability around 0°C, use a smooth transition
+        # between ice and water formulations
+        weight = 1 / (1 + np.exp(-2 * airtemp))  # Sigmoid function
 
-    where:
-    - ew is the saturation vapor pressure in hPa
-    - T is the absolute temperature in Kelvin
+        # Calculate both ice and water formulations
+        es_water = es0 * np.exp(a_water * airtemp / (b_water + airtemp))
+        es_ice = es0 * np.exp(a_ice * airtemp / (b_ice + airtemp))
 
-    Example:
-    --------
-    >>> calc_sat_vapor_press_water(20)
-    23.3855  # Example output, actual value may differ slightly
+        # Blend the two formulations smoothly
+        es = es_ice * (1 - weight) + es_water * weight
 
-    References:
-    -----------
-    Goff, J. A., and S. Gratch (1946) Low-pressure properties of water from -160 to
-    212 F. Transactions of the American Society of Heating and Ventilating Engineers,
-    pp 95-122, presented at the 52nd annual meeting of the American Society of Heating
-    and Ventilating Engineers, New York, 1946.
+        return es
 
-    See Also:
-    ---------
-    calc_sat_vapor_press_ice : Function to calculate saturation vapor pressure over ice
-    """
+    @staticmethod
+    def _saturation_vapor_pressure_ice(temp: np.ndarray) -> np.ndarray:
+        """Calculate saturation vapor pressure over ice"""
+        T = temp + 273.15
+        return np.exp((-9.09718 * (273.16 / T - 1.0)
+                       - 3.56654 * np.log10(273.16 / T)
+                       + 0.876793 * (1.0 - T / 273.16)
+                       + np.log10(6.1071)))
 
-    log_pw = 10.79574 * (1.0 - 273.16 / (temperature + 273.15)) \
-             - 5.02800 * math.log10((temperature + 273.15) / 273.16) \
-             + 1.50475E-4 * (1 - math.pow(10, (-8.2969 \
-                                               * ((temperature + 273.15) / 273.16 - 1.0)))) + 0.42873E-3 \
-             * (math.pow(10, (+4.76955 * (1.0 - 273.16 \
-                                          / (temperature + 273.15)))) - 1) + 0.78614
-    return math.pow(10, log_pw)
+    @staticmethod
+    def _saturation_vapor_pressure_water(temp: np.ndarray) -> np.ndarray:
+        """Calculate saturation vapor pressure over water"""
+        T = temp + 273.15
+        return np.exp((10.79574 * (1.0 - 273.16 / T)
+                       - 5.02800 * np.log10(T / 273.16)
+                       + 1.50475e-4 * (1 - 10 ** (-8.2969 * (T / 273.16 - 1.0)))
+                       + 0.42873e-3 * (10 ** (4.76955 * (1.0 - 273.16 / T)) - 1)
+                       + 0.78614))
 
+    def wind_vector(self,
+                    speed: Union[float, np.ndarray],
+                    direction: Union[float, np.ndarray]) -> Tuple[Union[float, np.ndarray],
+    Union[float, np.ndarray]]:
+        """
+        Calculate wind vector from speed and direction.
 
-def es_calc(airtemp=scipy.array([])):
-    """
-    Calculate saturation vapor pressure based on air temperature.
+        Args:
+            speed: Wind speed [m s⁻¹]
+            direction: Wind direction [degrees from North]
 
-    This function computes the saturation vapor pressure for given air temperature(s).
-    It handles both single values and arrays, and uses different calculation methods
-    for temperatures above and below freezing.
+        Returns:
+            Tuple of (vector speed [m s⁻¹], vector direction [degrees])
+        """
+        speed = np.asarray(speed)
+        direction = np.asarray(direction)
 
-    Parameters:
-    -----------
-    airtemp : array_like or float, optional
-        Air temperature in degrees Celsius. Can be a single value or an array.
-        Default is an empty SciPy array.
+        if self.config.validate_inputs:
+            self._validate_inputs(speed=speed, direction=direction)
 
-    Returns:
-    --------
-    saturation_vapour_pressure : ndarray or float
-        Saturation vapor pressure in Pascals (Pa). The shape of the output matches
-        the input: a single value for a single input, or an array for array input.
+        # Convert direction to radians
+        dir_rad = np.radians(direction)
 
-    Notes:
-    ------
-    - For temperatures below 0°C, saturation vapor pressure over ice is calculated.
-    - For temperatures at or above 0°C, saturation vapor pressure over water is calculated.
-    - The function uses helper functions `calc_sat_vapor_press_ice` and
-      `calc_sat_vapor_press_water` (not shown in the provided code).
-    - Input is converted to an array using `convert_to_array` function (not provided).
-    - Output is converted from hectopascals (hPa) to pascals (Pa).
+        # Calculate vector components
+        ve = -np.mean(speed * np.sin(dir_rad))
+        vn = -np.mean(speed * np.cos(dir_rad))
 
-    Examples:
-    ---------
-    >>> es_calc(25)
-    3169.2  # Example output, actual value may differ
+        # Calculate magnitude and direction
+        magnitude = np.sqrt(ve ** 2 + vn ** 2)
+        vector_dir = np.degrees(np.arctan2(ve, vn))
 
-    >>> es_calc([0, 10, 20, 30])
-    array([611.2, 1228.1, 2339.3, 4246.0])  # Example output, actual values may differ
+        # Adjust direction
+        vector_dir = np.where(vector_dir < 180,
+                              vector_dir + 180,
+                              np.where(vector_dir > 180,
+                                       vector_dir - 180,
+                                       vector_dir))
 
-    Raises:
-    -------
-    TypeError
-        If input cannot be converted to a numeric type.
+        return magnitude, vector_dir
 
-    See Also:
-    ---------
-    calc_sat_vapor_press_ice : Function to calculate saturation vapor pressure over ice
-    calc_sat_vapor_press_water : Function to calculate saturation vapor pressure over water
-    """
-    airtemp = convert_to_array(airtemp)
-    n = scipy.size(airtemp)
+    def actual_vapor_pressure(self,
+                              airtemp: Union[float, np.ndarray],
+                              rh: Union[float, np.ndarray]) -> Union[float, np.ndarray]:
+        """
+        Calculate actual vapor pressure from air temperature and relative humidity.
 
-    if isinstance(airtemp, np.ndarray):
-        saturation_vapour_pressure = scipy.zeros(n)
-        for i in range(0, n):
-            if airtemp[i] < 0:
-                saturation_vapour_pressure[i] = calc_sat_vapor_press_ice(airtemp[i])
+        Args:
+            airtemp: Air temperature [°C]
+            rh: Relative humidity [%]
+
+        Returns:
+            Actual vapor pressure [Pa]
+
+        Examples:
+            >>> calc = MeteoCalculator()
+            >>> calc.actual_vapor_pressure(25, 60)
+            1900.09
+        """
+        airtemp = np.asarray(airtemp)
+        rh = np.asarray(rh)
+
+        if self.config.validate_inputs:
+            self._validate_inputs(airtemp=airtemp, rh=rh)
+            if np.any((rh < 0) | (rh > 100)):
+                raise MeteoError("Relative humidity must be between 0-100%")
+
+        # Calculate saturation vapor pressure and actual vapor pressure
+        es = self.saturation_vapor_pressure(airtemp)
+        ea = rh / 100.0 * es
+
+        return ea
+
+    def psychrometric_constant(self,
+                               airtemp: Union[float, np.ndarray],
+                               rh: Union[float, np.ndarray],
+                               airpress: Union[float, np.ndarray]) -> Union[float, np.ndarray]:
+        """
+        Calculate the psychrometric constant.
+
+        Args:
+            airtemp: Air temperature [°C]
+            rh: Relative humidity [%]
+            airpress: Air pressure [Pa]
+
+        Returns:
+            Psychrometric constant [Pa K⁻¹]
+
+        References:
+            Bringfelt (1986)
+        """
+        airtemp = np.asarray(airtemp)
+        rh = np.asarray(rh)
+        airpress = np.asarray(airpress)
+
+        if self.config.validate_inputs:
+            self._validate_inputs(airtemp=airtemp, rh=rh, airpress=airpress)
+
+        # Calculate specific heat and latent heat
+        cp = self.specific_heat(airtemp, rh, airpress)
+        L = self.latent_heat(airtemp)
+
+        # Calculate psychrometric constant
+        gamma = cp * airpress / (0.622 * L)
+
+        return gamma
+
+    def latent_heat(self,
+                    airtemp: Union[float, np.ndarray]) -> Union[float, np.ndarray]:
+        """
+        Calculate latent heat of vaporization for water.
+
+        Args:
+            airtemp: Air temperature [°C]
+
+        Returns:
+            Latent heat of vaporization [J kg⁻¹]
+
+        Notes:
+            Valid for temperature range -40 to +40 °C
+        """
+        airtemp = np.asarray(airtemp)
+
+        if self.config.validate_inputs:
+            self._validate_inputs(airtemp=airtemp)
+            if np.any((airtemp < -40) | (airtemp > 40)):
+                warnings.warn("Temperature outside recommended range (-40 to 40°C)")
+
+        # Vectorized calculation
+        L = 4185.5 * (751.78 - 0.5655 * (airtemp + 273.15))
+
+        return L
+
+    def potential_temperature(self,
+                              airtemp: Union[float, np.ndarray],
+                              rh: Union[float, np.ndarray],
+                              airpress: Union[float, np.ndarray],
+                              ref_press: float = 100000.0) -> Union[float, np.ndarray]:
+        """
+        Calculate potential temperature referenced to a pressure level.
+
+        Args:
+            airtemp: Air temperature [°C]
+            rh: Relative humidity [%]
+            airpress: Air pressure [Pa]
+            ref_press: Reference pressure level [Pa], default 100000 Pa (1000 hPa)
+
+        Returns:
+            Potential temperature [°C]
+        """
+        airtemp = np.asarray(airtemp)
+        rh = np.asarray(rh)
+        airpress = np.asarray(airpress)
+
+        if self.config.validate_inputs:
+            self._validate_inputs(airtemp=airtemp, rh=rh, airpress=airpress)
+
+        # Calculate specific heat
+        cp = self.specific_heat(airtemp, rh, airpress)
+
+        # Convert temperature to Kelvin for calculation
+        T = airtemp + 273.15
+
+        # Calculate potential temperature using Poisson's equation
+        theta = T * (ref_press / airpress) ** (287.0 / cp)
+
+        # Convert back to Celsius
+        return theta - 273.15
+
+    def air_density(self,
+                    airtemp: Union[float, np.ndarray],
+                    rh: Union[float, np.ndarray],
+                    airpress: Union[float, np.ndarray]) -> Union[float, np.ndarray]:
+        """
+        Calculate air density using the ideal gas law with moisture correction.
+
+        Args:
+            airtemp: Air temperature [°C]
+            rh: Relative humidity [%]
+            airpress: Air pressure [Pa]
+
+        Returns:
+            Air density [kg m⁻³]
+        """
+        airtemp = np.asarray(airtemp)
+        rh = np.asarray(rh)
+        airpress = np.asarray(airpress)
+
+        if self.config.validate_inputs:
+            self._validate_inputs(airtemp=airtemp, rh=rh, airpress=airpress)
+
+        # Calculate actual vapor pressure
+        ea = self.actual_vapor_pressure(airtemp, rh)
+
+        # Convert temperature to Kelvin
+        T = airtemp + 273.15
+
+        # Calculate density with moisture correction
+        rho = ((airpress - 0.378 * ea) / (287.05 * T))
+
+        return rho
+
+    def solar_parameters(self,
+                         doy: Union[float, np.ndarray],
+                         lat: float) -> SolarResults:
+        """
+        Calculate maximum sunshine duration and extraterrestrial radiation.
+
+        Args:
+            doy: Day of year [1-366]
+            lat: Latitude [degrees], negative for Southern hemisphere
+
+        Returns:
+            SolarResults object containing:
+                - max_sunshine_hours: Maximum possible sunshine duration [hours]
+                - extraterrestrial_radiation: Radiation at top of atmosphere [J day⁻¹]
+
+        Notes:
+            Valid for latitudes between -67° and +67°
+        """
+        doy = np.asarray(doy)
+
+        if self.config.validate_inputs:
+            self._validate_inputs(doy=doy)
+            if abs(lat) > 67:
+                warnings.warn("Latitude outside valid range (-67° to +67°)")
+            if np.any((doy < 1) | (doy > 366)):
+                raise MeteoError("Day of year must be between 1 and 366")
+
+        # Convert latitude to radians
+        lat_rad = np.radians(lat)
+
+        # Solar constant [W m⁻²]
+        S0 = 1367.0
+
+        # Calculate solar declination [radians]
+        decl = 0.409 * np.sin(2 * np.pi / 365 * doy - 1.39)
+
+        # Calculate sunset hour angle [radians]
+        ws = np.arccos(-np.tan(lat_rad) * np.tan(decl))
+
+        # Calculate maximum sunshine duration [hours]
+        N = 24 / np.pi * ws
+
+        # Calculate relative distance to sun
+        dr = 1 + 0.033 * np.cos(2 * np.pi * doy / 365.25)
+
+        # Calculate extraterrestrial radiation [J day⁻¹]
+        Ra = S0 * 86400 / np.pi * dr * (
+                ws * np.sin(lat_rad) * np.sin(decl) +
+                np.cos(lat_rad) * np.cos(decl) * np.sin(ws)
+        )
+
+        return SolarResults(N, Ra)
+
+    def vapor_pressure_deficit(self,
+                               airtemp: Union[float, np.ndarray],
+                               rh: Union[float, np.ndarray]) -> Union[float, np.ndarray]:
+        """
+        Calculate vapor pressure deficit.
+
+        Args:
+            airtemp: Air temperature [°C]
+            rh: Relative humidity [%]
+
+        Returns:
+            Vapor pressure deficit [Pa]
+        """
+        airtemp = np.asarray(airtemp)
+        rh = np.asarray(rh)
+
+        if self.config.validate_inputs:
+            self._validate_inputs(airtemp=airtemp, rh=rh)
+
+        # Calculate saturation and actual vapor pressures
+        es = self.saturation_vapor_pressure(airtemp)
+        ea = self.actual_vapor_pressure(airtemp, rh)
+
+        # Calculate deficit
+        vpd = es - ea
+
+        return vpd
+
+    def penman_monteith_reference(self,
+                                  airtemp: Union[float, np.ndarray],
+                                  rh: Union[float, np.ndarray],
+                                  airpress: Union[float, np.ndarray],
+                                  rs: Union[float, np.ndarray],
+                                  rn: Union[float, np.ndarray],
+                                  g: Union[float, np.ndarray],
+                                  u2: Union[float, np.ndarray]) -> Union[float, np.ndarray]:
+        """
+        Calculate Penman-Monteith reference evapotranspiration
+
+        Args:
+            airtemp: Air temperature [°C]
+            rh: Relative humidity [%]
+            airpress: Air pressure [Pa]
+            rs: Surface resistance [s m⁻¹]
+            rn: Net radiation [W m⁻²]
+            g: Ground heat flux [W m⁻²]
+            u2: Wind speed at 2m height [m s⁻¹]
+
+        Returns:
+            Reference ET [mm day⁻¹]
+        """
+        # Convert inputs to arrays
+        inputs = to_array(airtemp, rh, airpress, rs, rn, g, u2)
+        airtemp, rh, airpress, rs, rn, g, u2 = inputs
+
+        if self.config.validate_inputs:
+            validate_inputs(airtemp=airtemp, rh=rh, airpress=airpress,
+                            rs=rs, rn=rn, g=g, u2=u2)
+
+        # Calculate required parameters
+        delta = self.vapor_pressure_slope(airtemp)
+        gamma = self.psychrometric_constant(airtemp, rh, airpress)
+        lambda_e = self.latent_heat(airtemp)
+        vpd = self.vapor_pressure_deficit(airtemp, rh)
+        rho = self.air_density(airtemp, rh, airpress)
+        cp = self.specific_heat(airtemp, rh, airpress)
+
+        # Calculate aerodynamic resistance
+        ra = 208.0 / u2  # simplified for grass reference
+
+        # Calculate ET using Penman-Monteith
+        num = delta * (rn - g) + rho * cp * vpd / ra
+        den = delta + gamma * (1 + rs / ra)
+        et = num / (lambda_e * den)
+
+        return et * 86400  # Convert to mm/day
+
+    def calculate_radiation(self,
+                            airtemp: Union[float, np.ndarray],
+                            rh: Union[float, np.ndarray],
+                            rs: Union[float, np.ndarray],
+                            lat: float,
+                            doy: int,
+                            albedo: float = 0.23) -> Dict[str, Union[float, np.ndarray]]:
+        """
+        Calculate radiation components
+
+        Args:
+            airtemp: Air temperature [°C]
+            rh: Relative humidity [%]
+            rs: Incoming solar radiation [W m⁻²]
+            lat: Latitude [degrees]
+            doy: Day of year
+            albedo: Surface albedo [-]
+
+        Returns:
+            Dict containing radiation components [W m⁻²]
+        """
+        airtemp, rh, rs = to_array(airtemp, rh, rs)
+
+        if self.config.validate_inputs:
+            validate_inputs(airtemp=airtemp, rh=rh, rs=rs)
+
+        # Calculate extraterrestrial radiation
+        ra = self._extraterrestrial_radiation(lat, doy)
+
+        # Net shortwave
+        rns = (1 - albedo) * rs
+
+        # Net longwave using improved formulation
+        ea = self.actual_vapor_pressure(airtemp, rh)
+        tk = airtemp + 273.15
+        rnl = STEFAN_BOLTZMANN * tk ** 4 * (0.34 - 0.14 * np.sqrt(ea / 1000)) * \
+              (1.35 * rs / ra - 0.35)
+
+        # Net radiation
+        rn = rns - rnl
+
+        return {
+            'extraterrestrial': ra,
+            'net_shortwave': rns,
+            'net_longwave': rnl,
+            'net_radiation': rn
+        }
+
+    def _extraterrestrial_radiation(self, lat: float, doy: int) -> float:
+        """Calculate extraterrestrial radiation"""
+        lat_rad = np.radians(lat)
+
+        # Solar declination
+        decl = 0.409 * np.sin(2 * np.pi * doy / 365 - 1.39)
+
+        # Inverse relative distance Earth-Sun
+        dr = 1 + 0.033 * np.cos(2 * np.pi * doy / 365)
+
+        # Sunset hour angle
+        ws = np.arccos(-np.tan(lat_rad) * np.tan(decl))
+
+        # Extraterrestrial radiation
+        ra = 24 * 60 / np.pi * 0.082 * dr * \
+             (ws * np.sin(lat_rad) * np.sin(decl) + \
+              np.cos(lat_rad) * np.cos(decl) * np.sin(ws))
+
+        return ra
+
+    def penman_open_water(self,
+                          airtemp: Union[float, np.ndarray],
+                          rh: Union[float, np.ndarray],
+                          u2: Union[float, np.ndarray],
+                          airpress: Union[np.ndarray, float],
+                          rn: Union[float, np.ndarray]) -> Union[float, np.ndarray]:
+        """
+        Calculate Penman open water evaporation
+
+        Args:
+            airtemp: Air temperature [°C]
+            rh: Relative humidity [%]
+            u2: Wind speed at 2m [m s⁻¹]
+            rn: Net radiation [W m⁻²]
+
+        Returns:
+            Open water evaporation [mm day⁻¹]
+        """
+        airtemp, rh, u2, rn = to_array(airtemp, rh, u2, rn)
+
+        if self.config.validate_inputs:
+            validate_inputs(airtemp=airtemp, rh=rh, u2=u2, rn=rn)
+
+        # Calculate parameters
+        delta = self.vapor_pressure_slope(airtemp)
+        gamma = self.psychrometric_constant(airtemp, rh, airpress)
+        lambda_e = self.latent_heat(airtemp)
+        ea = self.actual_vapor_pressure(airtemp, rh)
+        es = self.saturation_vapor_pressure(airtemp)
+
+        # Wind function
+        fu = 2.6 * (1 + 0.54 * u2)
+
+        # Calculate evaporation
+        erad = delta * rn / lambda_e
+        evap = gamma * fu * (es - ea) / lambda_e
+
+        e0 = (erad + evap) / (delta + gamma)
+
+        return e0 * 86400  # Convert to mm/day
+
+    def E0(self, airtemp: Union[float, np.ndarray],
+           rh: Union[float, np.ndarray],
+           airpress: Union[float, np.ndarray],
+           Rs: Union[float, np.ndarray],
+           Rext: Union[float, np.ndarray],
+           u: Union[float, np.ndarray],
+           alpha: float = 0.08,
+           Z: float = 0.0) -> Union[float, np.ndarray]:
+        """
+        Calculate Penman (1948, 1956) open water evaporation.
+
+        Args:
+            airtemp: Daily average air temperatures [°C]
+            rh: Daily average relative humidity [%]
+            airpress: Daily average air pressure [Pa]
+            Rs: Daily incoming solar radiation [J m-2 day-1]
+            Rext: Daily extraterrestrial radiation [J m-2 day-1]
+            u: Daily average wind speed at 2m [m s-1]
+            alpha: Albedo [-], default 0.08 for open water
+            Z: Site elevation [m]
+
+        Returns:
+            Open water evaporation [mm day-1]
+        """
+        airtemp, rh, airpress, Rs, Rext, u = map(np.asarray,
+                                                 [airtemp, rh, airpress, Rs, Rext, u])
+
+        if self.config.validate_inputs:
+            validate_inputs(airtemp=airtemp, rh=rh, airpress=airpress,
+                            Rs=Rs, Rext=Rext, u=u)
+
+        # Calculate parameters
+        Delta = self.vapor_pressure_slope(airtemp)
+        gamma = self.psychrometric_constant(airtemp, rh, airpress)
+        Lambda = self.latent_heat(airtemp)
+        es = self.saturation_vapor_pressure(airtemp)
+        ea = self.actual_vapor_pressure(airtemp, rh)
+
+        # Calculate radiation components
+        Rns = (1.0 - alpha) * Rs
+        Rs0 = (0.75 + 2e-5 * Z) * Rext
+        f = 1.35 * Rs / Rs0 - 0.35
+        epsilon = 0.34 - 0.14 * np.sqrt(ea / 1000)
+        Rnl = f * epsilon * STEFAN_BOLTZMANN * (airtemp + 273.15) ** 4
+        Rnet = Rns - Rnl
+
+        # Calculate evaporation terms
+        Ea = (1 + 0.536 * u) * (es / 1000 - ea / 1000)
+        E0 = (Delta / (Delta + gamma) * Rnet / Lambda +
+              gamma / (Delta + gamma) * 6430000 * Ea / Lambda)
+
+        return E0
+
+    def Em(self, airtemp: Union[float, np.ndarray],
+           rh: Union[float, np.ndarray],
+           airpress: Union[float, np.ndarray],
+           Rs: Union[float, np.ndarray]) -> Union[float, np.ndarray]:
+        """
+        Calculate Makkink (1965) evaporation.
+
+        Args:
+            airtemp: Daily average air temperatures [°C]
+            rh: Daily average relative humidity [%]
+            airpress: Daily average air pressure [Pa]
+            Rs: Average daily incoming solar radiation [J m-2 day-1]
+
+        Returns:
+            Makkink evaporation [mm day-1]
+        """
+        airtemp, rh, airpress, Rs = map(np.asarray, [airtemp, rh, airpress, Rs])
+
+        if self.config.validate_inputs:
+            validate_inputs(airtemp=airtemp, rh=rh, airpress=airpress, Rs=Rs)
+
+        Delta = self.vapor_pressure_slope(airtemp)
+        gamma = self.psychrometric_constant(airtemp, rh, airpress)
+        Lambda = self.latent_heat(airtemp)
+
+        return 0.65 * Delta / (Delta + gamma) * Rs / Lambda
+
+    def Ept(self, airtemp: Union[float, np.ndarray],
+            rh: Union[float, np.ndarray],
+            airpress: Union[float, np.ndarray],
+            Rn: Union[float, np.ndarray],
+            G: Union[float, np.ndarray]) -> Union[float, np.ndarray]:
+        """
+        Calculate Priestley-Taylor (1972) evaporation.
+
+        Args:
+            airtemp: Daily average air temperatures [°C]
+            rh: Daily average relative humidity [%]
+            airpress: Daily average air pressure [Pa]
+            Rn: Average daily net radiation [J m-2 day-1]
+            G: Average daily soil heat flux [J m-2 day-1]
+
+        Returns:
+            Priestley-Taylor evaporation [mm day-1]
+        """
+        airtemp, rh, airpress, Rn, G = map(np.asarray,
+                                           [airtemp, rh, airpress, Rn, G])
+
+        if self.config.validate_inputs:
+            validate_inputs(airtemp=airtemp, rh=rh, airpress=airpress, Rn=Rn, G=G)
+
+        Delta = self.vapor_pressure_slope(airtemp)
+        gamma = self.psychrometric_constant(airtemp, rh, airpress)
+        Lambda = self.latent_heat(airtemp)
+
+        return 1.26 * Delta / (Delta + gamma) * (Rn - G) / Lambda
+
+    def ET0pm(self, airtemp: Union[float, np.ndarray],
+              rh: Union[float, np.ndarray],
+              airpress: Union[float, np.ndarray],
+              Rs: Union[float, np.ndarray],
+              Rext: Union[float, np.ndarray],
+              u: Union[float, np.ndarray],
+              Z: float = 0.0) -> Union[float, np.ndarray]:
+        """
+        Calculate FAO Penman-Monteith reference evaporation for short grass.
+
+        Args:
+            airtemp: Daily average air temperatures [°C]
+            rh: Daily average relative humidity [%]
+            airpress: Daily average air pressure [Pa]
+            Rs: Daily incoming solar radiation [J m-2 day-1]
+            Rext: Extraterrestrial radiation [J m-2 day-1]
+            u: Wind speed at 2m [m s-1]
+            Z: Elevation [m]
+
+        Returns:
+            Reference evapotranspiration [mm day-1]
+        """
+        airtemp, rh, airpress, Rs, Rext, u = map(np.asarray,
+                                                 [airtemp, rh, airpress, Rs, Rext, u])
+
+        if self.config.validate_inputs:
+            validate_inputs(airtemp=airtemp, rh=rh, airpress=airpress,
+                            Rs=Rs, Rext=Rext, u=u)
+
+        # Constants for short grass
+        albedo = 0.23
+
+        # Calculate parameters
+        Delta = self.vapor_pressure_slope(airtemp)
+        gamma = self.psychrometric_constant(airtemp, rh, airpress)
+        Lambda = self.latent_heat(airtemp)
+        es = self.saturation_vapor_pressure(airtemp)
+        ea = self.actual_vapor_pressure(airtemp, rh)
+
+        # Calculate radiation terms
+        Rns = (1.0 - albedo) * Rs
+        Rs0 = (0.75 + 2e-5 * Z) * Rext
+        f = 1.35 * Rs / Rs0 - 0.35
+        epsilon = 0.34 - 0.14 * np.sqrt(ea / 1000)
+        Rnl = f * epsilon * STEFAN_BOLTZMANN * (airtemp + 273.15) ** 4
+        Rnet = Rns - Rnl
+
+        # Calculate ET0
+        ET0 = ((Delta / 1000.0 * Rnet / Lambda +
+                900.0 / (airtemp + 273.16) * u * (es - ea) / 1000 * gamma / 1000) /
+               (Delta / 1000.0 + gamma / 1000 * (1.0 + 0.34 * u)))
+
+        return ET0
+
+    def Epm(self, airtemp: Union[float, np.ndarray],
+            rh: Union[float, np.ndarray],
+            airpress: Union[float, np.ndarray],
+            Rn: Union[float, np.ndarray],
+            G: Union[float, np.ndarray],
+            ra: Union[float, np.ndarray],
+            rs: Union[float, np.ndarray]) -> Union[float, np.ndarray]:
+        """
+        Calculate Penman-Monteith evaporation (Monteith, 1965).
+
+        Args:
+            airtemp: Daily average air temperatures [°C]
+            rh: Daily average relative humidity [%]
+            airpress: Daily average air pressure [Pa]
+            Rn: Average daily net radiation [J]
+            G: Average daily soil heat flux [J]
+            ra: Aerodynamic resistance [s m-1]
+            rs: Surface resistance [s m-1]
+
+        Returns:
+            Actual evapotranspiration [mm]
+        """
+        airtemp, rh, airpress, Rn, G, ra, rs = map(np.asarray,
+                                                   [airtemp, rh, airpress, Rn, G, ra, rs])
+
+        if self.config.validate_inputs:
+            validate_inputs(airtemp=airtemp, rh=rh, airpress=airpress,
+                            Rn=Rn, G=G, ra=ra, rs=rs)
+
+        # Calculate parameters
+        Delta = self.vapor_pressure_slope(airtemp) / 100.0  # [hPa/K]
+        gamma = self.psychrometric_constant(airtemp, rh, airpress) / 100.0
+        Lambda = self.latent_heat(airtemp)
+        rho = self.air_density(airtemp, rh, airpress)
+        cp = self.specific_heat(airtemp, rh, airpress)
+        es = self.saturation_vapor_pressure(airtemp) / 100.0
+        ea = self.actual_vapor_pressure(airtemp, rh) / 100.0
+
+        # Calculate evaporation
+        Epm = ((Delta * Rn + rho * cp * (es - ea) / ra) /
+               (Delta + gamma * (1.0 + rs / ra))) / Lambda
+
+        return Epm
+
+    def ra(self, z: float, z0: float, d: float,
+           u: Union[float, np.ndarray]) -> Union[float, np.ndarray]:
+        """
+        Calculate aerodynamic resistance from wind speed and roughness parameters.
+
+        Args:
+            z: Measurement height [m]
+            z0: Roughness length [m]
+            d: Displacement length [m]
+            u: Wind speed [m s-1]
+
+        Returns:
+            Aerodynamic resistance [s m-1]
+        """
+        u = np.asarray(u)
+
+        if self.config.validate_inputs:
+            if z <= (d + z0):
+                raise ValueError("Measurement height must be greater than d + z0")
+            validate_inputs(u=u)
+
+        return (np.log((z - d) / z0)) ** 2 / (0.16 * u)
+
+    def tvardry(self, rho: Union[float, np.ndarray],
+                cp: Union[float, np.ndarray],
+                T: Union[float, np.ndarray],
+                sigma_t: Union[float, np.ndarray],
+                z: float,
+                d: float = 0.0) -> Union[float, np.ndarray]:
+        """
+        Calculate sensible heat flux from temperature variations.
+
+        Args:
+            rho: Air density [kg m-3]
+            cp: Specific heat at constant temperature [J kg-1 K-1]
+            T: Temperature [°C]
+            sigma_t: Standard deviation of temperature [°C]
+            z: Temperature measurement height [m]
+            d: Displacement height [m]
+
+        Returns:
+            Sensible heat flux [W m-2]
+        """
+        rho, cp, T, sigma_t = map(np.asarray, [rho, cp, T, sigma_t])
+
+        if self.config.validate_inputs:
+            validate_inputs(rho=rho, cp=cp, T=T, sigma_t=sigma_t)
+
+        # Constants from De Bruin et al., 1992
+        C1 = 2.9
+        C2 = 28.4
+
+        # Calculate sensible heat flux
+        H = (rho * cp * np.sqrt((sigma_t / C1) ** 3 * VON_KARMAN * GRAVITY *
+                                (z - d) / (T + 273.15) * C2))
+
+        return H
+
+    def gash79(self,
+               Pg: Union[float, np.ndarray],
+               ER: float,
+               S: float,
+               p: float,
+               pt: float) -> Tuple[Union[float, np.ndarray], Union[float, np.ndarray],
+    Union[float, np.ndarray], Union[float, np.ndarray]]:
+        """
+        Calculate rainfall interception using Gash (1979) analytical model.
+
+        Args:
+            Pg: Gross precipitation [mm]
+            ER: Mean evaporation rate [mm/hr]
+            S: Canopy storage capacity [mm]
+            p: Free throughfall coefficient [-]
+            pt: Stemflow coefficient [-]
+
+        Returns:
+            Tuple containing:
+            - Pg: Gross precipitation [mm]
+            - TF: Throughfall [mm]
+            - SF: Stemflow [mm]
+            - Ei: Interception loss [mm]
+
+        References:
+            Gash, J.H.C. (1979). An analytical model of rainfall interception by forests.
+            Quarterly Journal of the Royal Meteorological Society, 105: 43-55.
+
+        Notes:
+            - The model assumes that evaporation occurs at a constant rate (ER)
+            - p + pt should not exceed 1.0 (100% of precipitation)
+            - Canopy storage capacity (S) must be positive
+        """
+        # Convert input to numpy array
+        Pg = np.asarray(Pg)
+
+        # Input validation
+        if self.config.validate_inputs:
+            validate_inputs(Pg=Pg, ER=ER, S=S)
+
+            if not 0 <= p <= 1:
+                raise ValueError("Free throughfall coefficient (p) must be between 0 and 1")
+            if not 0 <= pt <= 1:
+                raise ValueError("Stemflow coefficient (pt) must be between 0 and 1")
+            if p + pt > 1:
+                raise ValueError("Sum of p and pt must not exceed 1")
+            if S <= 0:
+                raise ValueError("Canopy storage capacity must be positive")
+            if ER <= 0:
+                raise ValueError("Evaporation rate must be positive")
+
+        # Initialize output arrays
+        rainfall_length = np.size(Pg)
+        if rainfall_length < 2:
+            # Single value case
+            # Calculate saturation point (amount of rainfall needed to saturate canopy)
+            PGsat = -(S / ER) * np.log((1 - (ER / (1 - p - pt))))
+
+            # Calculate storages
+            if Pg < PGsat and Pg > 0:
+                # Case 1: Rainfall insufficient to saturate canopy
+                canopy_storage = (1 - p - pt) * Pg
+                trunk_storage = 0
+                if Pg > canopy_storage / pt:
+                    trunk_storage = pt * Pg
             else:
-                saturation_vapour_pressure[i] = calc_sat_vapor_press_water(airtemp[i])
-    else:
-        if airtemp < 0:
-            saturation_vapour_pressure = calc_sat_vapor_press_ice(airtemp)
+                # Case 2: Rainfall sufficient to saturate canopy
+                if Pg > 0:
+                    canopy_storage = ((1 - p - pt) * PGsat - S) + (ER * (Pg - PGsat)) + S
+                    if Pg > (canopy_storage / pt):
+                        trunk_storage = pt * Pg
+                    else:
+                        trunk_storage = 0
+                else:
+                    canopy_storage = 0
+                    trunk_storage = 0
+
+            # Calculate components
+            Ei = canopy_storage + trunk_storage
+            TF = Pg - Ei
+            SF = 0
+
         else:
-            saturation_vapour_pressure = calc_sat_vapor_press_water(airtemp)
-
-    saturation_vapour_pressure = saturation_vapour_pressure * 100.0
-    return saturation_vapour_pressure
-
-
-def gamma_calc(airtemp=scipy.array([]), \
-               rh=scipy.array([]), \
-               airpress=scipy.array([])):
-    """
-    Function to calculate the psychrometric constant gamma.
-
-    Parameters:
-        - airtemp: array of measured air temperature [Celsius].
-        - rh: array of relative humidity values[%].
-        - airpress: array of air pressure data [Pa].
-
-    Returns:
-        - gamma: array of psychrometric constant values [Pa K-1].
-
-    References
-    ----------
-
-    J. Bringfelt. Test of a forest evapotranspiration model. Meteorology and
-    Climatology Reports 52, SMHI, Norrköpping, Sweden, 1986.
-
-    Examples
-    --------
-
-        >>> gamma_calc(10,50,101300)
-        66.26343318657227
-        >>> t = [10, 20, 30]
-        >>> rh = [10, 20, 30]
-        >>> airpress = [100000, 101000, 102000]
-        >>> gamma_calc(t,rh,airpress)
-        array([ 65.25518798,  66.65695779,  68.24239285])
-
-    """
-
-    # Test input array/value
-    airtemp, rh, airpress = convert_to_array(airtemp, rh, airpress)
-
-    # Calculate cp and Lambda values
-    cp = cp_calc(airtemp, rh, airpress)
-    L = le_calc(airtemp)
-    # Calculate gamma
-    gamma = cp * airpress / (0.622 * L)
-    return gamma  # in Pa\K
-
-
-def le_calc(airtemp=scipy.array([])):
-    """
-    Function to calculate the latent heat of vapourisation from air temperature.
-
-    Parameters:
-        - airtemp: (array of) air temperature [Celsius].
-
-    Returns:
-        - L: (array of) lambda [J kg-1 K-1].
-
-    References
-    ----------
-
-    J. Bringfelt. Test of a forest evapotranspiration model. Meteorology and
-    Climatology Reports 52, SMHI, Norrköpping, Sweden, 1986.
-
-    Examples
-    --------
-
-        >>> le_calc(25)
-        2440883.8804625
-        >>> t=[10, 20, 30]
-        >>> le_calc(t)
-        array([ 2476387.3842125,  2452718.3817125,  2429049.3792125])
-
-    """
-
-    # Test input array/value
-    airtemp = convert_to_array(airtemp)
-
-    # Calculate lambda
-    L = 4185.5 * (751.78 - 0.5655 * (airtemp + 273.15))
-    return L  # in J/kg
-
-
-def pottemp(airtemp=scipy.array([]), rh=scipy.array([]), airpress=scipy.array([])):
-    """
-    Function to calculate the potential temperature air, theta, from air
-    temperatures, relative humidity and air pressure. Reference pressure
-    1000 hPa.
-
-    Parameters:
-        - airtemp: (array of) air temperature data [Celsius].
-        - rh: (array of) relative humidity data [%].
-        - airpress: (array of) air pressure data [Pa].
-
-    Returns:
-        - theta: (array of) potential air temperature data [Celsius].
-
-    Examples
-    --------
-
-        >>> t = [5, 10, 20]
-        >>> rh = [45, 65, 89]
-        >>> airpress = [101300, 102000, 99800]
-        >>> pottemp(t,rh,airpress)
-        array([  3.97741582,   8.40874555,  20.16596828])
-        >>> pottemp(5,45,101300)
-        3.977415823848844
-
-    """
-    # Test input array/value
-    airtemp, rh, airpress = convert_to_array(airtemp, rh, airpress)
-
-    # Determine cp
-    cp = cp_calc(airtemp, rh, airpress)
-    # Determine theta
-    theta = (airtemp + 273.15) * pow((100000.0 / airpress), \
-                                     (287.0 / cp)) - 273.15
-    return theta  # in degrees celsius
-
-
-def rho_calc(airtemp=scipy.array([]), \
-             rh=scipy.array([]), \
-             airpress=scipy.array([])):
-    """
-    Function to calculate the density of air, rho, from air
-    temperatures, relative humidity and air pressure.
-
-    Parameters:
-        - airtemp: (array of) air temperature data [Celsius].
-        - rh: (array of) relative humidity data [%].
-        - airpress: (array of) air pressure data [Pa].
-
-    Returns:
-        - rho: (array of) air density data [kg m-3].
-
-    Examples
-    --------
-
-        >>> t = [10, 20, 30]
-        >>> rh = [10, 20, 30]
-        >>> airpress = [100000, 101000, 102000]
-        >>> rho_calc(t,rh,airpress)
-        array([ 1.22948419,  1.19787662,  1.16635358])
-        >>> rho_calc(10,50,101300)
-        1.2431927125520903
-
-    """
-
-    # Test input array/value
-    airtemp, rh, airpress = convert_to_array(airtemp, rh, airpress)
-
-    # Calculate actual vapour pressure
-    eact = ea_calc(airtemp, rh)
-    # Calculate density of air rho
-    rho = 1.201 * (290.0 * (airpress - 0.378 * eact)) \
-          / (1000.0 * (airtemp + 273.15)) / 100.0
-    return rho  # in kg/m3
-
-
-def sun_NR(doy=scipy.array([]), lat=float):
-    """
-    Function to calculate the maximum sunshine duration [h] and incoming
-    radiation [MJ/day] at the top of the atmosphere from day of year and
-    latitude.
-
-    Parameters:
-     - doy: (array of) day of year.
-     - lat: latitude in decimal degrees, negative for southern hemisphere.
-
-    Returns:
-    - N: (float, array) maximum sunshine hours [h].
-    - Rext: (float, array) extraterrestrial radiation [J day-1].
-
-    Notes
-    -----
-    Only valid for latitudes between 0 and 67 degrees (i.e. tropics
-    and temperate zone).
-
-    References
-    ----------
-
-    R.G. Allen, L.S. Pereira, D. Raes and M. Smith (1998). Crop
-    Evaporation - Guidelines for computing crop water requirements,
-    FAO - Food and Agriculture Organization of the United Nations.
-    Irrigation and drainage paper 56, Chapter 3. Rome, Italy.
-    (http://www.fao.org/docrep/x0490e/x0490e07.htm)
-
-    Examples
-    --------
-
-        >>> sun_NR(50,60)
-        (9.1631820597268163, 9346987.824773483)
-        >>> days = [100,200,300]
-        >>> latitude = 52.
-        >>> sun_NR(days,latitude)
-        (array([ 13.31552077,  15.87073276,   9.54607624]), array([ 29354803.66244921,  39422316.42084264,  12619144.54566777]))
-
-    """
-
-    # Test input array/value
-    doy, lat = convert_to_array(doy, lat)
-
-    # Set solar constant [W/m2]
-    S = 1367.0  # [W/m2]
-    # Print warning if latitude is above 67 degrees
-    if abs(lat) > 67.:
-        print
-        'WARNING: Latitude outside range of application (0-67 degrees).\n)'
-    # Convert latitude [degrees] to radians
-    latrad = lat * math.pi / 180.0
-    # calculate solar declination dt [radians]
-    dt = 0.409 * scipy.sin(2 * math.pi / 365 * doy - 1.39)
-    # calculate sunset hour angle [radians]
-    ws = scipy.arccos(-scipy.tan(latrad) * scipy.tan(dt))
-    # Calculate sunshine duration N [h]
-    N = 24 / math.pi * ws
-    # Calculate day angle j [radians]
-    j = 2 * math.pi / 365.25 * doy
-    # Calculate relative distance to sun
-    dr = 1.0 + 0.03344 * scipy.cos(j - 0.048869)
-    # Calculate Rext
-    Rext = S * 86400 / math.pi * dr * (ws * scipy.sin(latrad) * scipy.sin(dt) \
-                                       + scipy.sin(ws) * scipy.cos(latrad) * scipy.cos(dt))
-    return N, Rext
-
-
-def vpd_calc(airtemp=scipy.array([]), \
-             rh=scipy.array([])):
-    """
-    Function to calculate vapour pressure deficit.
-
-    Parameters:
-        - airtemp: measured air temperatures [Celsius].
-        - rh: (array of) rRelative humidity [%].
-
-    Returns:
-        - vpd: (array of) vapour pressure deficits [Pa].
-
-    Examples
-    --------
-
-        >>> vpd_calc(30,60)
-        1697.090397862653
-        >>> T=[20,25]
-        >>> RH=[50,100]
-        >>> vpd_calc(T,RH)
-        array([ 1168.54009896,     0.        ])
-
-    """
-
-    # Test input array/value
-    airtemp, rh = convert_to_array(airtemp, rh)
-
-    # Calculate saturation vapour pressures
-    es = es_calc(airtemp)
-    eact = ea_calc(airtemp, rh)
-    # Calculate vapour pressure deficit
-    vpd = es - eact
-    return vpd  # in hPa
-
-
-def windvec(u=scipy.array([]), D=scipy.array([])):
-    """
-    Function to calculate the wind vector from time series of wind
-    speed and direction.
-
-    Parameters:
-        - u: array of wind speeds [m s-1].
-        - D: array of wind directions [degrees from North].
-
-    Returns:
-        - uv: Vector wind speed [m s-1].
-        - Dv: Vector wind direction [degrees from North].
-
-    Examples
-    --------
-
-        >>> u = scipy.array([[ 3.],[7.5],[2.1]])
-        >>> D = scipy.array([[340],[356],[2]])
-        >>> windvec(u,D)
-        (4.162354202836905, array([ 353.2118882]))
-        >>> uv, Dv = windvec(u,D)
-        >>> uv
-        4.162354202836905
-        >>> Dv
-        array([ 353.2118882])
-
-    """
-
-    # Test input array/value
-    u, D = convert_to_array(u, D)
-
-    ve = 0.0  # define east component of wind speed
-    vn = 0.0  # define north component of wind speed
-    D = D * math.pi / 180.0  # convert wind direction degrees to radians
-    for i in range(0, len(u)):
-        ve = ve + u[i] * math.sin(D[i])  # calculate sum east speed components
-        vn = vn + u[i] * math.cos(D[i])  # calculate sum north speed components
-    ve = - ve / len(u)  # determine average east speed component
-    vn = - vn / len(u)  # determine average north speed component
-    uv = math.sqrt(ve * ve + vn * vn)  # calculate wind speed vector magnitude
-    # Calculate wind speed vector direction
-    vdir = scipy.arctan2(ve, vn)
-    vdir = vdir * 180.0 / math.pi  # Convert radians to degrees
-    if vdir < 180:
-        Dv = vdir + 180.0
-    else:
-        if vdir > 180.0:
-            Dv = vdir - 180
-        else:
-            Dv = vdir
-    return uv, Dv  # uv in m/s, Dv in dgerees from North
-
+            # Array case
+            Ei = np.zeros(rainfall_length)
+            TF = np.zeros(rainfall_length)
+            SF = np.zeros(rainfall_length)
+            PGsat = -(S / ER) * np.log((1 - (ER / (1 - p - pt))))
+
+            # Calculate for each timestep
+            for i in range(rainfall_length):
+                if Pg[i] < PGsat and Pg[i] > 0:
+                    # Insufficient rainfall to saturate canopy
+                    canopy_storage = (1 - p - pt) * Pg[i]
+                    trunk_storage = 0
+                    if Pg[i] > canopy_storage / pt:
+                        trunk_storage = pt * Pg[i]
+                else:
+                    # Sufficient rainfall to saturate canopy
+                    if Pg[i] > 0:
+                        canopy_storage = ((1 - p - pt) * PGsat - S) + (ER * (Pg[i] - PGsat)) + S
+                        if Pg[i] > (canopy_storage / pt):
+                            trunk_storage = pt * Pg[i]
+                        else:
+                            trunk_storage = 0
+                    else:
+                        canopy_storage = 0
+                        trunk_storage = 0
+
+                Ei[i] = canopy_storage + trunk_storage
+                TF[i] = Pg[i] - Ei[i]
+
+        # Log warnings for potentially problematic values
+        if self.config.raise_warnings:
+            if np.any(Ei < 0):
+                logger.warning("Negative interception values detected")
+            if np.any(TF < 0):
+                logger.warning("Negative throughfall values detected")
+            if np.any(Ei > Pg):
+                logger.warning("Interception exceeds gross precipitation")
+
+        return Pg, TF, SF, Ei
+
+    def _validate_gash_parameters(self, Pg: np.ndarray, ER: float, S: float, p: float, pt: float) -> None:
+        """Helper method to validate Gash model parameters"""
+        try:
+            if np.any(Pg < 0):
+                raise ValueError("Gross precipitation cannot be negative")
+            if ER <= 0:
+                raise ValueError("Mean evaporation rate must be positive")
+            if S <= 0:
+                raise ValueError("Canopy storage capacity must be positive")
+            if not 0 <= p <= 1:
+                raise ValueError("Free throughfall coefficient must be between 0 and 1")
+            if not 0 <= pt <= 1:
+                raise ValueError("Stemflow coefficient must be between 0 and 1")
+            if p + pt > 1:
+                raise ValueError("Sum of free throughfall and stemflow coefficients cannot exceed 1")
+        except Exception as e:
+            logger.error(f"Parameter validation failed: {str(e)}")
+            raise
+
+
+# Example usage:
+if __name__ == "__main__":
+    calc = MeteoCalculator()
+
+    # Example calculations
+    temp = 25.0
+    rh = 60.0
+    pressure = 101300.0
+
+    cp = calc.specific_heat(temp, rh, pressure)
+    print(f"Specific heat: {cp:.2f} J kg⁻¹ K⁻¹")
+
+    delta = calc.vapor_pressure_slope(temp)
+    print(f"Vapor pressure slope: {delta:.2f} Pa K⁻¹")
