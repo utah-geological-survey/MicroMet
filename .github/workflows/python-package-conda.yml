@@ -32,15 +32,6 @@ jobs:
         conda info
         conda list
 
-    - name: Debug recipe location
-      run: |
-        echo "Current directory:"
-        pwd
-        echo "Directory contents:"
-        ls -la
-        echo "Recipe directory contents (if exists):"
-        ls -la conda-recipe/ || echo "conda-recipe directory not found"
-
     - name: Create conda recipe
       run: |
         mkdir -p conda-recipe
@@ -58,7 +49,7 @@ jobs:
         build:
           number: 0
           noarch: python
-          script: "{{ PYTHON }} -m pip install . -vv"
+          script: "{{ PYTHON }} -m pip install . --no-deps -vv"
 
         requirements:
           host:
@@ -66,21 +57,14 @@ jobs:
             - pip
           run:
             - python >=3.8
-            # Add your package dependencies here
+            - numpy
+            # Add other dependencies here
 
         about:
-          home: https://github.com/utah-geological-survey/MicroMet
+          home: https://github.com/yourusername/MicroMet
           license: MIT
           summary: 'MicroMet package'
         EOF
-
-        # Create build scripts
-        echo '#!/bin/bash' > conda-recipe/build.sh
-        echo '{{ PYTHON }} -m pip install . -vv' >> conda-recipe/build.sh
-        chmod +x conda-recipe/build.sh
-
-        echo 'if errorlevel 1 exit 1' > conda-recipe/bld.bat
-        echo '{{ PYTHON }} -m pip install . -vv' >> conda-recipe/bld.bat
 
     - name: Build conda package
       run: |
