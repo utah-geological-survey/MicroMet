@@ -7,7 +7,12 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="a09e9df8-2720-44bb-8605-374b38d0d9d1" name="Changes" comment="Add Flux variables CSV and enhance micromet functionality&#10;&#10;Added a comprehensive CSV file for Flux variables, enhancing data tracking. Updated multiple scripts in the micromet package to improve configuration handling, CSV path management, and file compilation. Moreover, introduced new dependencies in the environment file and pyproject.toml to support enhanced data visualization and statistical analysis features.&#10;&#10;Consolidated and eliminated uneccessary files" />
+    <list default="true" id="a09e9df8-2720-44bb-8605-374b38d0d9d1" name="Changes" comment="Add Flux variables CSV and enhance micromet functionality&#10;&#10;Added a comprehensive CSV file for Flux variables, enhancing data tracking. Updated multiple scripts in the micromet package to improve configuration handling, CSV path management, and file compilation. Moreover, introduced new dependencies in the environment file and pyproject.toml to support enhanced data visualization and statistical analysis features.&#10;&#10;Consolidated and eliminated uneccessary files">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/environment.yml" beforeDir="false" afterPath="$PROJECT_DIR$/environment.yml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/meta.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/meta.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pyproject.toml" beforeDir="false" afterPath="$PROJECT_DIR$/pyproject.toml" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -216,6 +221,7 @@
       <workItem from="1730515520478" duration="271000" />
       <workItem from="1730515855990" duration="23507000" />
       <workItem from="1730645157384" duration="17424000" />
+      <workItem from="1730686971587" duration="1674000" />
     </task>
     <task id="LOCAL-00001" summary="Add 'secrets' and 'station_data' to .gitignore&#10;&#10;The commit introduces two new entries to the .gitignore file. The '/secrets/' and '/station_data/' directories are now ignored to prevent sensitive or unnecessary data from being tracked by git.">
       <option name="closed" value="true" />
@@ -289,7 +295,15 @@
       <option name="project" value="LOCAL" />
       <updated>1730686681170</updated>
     </task>
-    <option name="localTasksCounter" value="10" />
+    <task id="LOCAL-00010" summary="Add Flux variables CSV and enhance micromet functionality&#10;&#10;Added a comprehensive CSV file for Flux variables, enhancing data tracking. Updated multiple scripts in the micromet package to improve configuration handling, CSV path management, and file compilation. Moreover, introduced new dependencies in the environment file and pyproject.toml to support enhanced data visualization and statistical analysis features.&#10;&#10;Consolidated and eliminated uneccessary files">
+      <option name="closed" value="true" />
+      <created>1730687142194</created>
+      <option name="number" value="00010" />
+      <option name="presentableId" value="LOCAL-00010" />
+      <option name="project" value="LOCAL" />
+      <updated>1730687142194</updated>
+    </task>
+    <option name="localTasksCounter" value="11" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">

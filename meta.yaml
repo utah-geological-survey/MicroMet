@@ -17,14 +17,9 @@ requirements:
     - scipy
     - pandas
     - numpy
-    - numba
     - statsmodels
-    - metpy
-    - jupyter
     - scikit-learn
     - plotly
-    - pingouin
-    - sqlalchemy
 
 about:
   home: https://github.com/utah-geological-survey/MicroMet
