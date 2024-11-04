@@ -23,7 +23,6 @@ requirements:
     - jupyter
     - scikit-learn
     - plotly
-    - fluxdataqaqc
     - pingouin
     - sqlalchemy
 

@@ -7,32 +7,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="a09e9df8-2720-44bb-8605-374b38d0d9d1" name="Changes" comment="Add Flux variables CSV and enhance micromet functionality&#10;&#10;Added a comprehensive CSV file for Flux variables, enhancing data tracking. Updated multiple scripts in the micromet package to improve configuration handling, CSV path management, and file compilation. Moreover, introduced new dependencies in the environment file and pyproject.toml to support enhanced data visualization and statistical analysis features.&#10;&#10;Consolidated and eliminated uneccessary files">
-      <change afterPath="$PROJECT_DIR$/Notebooks/Meteo Examples.ipynb" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Notebooks/Spectral Example.ipynb" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/data/TOB1_23861_Flux_CSFormat_32.dat" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/converter_docs.rst" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/meteolib-docs.rst" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/spectral-docs.rst" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/micromet/spectral.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tests/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tests/converter_test.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tests/footprint_tests.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tests/meteolib_tests.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tests/spectral-tests.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Notebooks/footprint.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/Notebooks/footprint.ipynb" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Untitled.ipynb" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/micromet/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/micromet/__init__.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/micromet/bowen_ratio.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/micromet/csi_header_python.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/micromet/evaplib.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/micromet/ffp.py" beforeDir="false" afterPath="$PROJECT_DIR$/micromet/ffp.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/micromet/meteolib.py" beforeDir="false" afterPath="$PROJECT_DIR$/micromet/meteolib.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/micromet/tob_converter.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/micromet/tools.py" beforeDir="false" afterPath="$PROJECT_DIR$/micromet/tools.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/pyproject.toml" beforeDir="false" afterPath="$PROJECT_DIR$/pyproject.toml" afterDir="false" />
-    </list>
+    <list default="true" id="a09e9df8-2720-44bb-8605-374b38d0d9d1" name="Changes" comment="Add Flux variables CSV and enhance micromet functionality&#10;&#10;Added a comprehensive CSV file for Flux variables, enhancing data tracking. Updated multiple scripts in the micromet package to improve configuration handling, CSV path management, and file compilation. Moreover, introduced new dependencies in the environment file and pyproject.toml to support enhanced data visualization and statistical analysis features.&#10;&#10;Consolidated and eliminated uneccessary files" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -73,33 +48,33 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "Python tests.Python tests for footprint_tests.test_calc_footprint_values.executor": "Run",
-    "Python tests.Python tests for footprint_tests.test_coordinate_system.executor": "Run",
-    "Python tests.Python tests for footprint_tests.test_different_stability_conditions.executor": "Run",
-    "Python tests.Python tests for meteolib_tests.TestEvaporationComparisons.test_radiation_limits.executor": "Run",
-    "Python tests.Python tests for meteolib_tests.TestVaporPressure.executor": "Run",
-    "Python tests.Python tests for test_converter.test_data_preprocessing.executor": "Run",
-    "Python tests.Python tests in footprint_tests.py.executor": "Run",
-    "Python tests.Python tests in meteolib_tests.py.executor": "Run",
-    "Python tests.Python tests in spectral-tests.py.executor": "Run",
-    "Python tests.Python tests in test_converter.py.executor": "Run",
-    "RunOnceActivity.OpenProjectViewOnStart": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "git-widget-placeholder": "main",
-    "ignore.virus.scanning.warn.message": "true",
-    "last_opened_file_path": "C:/Users/paulinkenbrandt/Documents/GitHub/MicroMet",
-    "node.js.detected.package.eslint": "true",
-    "node.js.detected.package.tslint": "true",
-    "node.js.selected.package.eslint": "(autodetect)",
-    "node.js.selected.package.tslint": "(autodetect)",
-    "nodejs_package_manager_path": "npm",
-    "run.code.analysis.last.selected.profile": "pProject Default",
-    "settings.editor.selected.configurable": "com.intellij.pycharm.community.ide.impl.configuration.PythonContentEntriesConfigurable",
-    "vue.rearranger.settings.migration": "true"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;Python tests.Python tests for footprint_tests.test_calc_footprint_values.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.Python tests for footprint_tests.test_coordinate_system.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.Python tests for footprint_tests.test_different_stability_conditions.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.Python tests for meteolib_tests.TestEvaporationComparisons.test_radiation_limits.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.Python tests for meteolib_tests.TestVaporPressure.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.Python tests for test_converter.test_data_preprocessing.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.Python tests in footprint_tests.py.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.Python tests in meteolib_tests.py.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.Python tests in spectral-tests.py.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.Python tests in test_converter.py.executor&quot;: &quot;Run&quot;,
+    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
+    &quot;ignore.virus.scanning.warn.message&quot;: &quot;true&quot;,
+    &quot;last_opened_file_path&quot;: &quot;C:/Users/paulinkenbrandt/Documents/GitHub/MicroMet&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;run.code.analysis.last.selected.profile&quot;: &quot;pProject Default&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;com.intellij.pycharm.community.ide.impl.configuration.PythonContentEntriesConfigurable&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
-}]]></component>
+}</component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="G:\Shared drives\UGS_Flux\Data_Processing\Jupyter_Notebooks\Micromet\micromet" />
@@ -240,7 +215,7 @@
       <workItem from="1730502603769" duration="2665000" />
       <workItem from="1730515520478" duration="271000" />
       <workItem from="1730515855990" duration="23507000" />
-      <workItem from="1730645157384" duration="17295000" />
+      <workItem from="1730645157384" duration="17424000" />
     </task>
     <task id="LOCAL-00001" summary="Add 'secrets' and 'station_data' to .gitignore&#10;&#10;The commit introduces two new entries to the .gitignore file. The '/secrets/' and '/station_data/' directories are now ignored to prevent sensitive or unnecessary data from being tracked by git.">
       <option name="closed" value="true" />
@@ -306,7 +281,15 @@
       <option name="project" value="LOCAL" />
       <updated>1730505223726</updated>
     </task>
-    <option name="localTasksCounter" value="9" />
+    <task id="LOCAL-00009" summary="Add Flux variables CSV and enhance micromet functionality&#10;&#10;Added a comprehensive CSV file for Flux variables, enhancing data tracking. Updated multiple scripts in the micromet package to improve configuration handling, CSV path management, and file compilation. Moreover, introduced new dependencies in the environment file and pyproject.toml to support enhanced data visualization and statistical analysis features.&#10;&#10;Consolidated and eliminated uneccessary files">
+      <option name="closed" value="true" />
+      <created>1730686681170</created>
+      <option name="number" value="00009" />
+      <option name="presentableId" value="LOCAL-00009" />
+      <option name="project" value="LOCAL" />
+      <updated>1730686681170</updated>
+    </task>
+    <option name="localTasksCounter" value="10" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
