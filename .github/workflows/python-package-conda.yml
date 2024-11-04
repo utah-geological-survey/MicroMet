@@ -3,8 +3,8 @@ name: Publish to Conda
 on:
   push:
     branches:
-      - '**'  # Matches all branches
-  workflow_dispatch:  # Keeping manual trigger option
+      - '**'
+  workflow_dispatch:
 
 jobs:
   publish:
@@ -16,12 +16,12 @@ jobs:
     steps:
     - uses: actions/checkout@v3
       with:
-        fetch-depth: 0  # Fetches all history for all branches and tags
+        fetch-depth: 0
 
     - name: Set up Conda
       uses: conda-incubator/setup-miniconda@v2
       with:
-        python-version: "3.10"  # Specify exact Python version
+        python-version: "3.10"
         channels: conda-forge,defaults
         channel-priority: strict
         activate-environment: build-env
@@ -32,15 +32,64 @@ jobs:
         conda info
         conda list
 
+    - name: Debug recipe location
+      run: |
+        echo "Current directory:"
+        pwd
+        echo "Directory contents:"
+        ls -la
+        echo "Recipe directory contents (if exists):"
+        ls -la conda-recipe/ || echo "conda-recipe directory not found"
+
+    - name: Create conda recipe
+      run: |
+        mkdir -p conda-recipe
+        cat > conda-recipe/meta.yaml << 'EOF'
+        {% set name = "micromet" %}
+        {% set version = "0.5.0" %}
+
+        package:
+          name: {{ name|lower }}
+          version: {{ version }}
+
+        source:
+          path: ..
+
+        build:
+          number: 0
+          noarch: python
+          script: "{{ PYTHON }} -m pip install . -vv"
+
+        requirements:
+          host:
+            - python >=3.8
+            - pip
+          run:
+            - python >=3.8
+            # Add your package dependencies here
+
+        about:
+          home: https://github.com/utah-geological-survey/MicroMet
+          license: MIT
+          summary: 'MicroMet package'
+        EOF
+
+        # Create build scripts
+        echo '#!/bin/bash' > conda-recipe/build.sh
+        echo '{{ PYTHON }} -m pip install . -vv' >> conda-recipe/build.sh
+        chmod +x conda-recipe/build.sh
+
+        echo 'if errorlevel 1 exit 1' > conda-recipe/bld.bat
+        echo '{{ PYTHON }} -m pip install . -vv' >> conda-recipe/bld.bat
+
     - name: Build conda package
       run: |
-        # Get the current git hash for version tracking
         GIT_HASH=$(git rev-parse --short HEAD)
         echo "GIT_HASH=$GIT_HASH" >> $GITHUB_ENV
-        conda mambabuild conda-recipe/ --output-folder ./conda-dist/
+        conda mambabuild conda-recipe --output-folder ./conda-dist/
 
     - name: Publish to Conda
-      if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'  # Only publish from main/master
+      if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
       env:
         ANACONDA_API_TOKEN: ${{ secrets.ANACONDA_TOKEN }}
       run: |
