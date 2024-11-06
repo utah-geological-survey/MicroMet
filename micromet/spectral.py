@@ -1,670 +1,716 @@
-from scipy import signal, stats
-import pandas as pd
+"""
+Spectral and cospectral analysis module for eddy covariance data
+
+This module provides classes and functions for analyzing spectra and cospectra 
+of eddy covariance measurements, including computation of spectral corrections
+and theoretical models.
+
+Main features:
+- Computation of spectra and cospectra 
+- Theoretical spectral models (Kaimal, Moncrieff)
+- Transfer function calculations
+- Spectral corrections
+"""
+
 import numpy as np
-import matplotlib.pyplot as plt
+from scipy import fft
+from typing import Optional, Tuple, Dict
+"""
+Enhanced spectral and cospectral analysis module for eddy covariance data.
+Adds advanced functionality for comprehensive spectral corrections and analysis.
+"""
+
+import numpy as np
+from scipy import fft, optimize, stats
+from typing import Optional, Tuple, Dict, List, Union
+from dataclasses import dataclass
+from enum import Enum
 
 
-def calc_spectra(data, sampling_freq=20, detrend=True, window='hann',
-                 nfft=None, scaling='density'):
-    """
-    Calculate power spectra and frequency for time series data with proper variance preservation.
-
-    Parameters:
-    -----------
-    data : array_like, pandas.Series
-        Time series data to analyze
-    sampling_freq : float, optional
-        Sampling frequency in Hz, default is 20 Hz
-    detrend : bool, optional
-        Whether to detrend the data before analysis, default True
-    window : str, optional
-        Window function to use, default 'hann'
-    nfft : int, optional
-        Length of FFT, default None uses next power of 2
-    scaling : str, optional
-        Scaling of spectra, either 'density' or 'spectrum', default 'density'
-
-    Returns:
-    --------
-    freqs : ndarray
-        Frequencies in Hz
-    Pxx : ndarray
-        Power spectral density or power spectrum
-    """
-    # Input validation and conversion
-    if isinstance(data, pd.Series):
-        data = data.values
-    elif not isinstance(data, (list, np.ndarray)):
-        raise ValueError("Input data must be array-like or pandas Series")
-
-    data = np.asarray(data)
-
-    if len(data) == 0:
-        raise ValueError("Input data array is empty")
-
-    # Remove NaN values
-    data = data[~np.isnan(data)]
-    if len(data) == 0:
-        raise ValueError("No valid data points after removing NaN values")
-
-    # Remove mean and detrend if requested
-    data = data - np.mean(data)
-    if detrend:
-        data = signal.detrend(data)
-
-    # Set up FFT parameters
-    if nfft is None:
-        nfft = min(int(2 ** np.ceil(np.log2(len(data) / 8))), len(data))
-
-    # Set segment length and overlap
-    nperseg = nfft
-    noverlap = nperseg // 2
-
-    # Get window and normalize
-    win = signal.get_window(window, nperseg)
-    # Normalize window for proper scaling
-    win_norm = np.sum(win ** 2) / nperseg
-    win = win / np.sqrt(win_norm)
-
-    try:
-        freqs, Pxx = signal.welch(data, fs=sampling_freq, window=win,
-                                  nperseg=nperseg, noverlap=noverlap,
-                                  nfft=nfft, scaling=scaling,
-                                  detrend=False)  # Already detrended if requested
-    except ValueError as e:
-        raise ValueError(f"Error calculating spectrum: {str(e)}")
-
-    # Scale PSD for variance preservation
-    if scaling == 'density':
-        Pxx = Pxx * sampling_freq
-
-    return freqs, Pxx
-
-def calc_cospectra(x, y, sampling_freq=20, detrend=True, window='hann',
-                   nfft=None, scaling='density'):
-    """
-    Calculate co-spectra between two time series with proper normalization.
-
-    Parameters:
-    -----------
-    x, y : array_like
-        Time series data arrays to analyze
-    sampling_freq : float, optional
-        Sampling frequency in Hz, default is 20 Hz
-    detrend : bool, optional
-        Whether to detrend the data before analysis, default True
-    window : str, optional
-        Window function to use, default 'hann'
-    nfft : int, optional
-        Length of FFT, default None uses next power of 2
-    scaling : str, optional
-        Either 'density' or 'spectrum', default 'density'
-
-    Returns:
-    --------
-    freqs : ndarray
-        Frequencies in Hz
-    Cxy : ndarray
-        Normalized co-spectrum between x and y
-    """
-    # Input validation
-    x = np.asarray(x)
-    y = np.asarray(y)
-
-    if len(x) != len(y):
-        raise ValueError("Input arrays must have same length")
-
-    # Remove mean before processing
-    x = x - np.mean(x)
-    y = y - np.mean(y)
-
-    # Remove NaN values
-    mask = ~(np.isnan(x) | np.isnan(y))
-    x = x[mask]
-    y = y[mask]
-
-    if len(x) == 0:
-        raise ValueError("No valid data points after removing NaN values")
-
-    # Detrend if requested
-    if detrend:
-        x = signal.detrend(x)
-        y = signal.detrend(y)
-
-    # Set up FFT parameters
-    if nfft is None:
-        # Use segment length about 1/8 of total length
-        nfft = min(int(2 ** np.ceil(np.log2(len(x) / 8))), len(x))
-
-    # Set segment length and overlap
-    nperseg = nfft
-    noverlap = nperseg // 2
-
-    # Get window and normalize it
-    win = signal.get_window(window, nperseg)
-    win_norm = np.sqrt(np.mean(win ** 2))
-    win = win / win_norm
-
-    # Initialize arrays for averaging
-    n_segments = (len(x) - noverlap) // (nperseg - noverlap)
-    freqs = np.fft.rfftfreq(nperseg, d=1 / sampling_freq)
-    Pxy_avg = np.zeros(len(freqs), dtype=complex)
-
-    # Process segments
-    for i in range(n_segments):
-        start = i * (nperseg - noverlap)
-        end = start + nperseg
-
-        # Apply window
-        x_seg = win * x[start:end]
-        y_seg = win * y[start:end]
-
-        # Compute FFTs
-        fx = np.fft.rfft(x_seg)
-        fy = np.fft.rfft(y_seg)
-
-        # Accumulate cross-spectrum
-        Pxy_avg += fx * np.conjugate(fy)
-
-    # Average across segments
-    Pxy_avg /= n_segments
-
-    # Extract real part (co-spectrum)
-    Cxy = np.real(Pxy_avg)
-
-    # Apply scaling
-    if scaling == 'density':
-        # Normalize to power spectral density
-        # Factor of 2 accounts for one-sided spectrum
-        Cxy *= 1.0 / (sampling_freq * nperseg)
-    else:  # scaling == 'spectrum'
-        # Normalize to power spectrum
-        Cxy *= 1.0 / nperseg
-
-    return freqs, Cxy
-
-def spectral_analysis(df, variables=['Ux', 'Uy', 'Uz', 'Ts', 'pV'],
-                      sampling_freq=20):
-    """
-    Perform spectral analysis on eddy covariance data.
-
-    Parameters:
-    -----------
-    df : pandas DataFrame
-        DataFrame containing high frequency eddy covariance data
-    variables : list of str
-        List of variable names to analyze, default ['Ux','Uy','Uz','Ts','pV']
-    sampling_freq : float
-        Sampling frequency in Hz, default 20 Hz
-
-    Returns:
-    --------
-    dict
-        Dictionary containing:
-        - 'spectra': Power spectra for each variable
-        - 'cospectra': Co-spectra between vertical wind (Uz) and other variables
-        - 'frequencies': Frequency arrays
-        - 'normalized_freqs': Normalized frequencies (f*z/U)
-        - 'peaks': Spectral peak information
-    """
-    # Check that all variables exist in dataframe
-    for var in variables:
-        if var not in df.columns:
-            raise ValueError(f"Variable '{var}' not found in DataFrame")
-
-    results = {
-        'spectra': {},
-        'cospectra': {},
-        'frequencies': {},
-        'normalized_freqs': {},
-        'peaks': {}
-    }
-
-    # Calculate mean wind speed for normalization
-    U = np.sqrt(df['Ux'].mean() ** 2 + df['Uy'].mean() ** 2)
-    z = 3.0  # Measurement height in meters, should be parameterized
-
-    # Calculate spectra for each variable
-    for var in variables:
-        try:
-            freqs, Pxx = calc_spectra(df[var].values, sampling_freq=sampling_freq)
-            results['spectra'][var] = Pxx
-            results['frequencies'][var] = freqs
-            results['normalized_freqs'][var] = freqs * z / U
-
-            # Find spectral peaks
-            peak_idx = signal.find_peaks(Pxx)[0]
-            if len(peak_idx) > 0:
-                results['peaks'][var] = {
-                    'freq': freqs[peak_idx],
-                    'power': Pxx[peak_idx]
-                }
-        except Exception as e:
-            print(f"Warning: Failed to calculate spectra for {var}: {str(e)}")
-
-    # Calculate cospectra with vertical wind component
-    for var in variables:
-        if var != 'Uz':
-            try:
-                freqs, Cxy = calc_cospectra(df['Uz'].values, df[var].values,
-                                            sampling_freq=sampling_freq)
-                results['cospectra'][f'Uz-{var}'] = Cxy
-            except Exception as e:
-                print(f"Warning: Failed to calculate cospectra for Uz-{var}: {str(e)}")
-
-    # Calculate energy dissipation rate
-    def calc_dissipation(freqs, Pxx, U):
-        inertial_range = (freqs > 0.1) & (freqs < 10)
-        if np.any(inertial_range):
-            try:
-                slope, _, _, _, _ = stats.linregress(
-                    np.log(freqs[inertial_range]),
-                    np.log(Pxx[inertial_range])
-                )
-                C = 0.55  # Kolmogorov constant
-                eps = ((U * np.mean(Pxx[inertial_range]) *
-                        freqs[inertial_range] ** (5 / 3)) / C) ** (3 / 2)
-                return np.mean(eps)
-            except Exception:
-                return np.nan
-        return np.nan
-
-    results['dissipation_rate'] = {
-        var: calc_dissipation(
-            results['frequencies'][var],
-            results['spectra'][var],
-            U
-        ) for var in variables
-    }
-
-    return results
+@dataclass
+class SpectralParameters:
+    """Parameters for spectral calculations"""
+    f_peak: float  # Peak frequency
+    broadness: float  # Spectral broadness parameter
+    slope: float  # Inertial subrange slope
+    R2: float  # Goodness of fit
 
 
-def plot_spectra(results, normalized=True, loglog=True):
-    """
-    Plot power spectra and cospectra from spectral analysis results.
+class StabilityClass(Enum):
+    """Atmospheric stability classification"""
+    VERY_UNSTABLE = -2
+    UNSTABLE = -1
+    NEUTRAL = 0
+    STABLE = 1
+    VERY_STABLE = 2
 
-    Parameters:
-    -----------
-    results : dict
-        Results dictionary from spectral_analysis()
-    normalized : bool
-        Whether to plot normalized frequencies, default True
-    loglog : bool
-        Whether to use log-log scaling, default True
-    """
-    import matplotlib.pyplot as plt
 
-    # Plot power spectra
-    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 12))
 
-    for var in results['spectra'].keys():
-        freqs = (results['normalized_freqs'][var] if normalized
-                 else results['frequencies'][var])
-        spec = results['spectra'][var]
+class SpectralAnalysis:
+    """Main class for spectral analysis of eddy covariance data"""
+    
+    def __init__(self, sampling_freq: float):
+        """
+        Initialize spectral analysis
+        
+        Args:
+            sampling_freq: Sampling frequency in Hz
+        """
+        self.fs = sampling_freq
+        
+    def calculate_spectra(self, data: np.ndarray, detrend: bool = True,
+                         window: bool = True) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        Calculate power spectra of input data
+        
+        Args:
+            data: Input time series
+            detrend: Apply linear detrending if True
+            window: Apply Hanning window if True
+            
+        Returns:
+            Tuple of:
+            - Frequencies
+            - Power spectra
+        """
+        if detrend:
+            data = self._detrend(data)
+            
+        if window:
+            window = np.hanning(len(data))
+            data = data * window
+            
+        # Calculate FFT
+        fft_vals = fft.fft(data)
+        fft_freq = fft.fftfreq(len(data), 1/self.fs)
+        
+        # Get positive frequencies
+        pos_freq_idx = fft_freq >= 0
+        freqs = fft_freq[pos_freq_idx]
+        
+        # Calculate power spectra
+        power_spectra = np.abs(fft_vals[pos_freq_idx])**2
+        
+        return freqs, power_spectra
+    
+    def calculate_cospectra(self, data1: np.ndarray, data2: np.ndarray,
+                           detrend: bool = True, window: bool = True) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        Calculate cospectra between two time series
+        
+        Args:
+            data1: First input time series  
+            data2: Second input time series
+            detrend: Apply linear detrending if True
+            window: Apply Hanning window if True
+            
+        Returns:
+            Tuple of:
+            - Frequencies 
+            - Cospectra
+        """
+        if detrend:
+            data1 = self._detrend(data1)
+            data2 = self._detrend(data2)
+            
+        if window:
+            window = np.hanning(len(data1))
+            data1 = data1 * window
+            data2 = data2 * window
+            
+        # Calculate FFTs
+        fft1 = fft.fft(data1)
+        fft2 = fft.fft(data2)
+        fft_freq = fft.fftfreq(len(data1), 1/self.fs)
+        
+        # Get positive frequencies
+        pos_freq_idx = fft_freq >= 0
+        freqs = fft_freq[pos_freq_idx]
+        
+        # Calculate cospectra as real part of cross-spectra
+        cospectra = np.real(fft1.conj() * fft2)[pos_freq_idx]
+        
+        return freqs, cospectra
+    
+    @staticmethod
+    def _detrend(data: np.ndarray) -> np.ndarray:
+        """Remove linear trend from data"""
+        x = np.arange(len(data))
+        fit = np.polyfit(x, data, 1)
+        trend = np.poly1d(fit)(x)
+        return data - trend
 
-        if loglog:
-            ax1.loglog(freqs, spec, label=var)
+
+class SpectralModels:
+    """Enhanced spectral models with additional formulations"""
+
+    @staticmethod
+    def moncrieff_cospectrum(freq: np.ndarray, u_star: float, z: float,
+                             L: float, var_type: str = 'scalar') -> np.ndarray:
+        """
+        Calculate Moncrieff et al (1997) cospectrum
+
+        Args:
+            freq: Frequencies (Hz)
+            u_star: Friction velocity (m/s)
+            z: Measurement height (m)
+            L: Obukhov length (m)
+            var_type: Type of variable ('scalar' or 'momentum')
+
+        Returns:
+            Normalized cospectrum values
+        """
+        # Calculate normalized frequency
+        f = freq * z / u_star  # Normalized frequency
+        cospec = np.zeros_like(f)  # Initialize output array
+
+        # Stability parameter
+        zeta = z / L
+
+        if zeta > 0:  # Stable conditions
+            if var_type == 'scalar':
+                # Scalar fluxes (T, CO2, H2O)
+                Ac = 0.284 * ((1.0 + 6.4 * zeta) ** 0.75)
+                Bc = 2.34 * (Ac ** (-1.1))
+                cospec = f / (f * (Ac + Bc * f ** 2.1))
+            else:
+                # Reynolds stress
+                Au = 0.124 * ((1.0 + 7.9 * zeta) ** 0.75)
+                Bu = 2.34 * (Au ** (-1.1))
+                cospec = f / (f * (Au + Bu * f ** 2.1))
+
+        else:  # Unstable conditions
+            # Handle scalar fluxes
+            if var_type == 'scalar':
+                mask_low = f < 0.54
+                mask_high = ~mask_low
+
+                # Low frequency range
+                cospec[mask_low] = 12.92 * f[mask_low] / \
+                                   (1.0 + 26.7 * f[mask_low]) ** 1.375
+
+                # High frequency range
+                cospec[mask_high] = 4.378 * f[mask_high] / \
+                                    (1.0 + 3.8 * f[mask_high]) ** 2.4
+
+            else:  # Reynolds stress
+                mask_low = f < 0.24
+                mask_high = ~mask_low
+
+                # Low frequency range
+                cospec[mask_low] = 20.78 * f[mask_low] / \
+                                   (1.0 + 31.0 * f[mask_low]) ** 1.575
+
+                # High frequency range
+                cospec[mask_high] = 12.66 * f[mask_high] / \
+                                    (1.0 + 9.6 * f[mask_high]) ** 2.4
+
+        return cospec
+
+    def kolmogorov_spectrum(self, freq: np.ndarray, epsilon: float,
+                            z: float) -> np.ndarray:
+        """
+        Calculate Kolmogorov spectrum in inertial subrange
+
+        Args:
+            freq: Frequencies
+            epsilon: Energy dissipation rate (m²/s³)
+            z: Measurement height (m)
+
+        Returns:
+            Spectral values following -5/3 law
+        """
+        # Kolmogorov constant
+        alpha = 0.55
+
+        # Calculate wavenumber
+        k = 2 * np.pi * freq
+
+        # Return spectrum following k^(-5/3) law
+        return alpha * epsilon ** (2 / 3) * k ** (-5 / 3)
+
+    def kaimal_spectrum(self, freq: np.ndarray, u_star: float,
+                        z: float, L: float) -> np.ndarray:
+        """
+        Calculate Kaimal spectrum
+
+        Args:
+            freq: Frequencies
+            u_star: Friction velocity
+            z: Height
+            L: Obukhov length
+
+        Returns:
+            Spectral values
+        """
+        # Normalized frequency
+        f = freq * z / u_star
+
+        # Calculate spectrum based on stability
+        if L > 0:  # Stable
+            return 0.164 * f / (1 + 5.3 * f ** (5 / 3))
+        else:  # Unstable
+            return 0.164 * f / (1 + 0.164 * (f ** (5 / 3)))
+
+    def smooth_transition_spectrum(self, freq: np.ndarray, u_star: float,
+                                   z: float, L: float,
+                                   stability: str) -> np.ndarray:
+        """
+        Calculate spectrum with smooth transition between stability regimes
+
+        Args:
+            freq: Frequencies
+            u_star: Friction velocity
+            z: Height
+            L: Obukhov length
+            stability: Stability class
+
+        Returns:
+            Spectral values
+        """
+        # Get base unstable/stable spectra
+        f = freq * z / u_star
+        s_unstable = self.kaimal_spectrum(freq, u_star, z, -abs(L))
+        s_stable = self.kaimal_spectrum(freq, u_star, z, abs(L))
+
+        # Calculate transition weight based on stability
+        if stability == 'neutral':
+            weight = 0.5
+        elif stability in ['unstable', 'very_unstable']:
+            weight = 1.0
         else:
-            ax1.plot(freqs, spec, label=var)
+            weight = 0.0
 
-    ax1.set_xlabel('Normalized Frequency (fz/U)' if normalized
-                   else 'Frequency (Hz)')
-    ax1.set_ylabel('Power Spectral Density')
-    ax1.legend()
-    ax1.grid(True)
-    ax1.set_title('Power Spectra')
+        # Return weighted combination
+        return weight * s_unstable + (1 - weight) * s_stable
 
-    # Plot cospectra
-    for key, cospec in results['cospectra'].items():
-        freqs = (results['normalized_freqs']['Uz'] if normalized
-                 else results['frequencies']['Uz'])
 
-        if loglog:
-            ax2.loglog(freqs, np.abs(cospec), label=key)
+
+class TransferFunctions:
+    """Class for calculating system transfer functions"""
+    
+    @staticmethod
+    def path_averaging(freq: np.ndarray, path_length: float, 
+                      wind_speed: float) -> np.ndarray:
+        """
+        Calculate transfer function for path averaging
+        
+        Args:
+            freq: Frequencies in Hz
+            path_length: Path length of sensor (m)
+            wind_speed: Mean wind speed (m/s)
+            
+        Returns:
+            Transfer function values
+        """
+        k = 2 * np.pi * freq / wind_speed  # Wave number
+        return np.sinc(k * path_length / 2)
+    
+    @staticmethod
+    def sensor_separation(freq: np.ndarray, separation: float,
+                         wind_speed: float) -> np.ndarray:
+        """
+        Calculate transfer function for sensor separation
+        
+        Args:
+            freq: Frequencies in Hz
+            separation: Sensor separation distance (m)
+            wind_speed: Mean wind speed (m/s)
+            
+        Returns:
+            Transfer function values
+        """
+        k = 2 * np.pi * freq / wind_speed
+        return np.exp(-k * separation)
+    
+    @staticmethod
+    def time_response(freq: np.ndarray, tau: float) -> np.ndarray:
+        """
+        Calculate transfer function for sensor time response
+        
+        Args:
+            freq: Frequencies in Hz
+            tau: Time constant (s)
+            
+        Returns:
+            Transfer function values
+        """
+        return 1 / np.sqrt(1 + (2 * np.pi * freq * tau)**2)
+
+
+class SpectralCorrections:
+    """Class for calculating spectral corrections"""
+    
+    def __init__(self, sampling_freq: float):
+        """
+        Initialize spectral corrections
+        
+        Args:
+            sampling_freq: Sampling frequency in Hz
+        """
+        self.fs = sampling_freq
+        self.tf = TransferFunctions()
+        
+    def calculate_correction(self, measured_flux: float,
+                           freqs: np.ndarray,
+                           cospectra: np.ndarray,
+                           transfer_func: np.ndarray) -> float:
+        """
+        Calculate spectral correction factor
+        
+        Args:
+            measured_flux: Uncorrected flux
+            freqs: Frequencies
+            cospectra: Measured or model cospectra
+            transfer_func: Combined transfer function
+            
+        Returns:
+            Correction factor
+        """
+        # Integrate cospectra
+        theoretical = np.trapz(cospectra, freqs)
+        attenuated = np.trapz(cospectra * transfer_func, freqs)
+        
+        # Calculate correction factor
+        return theoretical / attenuated
+
+
+
+
+class AdvancedSpectralAnalysis(SpectralAnalysis):
+    """Enhanced spectral analysis with advanced features"""
+
+    def fit_spectrum(self, freqs: np.ndarray, spectrum: np.ndarray,
+                     f_min: float = 0.001, f_max: float = 10.0) -> SpectralParameters:
+        """
+        Fit observed spectrum to theoretical model following Fratini et al.
+
+        Args:
+            freqs: Frequency array
+            spectrum: Spectral values
+            f_min: Minimum frequency for fitting
+            f_max: Maximum frequency for fitting
+
+        Returns:
+            SpectralParameters with fitted values
+        """
+        # Mask frequencies within fitting range
+        mask = (freqs >= f_min) & (freqs <= f_max)
+        f_fit = freqs[mask]
+        s_fit = spectrum[mask]
+
+        def spectral_model(f: np.ndarray, f_peak: float,
+                           broadness: float, slope: float) -> np.ndarray:
+            """General model for spectra/cospectra"""
+            return (f / f_peak) / (1 + (f / f_peak) ** (broadness * slope))
+
+        # Initial parameter guesses
+        p0 = [0.1, 1.0, 5 / 3]  # peak freq, broadness, slope
+
+        # Fit model using non-linear least squares
+        popt, pcov = optimize.curve_fit(spectral_model, f_fit, s_fit, p0=p0, maxfev = 8000)
+
+        # Calculate R-squared
+        residuals = s_fit - spectral_model(f_fit, *popt)
+        ss_res = np.sum(residuals ** 2)
+        ss_tot = np.sum((s_fit - np.mean(s_fit)) ** 2)
+        r2 = 1 - (ss_res / ss_tot)
+
+        return SpectralParameters(
+            f_peak=popt[0],
+            broadness=popt[1],
+            slope=popt[2],
+            R2=r2
+        )
+
+    def calculate_ogive(self, freqs: np.ndarray, cospec: np.ndarray) -> np.ndarray:
+        """
+        Calculate ogive (cumulative co-spectrum)
+
+        Args:
+            freqs: Frequencies
+            cospec: Cospectral values
+
+        Returns:
+            Ogive values
+        """
+        # Sort in ascending frequency order
+        sort_idx = np.argsort(freqs)
+        freqs = freqs[sort_idx]
+        cospec = cospec[sort_idx]
+
+        # Cumulative integration from high to low frequencies
+        return np.cumsum(cospec[::-1])[::-1]
+
+    def estimate_noise_floor(self, spectrum: np.ndarray,
+                             percentile: float = 95) -> float:
+        """
+        Estimate noise floor in spectrum using high frequency behavior
+
+        Args:
+            spectrum: Input spectrum
+            percentile: Percentile to use for noise estimation
+
+        Returns:
+            Estimated noise floor value
+        """
+        # Use upper portion of spectrum
+        n_points = len(spectrum)
+        high_freq_idx = int(0.8 * n_points)
+        high_freq_spectrum = spectrum[high_freq_idx:]
+
+        # Estimate noise as high percentile
+        return np.percentile(high_freq_spectrum, percentile)
+
+
+class EnhancedSpectralModels(SpectralModels):
+    """Enhanced spectral models with additional formulations"""
+
+    def kolmogorov_spectrum(self, freq: np.ndarray, epsilon: float,
+                            z: float) -> np.ndarray:
+        """
+        Calculate Kolmogorov spectrum in inertial subrange
+
+        Args:
+            freq: Frequencies
+            epsilon: Energy dissipation rate (m²/s³)
+            z: Measurement height (m)
+
+        Returns:
+            Spectral values following -5/3 law
+        """
+        # Kolmogorov constant
+        alpha = 0.55
+
+        # Calculate wavenumber
+        k = 2 * np.pi * freq
+
+        # Return spectrum following k^(-5/3) law
+        return alpha * epsilon ** (2 / 3) * k ** (-5 / 3)
+
+    def smooth_transition_spectrum(self, freq: np.ndarray, u_star: float,
+                                   z: float, L: float, stability: StabilityClass) -> np.ndarray:
+        """
+        Calculate spectrum with smooth transition between stability regimes
+
+        Args:
+            freq: Frequencies
+            u_star: Friction velocity
+            z: Height
+            L: Obukhov length
+            stability: Stability class
+
+        Returns:
+            Spectral values
+        """
+        # Get base unstable/stable spectra
+        f = freq * z / u_star
+        s_unstable = self.kaimal_spectrum(freq, u_star, z, -abs(L))
+        s_stable = self.kaimal_spectrum(freq, u_star, z, abs(L))
+
+        # Calculate transition weight based on stability
+        if stability == StabilityClass.NEUTRAL:
+            weight = 0.5
+        elif stability in [StabilityClass.UNSTABLE, StabilityClass.VERY_UNSTABLE]:
+            weight = 1.0
         else:
-            ax2.plot(freqs, cospec, label=key)
-
-    ax2.set_xlabel('Normalized Frequency (fz/U)' if normalized
-                   else 'Frequency (Hz)')
-    ax2.set_ylabel('Co-spectral Density')
-    ax2.legend()
-    ax2.grid(True)
-    ax2.set_title('Co-spectra with vertical wind')
-
-    plt.tight_layout()
-    return fig, (ax1, ax2)
-
-
-def generate_example_ec_data(duration=30, sampling_freq=20, include_noise=True, seed=None):
-    """
-    Generate synthetic eddy covariance data with realistic spectral characteristics.
-
-    Parameters:
-    -----------
-    duration : float, optional
-        Duration of the time series in minutes, default 30 minutes
-    sampling_freq : float, optional
-        Sampling frequency in Hz, default 20 Hz
-    include_noise : bool, optional
-        Whether to add random noise to the signals, default True
-    seed : int, optional
-        Random seed for reproducibility, default None
-
-    Returns:
-    --------
-    pandas.DataFrame
-        DataFrame containing synthetic EC data with columns:
-        - Ux, Uy, Uz: Wind components
-        - Ts: Sonic temperature
-        - pV: Water vapor density
-
-    Notes:
-    -----
-    The function generates data with:
-    - Mean wind ~3-5 m/s with turbulent fluctuations
-    - Temperature fluctuations with realistic diurnal trend
-    - Water vapor with correlation to temperature
-    - Turbulent eddies at multiple scales
-    - Optional random noise
-    """
-    if seed is not None:
-        np.random.seed(seed)
-
-    # Time array
-    n_samples = int(duration * 60 * sampling_freq)
-    t = np.linspace(0, duration * 60, n_samples)
-
-    # Base frequencies for different scales of motion
-    f_low = 1 / 600  # ~10 min period
-    f_mid = 1 / 60  # ~1 min period
-    f_high = 1 / 6  # ~6 sec period
-
-    # Generate wind components
-    # Mean wind ~4 m/s with turbulent fluctuations
-    Ux_mean = 4.0
-    Ux = Ux_mean + \
-         0.8 * np.sin(2 * np.pi * f_low * t) + \
-         0.4 * np.sin(2 * np.pi * f_mid * t) + \
-         0.2 * np.sin(2 * np.pi * f_high * t)
-
-    # Cross-wind component
-    Uy = 0.5 * np.sin(2 * np.pi * f_low * t + np.pi / 4) + \
-         0.3 * np.sin(2 * np.pi * f_mid * t + np.pi / 6) + \
-         0.1 * np.sin(2 * np.pi * f_high * t + np.pi / 3)
-
-    # Vertical wind
-    Uz = 0.3 * np.sin(2 * np.pi * f_low * t + np.pi / 3) + \
-         0.2 * np.sin(2 * np.pi * f_mid * t + np.pi / 2) + \
-         0.1 * np.sin(2 * np.pi * f_high * t + 2 * np.pi / 3)
-
-    # Temperature with diurnal trend
-    Ts_mean = 25.0
-    Ts = Ts_mean + \
-         2.0 * np.sin(2 * np.pi * t / (duration * 60)) + \
-         0.5 * np.sin(2 * np.pi * f_low * t) + \
-         0.3 * np.sin(2 * np.pi * f_mid * t) + \
-         0.1 * np.sin(2 * np.pi * f_high * t)
-
-    # Water vapor with correlation to temperature
-    pV_mean = 10.0
-    pV = pV_mean + \
-         0.8 * signal.detrend(Ts) + \
-         0.4 * np.sin(2 * np.pi * f_low * t + np.pi / 6) + \
-         0.2 * np.sin(2 * np.pi * f_mid * t + np.pi / 4) + \
-         0.1 * np.sin(2 * np.pi * f_high * t + np.pi / 3)
-
-    if include_noise:
-        # Add random turbulent fluctuations
-        Ux += np.random.normal(0, 0.2, n_samples)
-        Uy += np.random.normal(0, 0.15, n_samples)
-        Uz += np.random.normal(0, 0.1, n_samples)
-        Ts += np.random.normal(0, 0.1, n_samples)
-        pV += np.random.normal(0, 0.1, n_samples)
-
-    # Create DataFrame with datetime index
-    start_time = pd.Timestamp.now().round('30min')
-    time_index = pd.date_range(start=start_time,
-                               periods=n_samples,
-                               freq=f'{1 / sampling_freq}s')
-
-    df = pd.DataFrame({
-        'Ux': Ux,
-        'Uy': Uy,
-        'Uz': Uz,
-        'Ts': Ts,
-        'pV': pV
-    }, index=time_index)
-
-    return df
-
-
-def demo_spectral_analysis():
-    """
-    Demonstrate the spectral analysis functions using synthetic data.
-
-    Returns:
-    --------
-    tuple
-        (DataFrame of synthetic data, spectral analysis results, figure)
-    """
-    # Generate example data
-    df = generate_example_ec_data(duration=30, sampling_freq=20, seed=42)
-
-    # Perform spectral analysis
-    results = spectral_analysis(df)
-
-    # Create plots
-    fig, axes = plot_spectra(results)
-
-    # Print dataset properties using updated timedelta calculation
-    print("\nDataset properties:")
-    print("-" * 20)
-    print(f"Duration: {(df.index[-1] - df.index[0]).total_seconds() / 60:.1f} minutes")
-
-    # Calculate sampling frequency using timedelta between consecutive points
-    sampling_freq = 1 / pd.Timedelta(df.index[1] - df.index[0]).total_seconds()
-    print(f"Sampling frequency: {sampling_freq:.1f} Hz")
-
-    print(f"\nMean values:")
-    print(df.mean())
-    print(f"\nStandard deviations:")
-    print(df.std())
-
-    return df, results, (fig, axes)
-
-
-def calc_kaimal_spectrum(f, z=3.0, u_star=0.5, L=-50):
-    """
-    Calculate the theoretical Kaimal spectrum for w'T' cospectra.
-
-    Parameters:
-    -----------
-    f : array_like
-        Frequencies in Hz
-    z : float
-        Measurement height (m)
-    u_star : float
-        Friction velocity (m/s)
-    L : float
-        Obukhov length (m), negative for unstable conditions
-
-    Returns:
-    --------
-    array_like
-        Normalized cospectral density values
-    """
-    # Calculate normalized frequency
-    zeta = z / L  # stability parameter
-    phi = (1 - 16 * zeta) ** (-0.25)  # stability function
-    n = f * z / (u_star * phi)
-
-    # Kaimal formula for unstable conditions
-    cospec = 14 * n / (1 + 9.6 * n) ** (2.4)
-
-    return cospec
-
-
-def calc_slope_line(f, z, U, slope=-2 / 3, anchor_point=(0.1, 0.2)):
-    """
-    Calculate a reference slope line for the inertial subrange.
-
-    Parameters:
-    -----------
-    f : array_like
-        Frequencies in Hz
-    z : float
-        Measurement height (m)
-    U : float
-        Mean wind speed (m/s)
-    slope : float
-        Desired slope, default -2/3
-    anchor_point : tuple
-        (x, y) coordinates to anchor the slope line in normalized coordinates
-
-    Returns:
-    --------
-    tuple
-        (x coordinates, y coordinates) for plotting
-    """
-    # Convert frequencies to normalized form
-    n = f * z / U
-
-    # Calculate y-intercept to pass through anchor point
-    # y = mx + b in log space
-    log_x0, log_y0 = np.log10(anchor_point[0]), np.log10(anchor_point[1])
-    b = log_y0 - slope * log_x0
-
-    # Calculate line values
-    mask = (n >= anchor_point[0] / 5) & (n <= anchor_point[0] * 20)
-    log_y = slope * np.log10(n[mask]) + b
-
-    return n[mask], 10 ** log_y
-
-
-def plot_wt_cospectra(df, sampling_freq=20, z=3.0, u_star=0.5, L=-50,
-                      show_slope=True, slope=-2 / 3):
-    """
-    Plot w'T' cospectra with theoretical Kaimal spectrum and optional slope line.
-
-    Parameters:
-    -----------
-    df : pandas DataFrame
-        DataFrame containing high frequency data with 'Uz' and 'Ts' columns
-    sampling_freq : float
-        Sampling frequency in Hz
-    z : float
-        Measurement height (m)
-    u_star : float
-        Friction velocity (m/s)
-    L : float
-        Obukhov length (m)
-    show_slope : bool
-        Whether to show the slope reference line
-    slope : float
-        Slope value to show, default -2/3
-
-    Returns:
-    --------
-    matplotlib.figure.Figure
-        Figure containing the plot
-    """
-    # Calculate cospectra
-    freqs, Cxy = calc_cospectra(df['Uz'], df['Ts'], sampling_freq=sampling_freq)
-
-    # Calculate mean wind speed for normalization
-    U = np.sqrt(df['Ux'].mean() ** 2 + df['Uy'].mean() ** 2)
-
-    # Normalize frequencies and cospectra
-    n = freqs * z / U
-    norm_cospec = freqs * Cxy / (u_star * df['Ts'].std())
-
-    # Calculate theoretical Kaimal spectrum
-    kaimal = calc_kaimal_spectrum(freqs, z, u_star, L)
-
-    # Calculate slope reference line if requested
-    if show_slope:
-        slope_x, slope_y = calc_slope_line(freqs, z, U, slope=slope)
-
-    # Create logarithmically spaced bins for block averaging
-    log_bins = np.logspace(np.log10(n[1]), np.log10(n[-1]), 20)
-    bin_means_x = []
-    bin_means_y = []
-
-    for i in range(len(log_bins) - 1):
-        mask = (n >= log_bins[i]) & (n < log_bins[i + 1])
-        if np.any(mask):
-            bin_means_x.append(np.mean(n[mask]))
-            bin_means_y.append(np.mean(norm_cospec[mask]))
-
-    # Create plot
-    fig, ax = plt.subplots(figsize=(10, 6))
-
-    # Plot raw cospectra
-    ax.semilogx(n, norm_cospec, 'lightgray', alpha=0.5, label='Raw cospectra')
-
-    # Plot block averages
-    ax.semilogx(bin_means_x, bin_means_y, 'ko', label='Block averages',
-                markersize=8, markerfacecolor='white')
-
-    # Plot Kaimal spectrum
-    ax.semilogx(n, kaimal, 'k-', label='Kaimal spectrum', linewidth=2)
-
-    # Plot slope reference line if requested
-    if show_slope:
-        ax.semilogx(slope_x, slope_y, 'r--',
-                    label=f'{slope:.1f} slope', linewidth=2)
-
-    # Set axis limits and labels
-    ax.set_xlim(1e-3, 10)
-    ax.set_ylim(-0.1, 0.3)
-    ax.set_xlabel('$n = fz/U$')
-    ax.set_ylabel('$fCo_{wT}/u_*T_*$')
-
-    # Add grid
-    ax.grid(True, which="both", ls="-", alpha=0.2)
-
-    # Add legend
-    ax.legend()
-
-    # Add title
-    ax.set_title("w'T' Cospectrum\nUnstable Conditions", pad=20)
-
-    plt.tight_layout()
-    return fig
-
-
-def example_wt_cospectra(show_slope=True):
-    """
-    Generate example data and create w'T' cospectra plot.
-    """
-    # Generate example data with strong w-T correlation
-    df = generate_example_ec_data(duration=30, sampling_freq=20, seed=42)
-
-    # Add some artificial correlation between w and T
-    df['Ts'] = df['Ts'] + 0.5 * df['Uz']
-
-    # Create plot with slope line
-    fig = plot_wt_cospectra(df, show_slope=show_slope)
-
-    return df, fig
-
-
-# Example usage
-if __name__ == "__main__":
-    # Generate and analyze example data
-    df, results, (fig, axes) = demo_spectral_analysis()
-
-    print("\nDataset properties:")
-    print("-" * 20)
-    print(f"Duration: {(df.index[-1] - df.index[0]).total_seconds() / 60:.1f} minutes")
-    print(f"Sampling frequency: {1 / df.index.freq.delta.total_seconds():.1f} Hz")
-    print(f"\nMean values:")
-    print(df.mean())
-    print(f"\nStandard deviations:")
-    print(df.std())
-
-    # Display plots
-    import matplotlib.pyplot as plt
-
-    plt.show()
+            weight = 0.0
+
+        # Return weighted combination
+        return weight * s_unstable + (1 - weight) * s_stable
+
+
+class EnhancedTransferFunctions(TransferFunctions):
+    """Enhanced transfer functions with additional formulations"""
+
+    def tube_attenuation(self, freq: np.ndarray, tube_length: float,
+                         flow_rate: float, tube_diameter: float) -> np.ndarray:
+        """
+        Calculate transfer function for tube attenuation
+
+        Args:
+            freq: Frequencies
+            tube_length: Tube length (m)
+            flow_rate: Flow rate (L/min)
+            tube_diameter: Tube inner diameter (m)
+
+        Returns:
+            Transfer function values
+        """
+        # Calculate tube parameters
+        flow_rate_m3s = flow_rate / 60000  # Convert L/min to m³/s
+        tube_area = np.pi * (tube_diameter / 2) ** 2
+        velocity = flow_rate_m3s / tube_area
+
+        # Calculate attenuation coefficient
+        omega = 2 * np.pi * freq
+        tau = tube_length / velocity
+
+        return np.exp(-omega * tau)
+
+    def block_averaging(self, freq: np.ndarray,
+                        averaging_time: float) -> np.ndarray:
+        """
+        Calculate transfer function for block averaging
+
+        Args:
+            freq: Frequencies
+            averaging_time: Averaging period (s)
+
+        Returns:
+            Transfer function values
+        """
+        x = np.pi * freq * averaging_time
+        return np.sinc(x)
+
+    def combined_transfer(self, freq: np.ndarray,
+                          transfer_funcs: List[np.ndarray]) -> np.ndarray:
+        """
+        Combine multiple transfer functions
+
+        Args:
+            freq: Frequencies
+            transfer_funcs: List of transfer functions to combine
+
+        Returns:
+            Combined transfer function
+        """
+        # Multiply all transfer functions
+        combined = np.ones_like(freq)
+        for tf in transfer_funcs:
+            combined *= tf
+        return combined
+
+
+class SpectralQC:
+    """Quality control for spectral calculations"""
+
+    def __init__(self, min_freq: float = 0.0001, max_freq: float = 50.0):
+        """
+        Initialize spectral QC
+
+        Args:
+            min_freq: Minimum valid frequency
+            max_freq: Maximum valid frequency
+        """
+        self.min_freq = min_freq
+        self.max_freq = max_freq
+
+    def check_resolution(self, freqs: np.ndarray) -> bool:
+        """Check if frequency resolution is adequate"""
+        freq_res = np.mean(np.diff(freqs))
+        return freq_res <= 0.1 * self.min_freq
+
+    def check_slope(self, freqs: np.ndarray, spectrum: np.ndarray,
+                    freq_range: Tuple[float, float] = (0.1, 1.0),
+                    expected_slope: float = -5 / 3,
+                    tolerance: float = 0.2) -> bool:
+        """
+        Check if spectrum follows expected slope in inertial subrange
+
+        Args:
+            freqs: Frequencies
+            spectrum: Spectral values
+            freq_range: Frequency range for slope calculation
+            expected_slope: Expected spectral slope
+            tolerance: Allowable deviation from expected slope
+
+        Returns:
+            True if slope is within tolerance
+        """
+        # Get data in frequency range
+        mask = (freqs >= freq_range[0]) & (freqs <= freq_range[1])
+        f_fit = freqs[mask]
+        s_fit = spectrum[mask]
+
+        # Fit log-log slope
+        slope, _, r_value, _, _ = stats.linregress(np.log(f_fit), np.log(s_fit))
+
+        return (abs(slope - expected_slope) <= tolerance) and (r_value ** 2 >= 0.9)
+
+    def check_noise(self, spectrum: np.ndarray, noise_threshold: float) -> bool:
+        """Check if spectrum has acceptable noise levels"""
+        noise = np.std(spectrum) / np.mean(spectrum)
+        return noise <= noise_threshold
+
+
+class BandpassCorrections:
+    """Bandpass spectral corrections"""
+
+    def __init__(self, sampling_freq: float):
+        """
+        Initialize bandpass corrections
+
+        Args:
+            sampling_freq: Sampling frequency in Hz
+        """
+        self.fs = sampling_freq
+        self.tf = EnhancedTransferFunctions()
+
+    def analytical_correction(self, measured_flux: float, u_star: float,
+                              z: float, L: float, stability: StabilityClass,
+                              transfer_params: Dict) -> float:
+        """
+        Calculate analytical spectral correction
+
+        Args:
+            measured_flux: Uncorrected flux
+            u_star: Friction velocity
+            z: Measurement height
+            L: Obukhov length
+            stability: Stability class
+            transfer_params: Parameters for transfer functions
+
+        Returns:
+            Corrected flux
+        """
+        # Generate frequencies
+        freqs = np.fft.fftfreq(int(self.fs * 3600))[1:int(self.fs * 3600 // 2)]
+
+        # Get model cospectrum
+        model = SpectralModels()
+        cospec = model.moncrieff_cospectrum(freqs, u_star, z, L)
+
+        # Calculate transfer functions
+        tfs = []
+        for name, params in transfer_params.items():
+            if hasattr(self.tf, name):
+                tf = getattr(self.tf, name)(freqs, **params)
+                tfs.append(tf)
+
+        # Combine transfer functions
+        total_tf = self.tf.combined_transfer(freqs, tfs)
+
+        # Calculate correction
+        correction = SpectralCorrections(self.fs)
+        factor = correction.calculate_correction(measured_flux, freqs,
+                                                 cospec, total_tf)
+
+        return measured_flux * factor
+
+    def in_situ_correction(self, w_ts: np.ndarray, w_gas: np.ndarray,
+                           freq_range: Tuple[float, float] = (0.01, 1.0)) -> float:
+        """
+        Calculate in-situ spectral correction using temperature as reference
+
+        Args:
+            w_ts: Vertical wind-temperature covariance time series
+            w_gas: Vertical wind-gas covariance time series
+            freq_range: Frequency range for correction
+
+        Returns:
+            Correction factor
+        """
+        # Calculate spectra
+        spec = SpectralAnalysis(self.fs)
+        f_wt, co_wt = spec.calculate_cospectra(w_ts[:, 0], w_ts[:, 1])
+        f_wg, co_wg = spec.calculate_cospectra(w_gas[:, 0], w_gas[:, 1])
+
+        # Select frequency range
+        mask = (f_wt >= freq_range[0]) & (f_wt <= freq_range[1])
+
+        # Calculate correction as ratio of cospectra
+        ratio = np.trapz(co_wt[mask], f_wt[mask]) / \
+                np.trapz(co_wg[mask], f_wg[mask])
+
+        return ratio

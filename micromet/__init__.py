@@ -7,6 +7,7 @@ from .graphs import *
 from .spectral import *
 from .meteolib import *
 from .ffp import *
+from .specplot import *
 
 __version__ = '0.5.0'
 
