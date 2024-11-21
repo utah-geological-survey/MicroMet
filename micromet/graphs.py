@@ -136,3 +136,45 @@ def bland_altman_plot(data1, data2, *args, **kwargs):
     plt.axhline(md + 1.96*sd, color='gray', linestyle='--')
     plt.axhline(md - 1.96*sd, color='gray', linestyle='--')
     return md, sd, mean, CI_low, CI_high
+
+
+# Example of filtering by date range
+def plot_timeseries_daterange(input_df, selected_station, selected_field, start_date, end_date):
+    """
+    Args:
+        input_df: The DataFrame containing the time series data.
+        selected_station: The ID of the station to be selected from the data.
+        selected_field: The field (column) representing the data to be plotted.
+        start_date: The start date of the date range to be plotted.
+        end_date: The end date of the date range to be plotted.
+    """
+    global fig, ax
+    # ax.clear()
+    fig, ax = plt.subplots(figsize=(10, 8))
+
+    # Filter data by date range
+    filtered_df = input_df.loc[selected_station].loc[start_date:end_date]
+    filtered_df = filtered_df.loc[:, selected_field].replace(-9999, np.nan)
+
+    # Plot each selected category
+    ax.plot(filtered_df.index, filtered_df,
+            label=selected_station, linewidth=2)
+
+    plt.title(f'{selected_station} {selected_field}\n{start_date} to {end_date}')
+    plt.xlabel('Date')
+    plt.ylabel('Value')
+    plt.legend()
+    plt.grid(True)
+    plt.xticks(rotation=45)
+    plt.tight_layout()
+    plt.show()
+
+    # fig.canvas.draw()
+
+
+def save_plot(b):
+    """
+    Saves plot for an interactive notebook button function
+    """
+    # This line saves the plot as a .png file. Change it to .pdf to save as pdf.
+    fig.savefig('plot.png')

@@ -158,7 +158,7 @@ def dataframe_from_file(file):
 
     """
     try:
-        na_vals = ['-9999', 'NAN', 'NaN','nan']
+        na_vals = ['-9999', 'NAN', 'NaN', 'nan']
         # check to see if a header is present, if not, assign one using the header_dict dictionary
         if check_header(file) == 1:
 
@@ -182,6 +182,7 @@ def dataframe_from_file(file):
         print(f'Encountered an error with file {file}: {str(e)}')
         return None
 
+
 def is_int(element: any) -> bool:
     #If you expect None to be passed:
     if element is None:
@@ -191,6 +192,7 @@ def is_int(element: any) -> bool:
         return True
     except ValueError:
         return False
+
 
 def raw_file_compile(raw_fold, station_folder_name, search_str="*Flux_AmeriFluxFormat*.dat"):
     """
@@ -307,19 +309,21 @@ class Reformatter(object):
                 'PBLH', 'TS_1_1_1', 'TS_2_1_1', 'SWC_1_1_1', 'SWC_2_1_1', 'ALB', 'NETRAD', 'SW_IN', 'SW_OUT',
                 'LW_IN', 'LW_OUT']
 
-    def __init__(self, et_data, drop_soil=True, data_path = None):
+    drop_cols = ['RECORD']
+
+    def __init__(self, et_data, drop_soil=True, data_path=None):
         # read in variable limits
         if data_path is None:
             try:
-                data_path = pathlib.Path('../data/FP_variable_20220810.csv')
+                data_path = pathlib.Path('../data/extreme_values.csv')
                 self.varlimits = pd.read_csv(data_path, index_col='Name')
             except FileNotFoundError:
                 try:
-                    data_path = pathlib.Path('data/FP_variable_20220810.csv')
+                    data_path = pathlib.Path('data/extreme_values.csv')
                     self.varlimits = pd.read_csv(data_path, index_col='Name')
                 except FileNotFoundError:
                     data_path = pathlib.Path(
-                        '/content/drive/Shareddrives/UGS_Flux/Data_Processing/Jupyter_Notebooks/Micromet/data/FP_variable_20220810.csv')
+                        '/content/drive/Shareddrives/UGS_Flux/Data_Processing/Jupyter_Notebooks/Micromet/data/extreme_values.csv')
                     self.varlimits = pd.read_csv(data_path, index_col='Name')
         else:
             data_path = pathlib.Path(data_path)
@@ -347,14 +351,13 @@ class Reformatter(object):
         # rescale the quality values to a 0-2 scale
         self.ssitc_scale()
 
-        self.et_data = self.et_data.fillna(value=int(-9999))
         #self.et_data = self.et_data.dropna(subset=['TIMESTAMP_START', 'TIMESTAMP_END'])
 
         self.et_data = self.et_data.drop(['datetime_end'], axis=1)
 
         if drop_soil:
             self.et_data = remove_extra_soil_params(self.et_data)
-
+        self.et_data = self.et_data.fillna(value=int(-9999))
         # cdf.drop('station',axis=1,inplace=True)
         for col in self.et_data:
             if col in ['MO_LENGTH']:
@@ -364,7 +367,24 @@ class Reformatter(object):
             elif "SSITC" in col:
                 self.et_data[col] = self.et_data[col].astype(np.int16)
             else:
-                self.et_data[col] = self.et_data[col].astype(np.float32)
+                self.et_data[col] = pd.to_numeric(self.et_data[col], errors='coerce')
+
+        self.et_data = self.et_data.fillna(value=int(-9999))
+        self.et_data = self.et_data.replace(-9999.0, int(-9999))
+        self.drop_extras()
+        self.col_order()
+
+    def drop_extras(self):
+        for col in self.drop_cols:
+            if col in self.et_data.columns:
+                self.et_data.drop(col, axis=1, inplace=True)
+
+    def col_order(self):
+        """Puts priority columns first"""
+        first_cols = ['TIMESTAMP_END', 'TIMESTAMP_START']
+        for col in first_cols:
+            ncol = self.et_data.pop(col)
+            self.et_data.insert(0, col, ncol)
 
     def datefixer(self, et_data):
         """
@@ -411,6 +431,10 @@ class Reformatter(object):
 
         # eliminate implausible dates that are set in the future
         et_data = et_data[et_data.index <= datetime.datetime.today() + pd.Timedelta(days=1)]
+
+        # eliminate object columns from dataframe before fixing time offsets
+        if 'TIMESTAMP' in et_data.columns:
+            et_data = et_data.drop('TIMESTAMP', axis=1)
 
         # fix time offsets to harmonize sample frequency to 30 min
         et_data = et_data.resample('15min').asfreq().interpolate(method='linear', limit=2).resample(
@@ -651,17 +675,22 @@ bet_spikey = ['CO2', 'H2O', 'FC', 'LE', 'ET', 'H', 'G', 'SG', 'FETCH_MAX', 'FETC
 
 
 def load_data():
-    df = pd.read_csv('./data/FP_variable_20220810.csv')
+    df = pd.read_csv('./data/extreme_values.csv')
     return df
 
-def outfile(df, stationname, out_dir):
-    """Generates a file name based on the ameriflux file nameing standards
 
+def outfile(df, stationname, out_dir):
+    """Outputs file following the Ameriflux file naming format
+    Args:
+        df: the DataFrame that contains the data to be written to a file
+        stationname: the name of the station for which the data is being written
+        out_dir: the output directory where the file will be saved
     """
-    first_index = pd.to_datetime(df['TIMESTAMP_START'][0], format ='%Y%m%d%H%M')
-    last_index = pd.to_datetime(df['TIMESTAMP_END'][-1], format ='%Y%m%d%H%M')#df.index[-1], format ='%Y%m%d%H%M')
-    filename = stationname  + f"_HH_{first_index.strftime('%Y%m%d%H%M')}_{last_index.strftime('%Y%m%d%H%M')}.csv" #{last_index_plus_30min.strftime('%Y%m%d%H%M')}.csv"
-    df.to_csv(out_dir + stationname + "/" + filename)
+    first_index = pd.to_datetime(df.iloc[0, 0], format='%Y%m%d%H%M')
+    last_index = pd.to_datetime(df.iloc[-1, 1], format='%Y%m%d%H%M')  #df.index[-1], format ='%Y%m%d%H%M')
+    filename = stationname + f"_HH_{first_index.strftime('%Y%m%d%H%M')}_{last_index.strftime('%Y%m%d%H%M')}.csv"  #{last_index_plus_30min.strftime('%Y%m%d%H%M')}.csv"
+    df.to_csv(out_dir + stationname + "/" + filename, index=False)
+
 
 if __name__ == '__main__':
     data = load_data()

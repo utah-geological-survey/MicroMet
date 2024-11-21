@@ -8,15 +8,12 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="a09e9df8-2720-44bb-8605-374b38d0d9d1" name="Changes" comment="Add Flux variables CSV and enhance micromet functionality&#10;&#10;Added a comprehensive CSV file for Flux variables, enhancing data tracking. Updated multiple scripts in the micromet package to improve configuration handling, CSV path management, and file compilation. Moreover, introduced new dependencies in the environment file and pyproject.toml to support enhanced data visualization and statistical analysis features.&#10;&#10;Consolidated and eliminated uneccessary files">
-      <change afterPath="$PROJECT_DIR$/Notebooks/Spectral-Analysis.ipynb" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/data/Example_High_Freq.csv" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/micromet/specplot.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/micromet/spectralold.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Notebooks/Spectral Example.ipynb" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/micromet/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/micromet/__init__.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/micromet/spectral.py" beforeDir="false" afterPath="$PROJECT_DIR$/micromet/spectral.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/spectral-tests.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Notebooks/DL_test_forAmeriFluxOutputOnly.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/Notebooks/DL_test_forAmeriFluxOutputOnly.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/FP_variable_20220810.csv" beforeDir="false" afterPath="$PROJECT_DIR$/data/extreme_values.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/micromet/converter.py" beforeDir="false" afterPath="$PROJECT_DIR$/micromet/converter.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/micromet/graphs.py" beforeDir="false" afterPath="$PROJECT_DIR$/micromet/graphs.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/micromet/tools.py" beforeDir="false" afterPath="$PROJECT_DIR$/micromet/tools.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -138,6 +135,22 @@
       <option name="_new_targetType" value="&quot;PATH&quot;" />
       <method v="2" />
     </configuration>
+    <configuration name="Python tests in C:/Users/paulinkenbrandt/Documents/GitHub/MicroMet/tests/spectral-tests.py" type="tests" factoryName="Autodetect" temporary="true" nameIsGenerated="true">
+      <module name="Micromet" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/tests" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="_new_additionalArguments" value="&quot;&quot;" />
+      <option name="_new_target" value="&quot;$PROJECT_DIR$/tests/spectral-tests.py&quot;" />
+      <option name="_new_targetType" value="&quot;PATH&quot;" />
+      <method v="2" />
+    </configuration>
     <configuration name="Python tests in meteolib_tests.py" type="tests" factoryName="Autodetect" temporary="true" nameIsGenerated="true">
       <module name="Micromet" />
       <option name="ENV_FILES" value="" />
@@ -151,22 +164,6 @@
       <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
       <option name="_new_additionalArguments" value="&quot;&quot;" />
       <option name="_new_target" value="&quot;$PROJECT_DIR$/tests/meteolib_tests.py&quot;" />
-      <option name="_new_targetType" value="&quot;PATH&quot;" />
-      <method v="2" />
-    </configuration>
-    <configuration name="Python tests in spectral-tests.py" type="tests" factoryName="Autodetect" temporary="true" nameIsGenerated="true">
-      <module name="Micromet" />
-      <option name="ENV_FILES" value="" />
-      <option name="INTERPRETER_OPTIONS" value="" />
-      <option name="PARENT_ENVS" value="true" />
-      <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/tests" />
-      <option name="IS_MODULE_SDK" value="true" />
-      <option name="ADD_CONTENT_ROOTS" value="true" />
-      <option name="ADD_SOURCE_ROOTS" value="true" />
-      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
-      <option name="_new_additionalArguments" value="&quot;&quot;" />
-      <option name="_new_target" value="&quot;$PROJECT_DIR$/tests/spectral-tests.py&quot;" />
       <option name="_new_targetType" value="&quot;PATH&quot;" />
       <method v="2" />
     </configuration>
@@ -192,7 +189,7 @@
       <list>
         <item itemvalue="Python.spectral_tests_2" />
         <item itemvalue="Python tests.Python tests in C:/Users/paulinkenbrandt/Documents/GitHub/MicroMet/micromet/spectral_tests_2.py" />
-        <item itemvalue="Python tests.Python tests in spectral-tests.py" />
+        <item itemvalue="Python tests.Python tests in C:/Users/paulinkenbrandt/Documents/GitHub/MicroMet/tests/spectral-tests.py" />
         <item itemvalue="Python tests.pytest for tests.spectral-tests" />
         <item itemvalue="Python tests.Python tests in meteolib_tests.py" />
       </list>
@@ -240,7 +237,9 @@
       <workItem from="1730775951535" duration="1668000" />
       <workItem from="1730856459982" duration="1867000" />
       <workItem from="1730899964647" duration="3606000" />
-      <workItem from="1730909007039" duration="3985000" />
+      <workItem from="1730909007039" duration="4194000" />
+      <workItem from="1732111481637" duration="32925000" />
+      <workItem from="1732216469116" duration="3940000" />
     </task>
     <task id="LOCAL-00001" summary="Add 'secrets' and 'station_data' to .gitignore&#10;&#10;The commit introduces two new entries to the .gitignore file. The '/secrets/' and '/station_data/' directories are now ignored to prevent sensitive or unnecessary data from being tracked by git.">
       <option name="closed" value="true" />
@@ -330,7 +329,15 @@
       <option name="project" value="LOCAL" />
       <updated>1730688934062</updated>
     </task>
-    <option name="localTasksCounter" value="12" />
+    <task id="LOCAL-00012" summary="Add Flux variables CSV and enhance micromet functionality&#10;&#10;Added a comprehensive CSV file for Flux variables, enhancing data tracking. Updated multiple scripts in the micromet package to improve configuration handling, CSV path management, and file compilation. Moreover, introduced new dependencies in the environment file and pyproject.toml to support enhanced data visualization and statistical analysis features.&#10;&#10;Consolidated and eliminated uneccessary files">
+      <option name="closed" value="true" />
+      <created>1730914284740</created>
+      <option name="number" value="00012" />
+      <option name="presentableId" value="LOCAL-00012" />
+      <option name="project" value="LOCAL" />
+      <updated>1730914284740</updated>
+    </task>
+    <option name="localTasksCounter" value="13" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
