@@ -1,0 +1,346 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Quickstart Guide &mdash; Micromet 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=01f34227"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../_static/copybutton.js?v=f281be69"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            Micromet
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="ec.html">EC Module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="converter.html">Converter Module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ffp.html">Flux Footprint Module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="meteolib.html">Meteorological Library Module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="outlier_removal.html">Outlier Removal Module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tools.html">Tools Module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="graphs.html">Graphs Module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cs_wrapper.html">Campbell Scientific Wrapper Module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="licor_wrapper.html">LI-COR Wrapper Module</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Micromet</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Quickstart Guide</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/api/quickstart.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="quickstart-guide">
+<h1>Quickstart Guide<a class="headerlink" href="#quickstart-guide" title="Link to this heading"></a></h1>
+<p>This guide will help you get started with the Micromet package for processing and analyzing micrometeorological data.</p>
+<section id="installation">
+<h2>Installation<a class="headerlink" href="#installation" title="Link to this heading"></a></h2>
+<p>You can install Micromet using pip:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>micromet
+</pre></div>
+</div>
+<p>For development installation:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/inkenbrandt/micromet.git
+<span class="nb">cd</span><span class="w"> </span>micromet
+pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span>.
+</pre></div>
+</div>
+</section>
+<section id="basic-usage">
+<h2>Basic Usage<a class="headerlink" href="#basic-usage" title="Link to this heading"></a></h2>
+<section id="processing-raw-data">
+<h3>Processing Raw Data<a class="headerlink" href="#processing-raw-data" title="Link to this heading"></a></h3>
+<p>Start by importing the necessary modules and loading your data:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">micromet</span>
+<span class="kn">from</span> <span class="nn">micromet.converter</span> <span class="kn">import</span> <span class="n">Reformatter</span><span class="p">,</span> <span class="n">raw_file_compile</span>
+
+<span class="c1"># Load raw data files from a directory</span>
+<span class="n">raw_data</span> <span class="o">=</span> <span class="n">raw_file_compile</span><span class="p">(</span>
+    <span class="n">raw_fold</span><span class="o">=</span><span class="s1">&#39;path/to/data&#39;</span><span class="p">,</span>
+    <span class="n">station_folder_name</span><span class="o">=</span><span class="s1">&#39;STATION1&#39;</span>
+<span class="p">)</span>
+
+<span class="c1"># Convert to AmeriFlux format</span>
+<span class="n">reformatter</span> <span class="o">=</span> <span class="n">Reformatter</span><span class="p">(</span><span class="n">raw_data</span><span class="p">)</span>
+<span class="n">formatted_data</span> <span class="o">=</span> <span class="n">reformatter</span><span class="o">.</span><span class="n">et_data</span>
+</pre></div>
+</div>
+</section>
+<section id="quality-control">
+<h3>Quality Control<a class="headerlink" href="#quality-control" title="Link to this heading"></a></h3>
+<p>Apply quality control measures to your data:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">micromet.tools</span> <span class="kn">import</span> <span class="n">find_gaps</span><span class="p">,</span> <span class="n">clean_extreme_variations</span>
+
+<span class="c1"># Find data gaps</span>
+<span class="n">gaps</span> <span class="o">=</span> <span class="n">find_gaps</span><span class="p">(</span>
+    <span class="n">formatted_data</span><span class="p">,</span>
+    <span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;temperature&#39;</span><span class="p">,</span> <span class="s1">&#39;humidity&#39;</span><span class="p">,</span> <span class="s1">&#39;pressure&#39;</span><span class="p">]</span>
+<span class="p">)</span>
+
+<span class="c1"># Clean extreme variations</span>
+<span class="n">cleaned_data</span> <span class="o">=</span> <span class="n">clean_extreme_variations</span><span class="p">(</span>
+    <span class="n">formatted_data</span><span class="p">,</span>
+    <span class="n">frequency</span><span class="o">=</span><span class="s1">&#39;D&#39;</span><span class="p">,</span>
+    <span class="n">variation_threshold</span><span class="o">=</span><span class="mf">3.0</span><span class="p">,</span>
+    <span class="n">replacement_method</span><span class="o">=</span><span class="s1">&#39;interpolate&#39;</span>
+<span class="p">)[</span><span class="s1">&#39;cleaned_data&#39;</span><span class="p">]</span>
+</pre></div>
+</div>
+</section>
+<section id="flux-calculations">
+<h3>Flux Calculations<a class="headerlink" href="#flux-calculations" title="Link to this heading"></a></h3>
+<p>Calculate fluxes using the eddy covariance method:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">micromet.ec</span> <span class="kn">import</span> <span class="n">CalcFlux</span>
+
+<span class="c1"># Initialize flux calculator</span>
+<span class="n">calculator</span> <span class="o">=</span> <span class="n">CalcFlux</span><span class="p">(</span>
+    <span class="n">UHeight</span><span class="o">=</span><span class="mf">3.0</span><span class="p">,</span>
+    <span class="n">sonic_dir</span><span class="o">=</span><span class="mi">240</span>
+<span class="p">)</span>
+
+<span class="c1"># Calculate fluxes</span>
+<span class="n">results</span> <span class="o">=</span> <span class="n">calculator</span><span class="o">.</span><span class="n">runall</span><span class="p">(</span><span class="n">cleaned_data</span><span class="p">)</span>
+
+<span class="c1"># Access calculated values</span>
+<span class="n">sensible_heat</span> <span class="o">=</span> <span class="n">results</span><span class="p">[</span><span class="s1">&#39;H&#39;</span><span class="p">]</span>
+<span class="n">latent_heat</span> <span class="o">=</span> <span class="n">results</span><span class="p">[</span><span class="s1">&#39;lambdaE&#39;</span><span class="p">]</span>
+<span class="n">friction_velocity</span> <span class="o">=</span> <span class="n">results</span><span class="p">[</span><span class="s1">&#39;Ustr&#39;</span><span class="p">]</span>
+</pre></div>
+</div>
+</section>
+<section id="footprint-analysis">
+<h3>Footprint Analysis<a class="headerlink" href="#footprint-analysis" title="Link to this heading"></a></h3>
+<p>Calculate flux footprints:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">micromet.ffp</span> <span class="kn">import</span> <span class="n">FootprintInput</span><span class="p">,</span> <span class="n">FootprintCalculator</span>
+
+<span class="c1"># Create input parameters</span>
+<span class="n">inputs</span> <span class="o">=</span> <span class="n">FootprintInput</span><span class="p">(</span>
+    <span class="n">zm</span><span class="o">=</span><span class="mf">3.0</span><span class="p">,</span>          <span class="c1"># Measurement height</span>
+    <span class="n">z0</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>          <span class="c1"># Roughness length</span>
+    <span class="n">umean</span><span class="o">=</span><span class="mf">2.5</span><span class="p">,</span>       <span class="c1"># Mean wind speed</span>
+    <span class="n">h</span><span class="o">=</span><span class="mf">1000.0</span><span class="p">,</span>        <span class="c1"># Boundary layer height</span>
+    <span class="n">ol</span><span class="o">=-</span><span class="mf">50.0</span><span class="p">,</span>        <span class="c1"># Obukhov length</span>
+    <span class="n">sigmav</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span>      <span class="c1"># Standard deviation of lateral velocity</span>
+    <span class="n">ustar</span><span class="o">=</span><span class="mf">0.3</span><span class="p">,</span>       <span class="c1"># Friction velocity</span>
+    <span class="n">wind_dir</span><span class="o">=</span><span class="mf">180.0</span>   <span class="c1"># Wind direction</span>
+<span class="p">)</span>
+
+<span class="c1"># Calculate footprint</span>
+<span class="n">calculator</span> <span class="o">=</span> <span class="n">FootprintCalculator</span><span class="p">()</span>
+<span class="n">footprint</span> <span class="o">=</span> <span class="n">calculator</span><span class="o">.</span><span class="n">calculate_footprint</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="visualization">
+<h2>Visualization<a class="headerlink" href="#visualization" title="Link to this heading"></a></h2>
+<p>Create energy balance diagrams:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">micromet.graphs</span> <span class="kn">import</span> <span class="n">energy_sankey</span>
+
+<span class="c1"># Create Sankey diagram</span>
+<span class="n">fig</span> <span class="o">=</span> <span class="n">energy_sankey</span><span class="p">(</span><span class="n">results</span><span class="p">,</span> <span class="n">date_text</span><span class="o">=</span><span class="s2">&quot;2024-06-19 12:00&quot;</span><span class="p">)</span>
+<span class="n">fig</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>Plot time series data:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">micromet.graphs</span> <span class="kn">import</span> <span class="n">plot_timeseries_daterange</span>
+
+<span class="c1"># Create time series plot</span>
+<span class="n">plot_timeseries_daterange</span><span class="p">(</span>
+    <span class="n">cleaned_data</span><span class="p">,</span>
+    <span class="n">selected_station</span><span class="o">=</span><span class="s1">&#39;STATION1&#39;</span><span class="p">,</span>
+    <span class="n">selected_field</span><span class="o">=</span><span class="s1">&#39;temperature&#39;</span><span class="p">,</span>
+    <span class="n">start_date</span><span class="o">=</span><span class="s1">&#39;2024-01-01&#39;</span><span class="p">,</span>
+    <span class="n">end_date</span><span class="o">=</span><span class="s1">&#39;2024-01-31&#39;</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="hardware-integration">
+<h2>Hardware Integration<a class="headerlink" href="#hardware-integration" title="Link to this heading"></a></h2>
+<section id="campbell-scientific-integration">
+<h3>Campbell Scientific Integration<a class="headerlink" href="#campbell-scientific-integration" title="Link to this heading"></a></h3>
+<p>Convert Campbell Scientific data files:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">micromet.cs_wrapper</span> <span class="kn">import</span> <span class="n">convert_file</span>
+
+<span class="c1"># Convert to TOA5 format</span>
+<span class="n">convert_file</span><span class="p">(</span>
+    <span class="s1">&#39;input.dat&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;output.csv&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;toa5&#39;</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="li-cor-integration">
+<h3>LI-COR Integration<a class="headerlink" href="#li-cor-integration" title="Link to this heading"></a></h3>
+<p>Run EddyPro processing:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">micromet.licor_wrapper</span> <span class="kn">import</span> <span class="n">run_eddypro</span>
+
+<span class="c1"># Run EddyPro with specific project file</span>
+<span class="n">result</span> <span class="o">=</span> <span class="n">run_eddypro</span><span class="p">(</span>
+    <span class="n">system</span><span class="o">=</span><span class="s2">&quot;win&quot;</span><span class="p">,</span>
+    <span class="n">proj_file</span><span class="o">=</span><span class="s2">&quot;path/to/project.eddypro&quot;</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="common-workflows">
+<h2>Common Workflows<a class="headerlink" href="#common-workflows" title="Link to this heading"></a></h2>
+<section id="complete-processing-pipeline">
+<h3>Complete Processing Pipeline<a class="headerlink" href="#complete-processing-pipeline" title="Link to this heading"></a></h3>
+<p>Here’s a complete workflow combining multiple features:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">from</span> <span class="nn">micromet.converter</span> <span class="kn">import</span> <span class="n">Reformatter</span><span class="p">,</span> <span class="n">raw_file_compile</span>
+<span class="kn">from</span> <span class="nn">micromet.tools</span> <span class="kn">import</span> <span class="n">clean_extreme_variations</span>
+<span class="kn">from</span> <span class="nn">micromet.ec</span> <span class="kn">import</span> <span class="n">CalcFlux</span>
+<span class="kn">from</span> <span class="nn">micromet.graphs</span> <span class="kn">import</span> <span class="n">energy_sankey</span>
+
+<span class="c1"># 1. Load and format data</span>
+<span class="n">raw_data</span> <span class="o">=</span> <span class="n">raw_file_compile</span><span class="p">(</span><span class="s1">&#39;data_path&#39;</span><span class="p">,</span> <span class="s1">&#39;STATION1&#39;</span><span class="p">)</span>
+<span class="n">reformatter</span> <span class="o">=</span> <span class="n">Reformatter</span><span class="p">(</span><span class="n">raw_data</span><span class="p">)</span>
+
+<span class="c1"># 2. Clean data</span>
+<span class="n">cleaned_data</span> <span class="o">=</span> <span class="n">clean_extreme_variations</span><span class="p">(</span>
+    <span class="n">reformatter</span><span class="o">.</span><span class="n">et_data</span><span class="p">,</span>
+    <span class="n">frequency</span><span class="o">=</span><span class="s1">&#39;D&#39;</span><span class="p">,</span>
+    <span class="n">variation_threshold</span><span class="o">=</span><span class="mf">3.0</span><span class="p">,</span>
+    <span class="n">replacement_method</span><span class="o">=</span><span class="s1">&#39;interpolate&#39;</span>
+<span class="p">)[</span><span class="s1">&#39;cleaned_data&#39;</span><span class="p">]</span>
+
+<span class="c1"># 3. Calculate fluxes</span>
+<span class="n">calculator</span> <span class="o">=</span> <span class="n">CalcFlux</span><span class="p">()</span>
+<span class="n">results</span> <span class="o">=</span> <span class="n">calculator</span><span class="o">.</span><span class="n">runall</span><span class="p">(</span><span class="n">cleaned_data</span><span class="p">)</span>
+
+<span class="c1"># 4. Visualize results</span>
+<span class="n">fig</span> <span class="o">=</span> <span class="n">energy_sankey</span><span class="p">(</span><span class="n">results</span><span class="p">)</span>
+<span class="n">fig</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="common-issues">
+<h2>Common Issues<a class="headerlink" href="#common-issues" title="Link to this heading"></a></h2>
+<section id="missing-data">
+<h3>Missing Data<a class="headerlink" href="#missing-data" title="Link to this heading"></a></h3>
+<p>Handle missing data appropriately:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Find gaps in data</span>
+<span class="n">gaps</span> <span class="o">=</span> <span class="n">find_gaps</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;temperature&#39;</span><span class="p">])</span>
+
+<span class="c1"># Interpolate missing values</span>
+<span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">interpolate</span><span class="p">(</span><span class="n">method</span><span class="o">=</span><span class="s1">&#39;time&#39;</span><span class="p">,</span> <span class="n">limit</span><span class="o">=</span><span class="mi">24</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="timezone-handling">
+<h3>Timezone Handling<a class="headerlink" href="#timezone-handling" title="Link to this heading"></a></h3>
+<p>Ensure consistent timezone handling:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Convert to UTC</span>
+<span class="n">data</span><span class="o">.</span><span class="n">index</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">tz_localize</span><span class="p">(</span><span class="s1">&#39;UTC&#39;</span><span class="p">)</span>
+
+<span class="c1"># Convert to local time</span>
+<span class="n">data</span><span class="o">.</span><span class="n">index</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">tz_convert</span><span class="p">(</span><span class="s1">&#39;America/Denver&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="next-steps">
+<h2>Next Steps<a class="headerlink" href="#next-steps" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>Check out the <span class="xref std std-doc">API Reference</span> for detailed documentation</p></li>
+<li><p>Review <span class="xref std std-doc">Examples</span> for more use cases</p></li>
+<li><p>Visit the <a class="reference external" href="https://github.com/utah-geological-survey/MicroMet">GitHub repository</a> for source code</p></li>
+<li><p>Report issues on the <a class="reference external" href="https://github.com/utah-geological-survey/MicroMet/issues">Issue Tracker</a></p></li>
+</ul>
+</section>
+<section id="support">
+<h2>Support<a class="headerlink" href="#support" title="Link to this heading"></a></h2>
+<p>For questions and issues:</p>
+<ul class="simple">
+<li><p>GitHub Issues: <a class="reference external" href="https://github.com/utah-geological-survey/MicroMet/issues">https://github.com/utah-geological-survey/MicroMet/issues</a></p></li>
+<li><p>Documentation: <a class="reference external" href="https://micromet.readthedocs.io">https://micromet.readthedocs.io</a></p></li>
+<li><p>Email: <a class="reference external" href="mailto:paulinkenbrandt&#37;&#52;&#48;utah&#46;gov">paulinkenbrandt<span>&#64;</span>utah<span>&#46;</span>gov</a></p></li>
+</ul>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Your Name.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

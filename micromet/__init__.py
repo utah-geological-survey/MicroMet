@@ -4,10 +4,9 @@ from .licor_wrapper import *
 from .converter import *
 from .tools import *
 from .graphs import *
-from .spectral import *
 from .meteolib import *
 from .ffp import *
-from .specplot import *
+from .outlier_removal import *
 
 __version__ = '0.5.0'
 

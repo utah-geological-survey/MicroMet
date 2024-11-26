@@ -6,6 +6,8 @@ import pathlib
 import configparser
 import datetime
 
+from .outlier_removal import clean_extreme_variations
+
 try:
     config = configparser.ConfigParser()
     config.read('../secrets/config.ini')
@@ -311,7 +313,7 @@ class Reformatter(object):
 
     drop_cols = ['RECORD']
 
-    def __init__(self, et_data, drop_soil=True, data_path=None):
+    def __init__(self, et_data, drop_soil=True, data_path=None, outlier_remove = True):
         # read in variable limits
         if data_path is None:
             try:
@@ -341,6 +343,15 @@ class Reformatter(object):
         for var in self.despikey:
             if var in self.et_data.columns:
                 self.et_data[var] = self.despike(self.et_data[var])
+
+        # Remove daily extremes
+        self.et_data = clean_extreme_variations(
+                                                df=self.et_data,
+                                                frequency='D',
+                                                variation_threshold=2.2,  # More sensitive threshold
+                                                replacement_method='nan'
+                                                )
+
 
         # switch tau sign
         self.tau_fixer()

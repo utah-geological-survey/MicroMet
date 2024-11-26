@@ -1,0 +1,207 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Flux Footprint Module &mdash; Micromet 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=01f34227"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../_static/copybutton.js?v=f281be69"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Meteorological Library Module" href="meteolib.html" />
+    <link rel="prev" title="Converter Module" href="converter.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            Micromet
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="ec.html">EC Module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="converter.html">Converter Module</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Flux Footprint Module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#classes">Classes</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#footprintinput">FootprintInput</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#coordinatesystem">CoordinateSystem</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#footprintcalculator">FootprintCalculator</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#enhancedfootprintprocessor">EnhancedFootprintProcessor</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#example-usage">Example Usage</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#basic-footprint-calculation">Basic Footprint Calculation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#georeferenced-footprint">Georeferenced Footprint</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#references">References</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="meteolib.html">Meteorological Library Module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="outlier_removal.html">Outlier Removal Module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tools.html">Tools Module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="graphs.html">Graphs Module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cs_wrapper.html">Campbell Scientific Wrapper Module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="licor_wrapper.html">LI-COR Wrapper Module</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Micromet</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Flux Footprint Module</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/api/ffp.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="flux-footprint-module">
+<h1>Flux Footprint Module<a class="headerlink" href="#flux-footprint-module" title="Link to this heading"></a></h1>
+<p id="module-micromet.ffp">A module for calculating and analyzing flux footprints with support for coordinate transformations and georeferencing.</p>
+<section id="classes">
+<h2>Classes<a class="headerlink" href="#classes" title="Link to this heading"></a></h2>
+<section id="footprintinput">
+<h3>FootprintInput<a class="headerlink" href="#footprintinput" title="Link to this heading"></a></h3>
+</section>
+<section id="coordinatesystem">
+<h3>CoordinateSystem<a class="headerlink" href="#coordinatesystem" title="Link to this heading"></a></h3>
+</section>
+<section id="footprintcalculator">
+<h3>FootprintCalculator<a class="headerlink" href="#footprintcalculator" title="Link to this heading"></a></h3>
+</section>
+<section id="enhancedfootprintprocessor">
+<h3>EnhancedFootprintProcessor<a class="headerlink" href="#enhancedfootprintprocessor" title="Link to this heading"></a></h3>
+</section>
+</section>
+<section id="example-usage">
+<h2>Example Usage<a class="headerlink" href="#example-usage" title="Link to this heading"></a></h2>
+<section id="basic-footprint-calculation">
+<h3>Basic Footprint Calculation<a class="headerlink" href="#basic-footprint-calculation" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">micromet.ffp</span> <span class="kn">import</span> <span class="n">FootprintInput</span><span class="p">,</span> <span class="n">FootprintCalculator</span>
+
+<span class="c1"># Create input parameters</span>
+<span class="n">inputs</span> <span class="o">=</span> <span class="n">FootprintInput</span><span class="p">(</span>
+    <span class="n">zm</span><span class="o">=</span><span class="mf">3.0</span><span class="p">,</span>          <span class="c1"># Measurement height above displacement height (z-d) [m]</span>
+    <span class="n">z0</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>          <span class="c1"># Roughness length [m]</span>
+    <span class="n">umean</span><span class="o">=</span><span class="mf">2.5</span><span class="p">,</span>       <span class="c1"># Mean wind speed at zm [ms-1]</span>
+    <span class="n">h</span><span class="o">=</span><span class="mf">1000.0</span><span class="p">,</span>        <span class="c1"># Boundary layer height [m]</span>
+    <span class="n">ol</span><span class="o">=-</span><span class="mf">50.0</span><span class="p">,</span>        <span class="c1"># Obukhov length [m]</span>
+    <span class="n">sigmav</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span>      <span class="c1"># Standard deviation of lateral velocity fluctuations [ms-1]</span>
+    <span class="n">ustar</span><span class="o">=</span><span class="mf">0.3</span><span class="p">,</span>       <span class="c1"># Friction velocity [ms-1]</span>
+    <span class="n">wind_dir</span><span class="o">=</span><span class="mf">180.0</span>   <span class="c1"># Wind direction in degrees</span>
+<span class="p">)</span>
+
+<span class="c1"># Initialize calculator and compute footprint</span>
+<span class="n">calculator</span> <span class="o">=</span> <span class="n">FootprintCalculator</span><span class="p">()</span>
+<span class="n">result</span> <span class="o">=</span> <span class="n">calculator</span><span class="o">.</span><span class="n">calculate_footprint</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="georeferenced-footprint">
+<h3>Georeferenced Footprint<a class="headerlink" href="#georeferenced-footprint" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">micromet.ffp</span> <span class="kn">import</span> <span class="p">(</span><span class="n">FootprintConfig</span><span class="p">,</span> <span class="n">CoordinateSystem</span><span class="p">,</span>
+                        <span class="n">EnhancedFootprintProcessor</span><span class="p">)</span>
+
+<span class="c1"># Setup coordinate systems</span>
+<span class="n">source_crs</span> <span class="o">=</span> <span class="n">CoordinateSystem</span><span class="o">.</span><span class="n">from_epsg</span><span class="p">(</span><span class="mi">4326</span><span class="p">)</span>  <span class="c1"># WGS84</span>
+<span class="n">working_crs</span> <span class="o">=</span> <span class="n">CoordinateSystem</span><span class="o">.</span><span class="n">from_epsg</span><span class="p">(</span><span class="mi">32612</span><span class="p">)</span>  <span class="c1"># UTM Zone 12N</span>
+
+<span class="c1"># Create configuration</span>
+<span class="n">config</span> <span class="o">=</span> <span class="n">FootprintConfig</span><span class="p">(</span>
+    <span class="n">origin_distance</span><span class="o">=</span><span class="mf">1000.0</span><span class="p">,</span>
+    <span class="n">measurement_height</span><span class="o">=</span><span class="mf">3.0</span><span class="p">,</span>
+    <span class="n">roughness_length</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>
+    <span class="n">domain_size</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mi">1000</span><span class="p">,</span> <span class="mi">1000</span><span class="p">,</span> <span class="o">-</span><span class="mi">1000</span><span class="p">,</span> <span class="mi">1000</span><span class="p">),</span>
+    <span class="n">grid_resolution</span><span class="o">=</span><span class="mf">20.0</span><span class="p">,</span>
+    <span class="n">station_coords</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mf">111.0</span><span class="p">,</span> <span class="mf">41.0</span><span class="p">),</span>
+    <span class="n">coordinate_system</span><span class="o">=</span><span class="n">source_crs</span><span class="p">,</span>
+    <span class="n">working_crs</span><span class="o">=</span><span class="n">working_crs</span>
+<span class="p">)</span>
+
+<span class="c1"># Process footprint</span>
+<span class="n">processor</span> <span class="o">=</span> <span class="n">EnhancedFootprintProcessor</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>
+<span class="n">result</span> <span class="o">=</span> <span class="n">processor</span><span class="o">.</span><span class="n">calculate_georeferenced_footprint</span><span class="p">(</span><span class="n">footprint_input</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="references">
+<h2>References<a class="headerlink" href="#references" title="Link to this heading"></a></h2>
+<p>Kljun, N., Calanca, P., Rotach, M.W., Schmid, H.P., 2015. A simple two-dimensional parameterisation for Flux Footprint Prediction (FFP). Geosci. Model Dev. 8, 3695-3713.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="converter.html" class="btn btn-neutral float-left" title="Converter Module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="meteolib.html" class="btn btn-neutral float-right" title="Meteorological Library Module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Your Name.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
