@@ -195,11 +195,50 @@ def clean_extreme_variations(
         }
         cleaning_summary.append(cleaning_stats)
 
-    return {
-        'cleaned_data': cleaned_df,
-        'cleaning_summary': pd.DataFrame(cleaning_summary),
-        'removed_points': removed_points
-    }
+    return cleaned_df[fields]
+
+def replace_flat_values(data, column_name,
+                        flat_threshold=0.01,
+                        window_size=10,
+                        replacement_value=np.nan,
+                        null_value=-9999,
+                        inplace=False):
+    """
+    Detects and replaces flat-line anomalies in a time series.
+
+    Parameters:
+        data (pd.DataFrame): DataFrame containing the time series.
+        column_name (str): Column name with the time series values.
+        flat_threshold (float): Minimum change to consider not flat.
+        window_size (int): Number of consecutive points to check for flatness.
+        replacement_value (float or int): Value to replace anomalies with (e.g., NaN or -9999).
+
+    Returns:
+        pd.DataFrame: Updated DataFrame with anomalies replaced.
+    """
+    if not inplace:
+        df = data.copy()
+    else:
+        df = data
+
+    # Treat -9999 as NaN
+    df[column_name] = df[column_name].replace(null_value, np.nan)
+
+    # Compute rolling difference
+    df['rolling_diff'] = df[column_name].diff().abs()
+
+    # Flag flat lines
+    df['is_flat'] = (
+        df['rolling_diff'].rolling(window=window_size, min_periods=1,center=True).max() <= flat_threshold
+    )
+
+    # Replace flat-line anomalies with the specified replacement value
+    df.loc[df['is_flat'], column_name] = replacement_value
+
+    # Drop helper columns
+    df.drop(columns=['rolling_diff', 'is_flat'], inplace=True)
+
+    return df[column_name]
 
 
 # Example usage

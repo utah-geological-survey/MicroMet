@@ -7,151 +7,12 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="a09e9df8-2720-44bb-8605-374b38d0d9d1" name="Changes" comment="Add functions to detect and plot data gaps in tools.py&#10;&#10;Added new functions `find_gaps` and `plot_gaps` to `tools.py` for detecting and visualizing missing data periods in time series datasets. Updated imports and provided example usage. Additionally, adjusted paths and configurations in the workspace setup and optimized dependencies in the notebook.">
-      <change afterPath="$PROJECT_DIR$/Notebooks/EC Test.ipynb" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Notebooks/Outlier Example Usage.ipynb" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Notebooks/ffp_uses.ipynb" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/Makebat" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/build/doctrees/api/converter.doctree" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/build/doctrees/api/cs-wrapper.doctree" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/build/doctrees/api/cs_wrapper.doctree" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/build/doctrees/api/ec.doctree" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/build/doctrees/api/ffp.doctree" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/build/doctrees/api/graphs.doctree" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/build/doctrees/api/licor-wrapper.doctree" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/build/doctrees/api/licor_wrapper.doctree" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/build/doctrees/api/meteolib.doctree" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/build/doctrees/api/outlier-removal.doctree" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/build/doctrees/api/outlier_removal.doctree" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/build/doctrees/api/quickstart.doctree" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/build/doctrees/api/tools.doctree" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/build/doctrees/environment.pickle" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/build/doctrees/index.doctree" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/build/html/.buildinfo" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/build/html/_sources/api/converter.rst.txt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/build/html/_sources/api/cs-wrapper.rst.txt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/build/html/_sources/api/cs_wrapper.rst.txt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/build/html/_sources/api/ec.rst.txt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/build/html/_sources/api/ffp.rst.txt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/build/html/_sources/api/graphs.rst.txt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/build/html/_sources/api/licor-wrapper.rst.txt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/build/html/_sources/api/licor_wrapper.rst.txt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/build/html/_sources/api/meteolib.rst.txt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/build/html/_sources/api/outlier-removal.rst.txt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/build/html/_sources/api/outlier_removal.rst.txt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/build/html/_sources/api/quickstart.rst.txt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/build/html/_sources/api/tools.rst.txt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/build/html/_sources/index.rst.txt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/build/html/_static/_sphinx_javascript_frameworks_compat.js" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/build/html/_static/basic.css" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/build/html/_static/check-solid.svg" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/build/html/_static/clipboard.min.js" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/build/html/_static/copy-button.svg" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/build/html/_static/copybutton.css" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/build/html/_static/copybutton.js" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/build/html/_static/copybutton_funcs.js" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/build/html/_static/css/badge_only.css" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/build/html/_static/css/fonts/Roboto-Slab-Bold.woff" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/build/html/_static/css/fonts/Roboto-Slab-Bold.woff2" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/build/html/_static/css/fonts/Roboto-Slab-Regular.woff" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/build/html/_static/css/fonts/Roboto-Slab-Regular.woff2" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/build/html/_static/css/fonts/fontawesome-webfont.eot" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/build/html/_static/css/fonts/fontawesome-webfont.svg" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/build/html/_static/css/fonts/fontawesome-webfont.ttf" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/build/html/_static/css/fonts/fontawesome-webfont.woff" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/build/html/_static/css/fonts/fontawesome-webfont.woff2" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/build/html/_static/css/fonts/lato-bold-italic.woff" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/build/html/_static/css/fonts/lato-bold-italic.woff2" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/build/html/_static/css/fonts/lato-bold.woff" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/build/html/_static/css/fonts/lato-bold.woff2" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/build/html/_static/css/fonts/lato-normal-italic.woff" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/build/html/_static/css/fonts/lato-normal-italic.woff2" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/build/html/_static/css/fonts/lato-normal.woff" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/build/html/_static/css/fonts/lato-normal.woff2" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/build/html/_static/css/theme.css" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/build/html/_static/doctools.js" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/build/html/_static/documentation_options.js" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/build/html/_static/file.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/build/html/_static/fonts/Lato/lato-bold.eot" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/build/html/_static/fonts/Lato/lato-bold.ttf" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/build/html/_static/fonts/Lato/lato-bold.woff" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/build/html/_static/fonts/Lato/lato-bold.woff2" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/build/html/_static/fonts/Lato/lato-bolditalic.eot" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/build/html/_static/fonts/Lato/lato-bolditalic.ttf" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/build/html/_static/fonts/Lato/lato-bolditalic.woff" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/build/html/_static/fonts/Lato/lato-bolditalic.woff2" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/build/html/_static/fonts/Lato/lato-italic.eot" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/build/html/_static/fonts/Lato/lato-italic.ttf" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/build/html/_static/fonts/Lato/lato-italic.woff" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/build/html/_static/fonts/Lato/lato-italic.woff2" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/build/html/_static/fonts/Lato/lato-regular.eot" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/build/html/_static/fonts/Lato/lato-regular.ttf" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/build/html/_static/fonts/Lato/lato-regular.woff" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/build/html/_static/fonts/Lato/lato-regular.woff2" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/build/html/_static/fonts/RobotoSlab/roboto-slab-v7-bold.eot" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/build/html/_static/fonts/RobotoSlab/roboto-slab-v7-bold.ttf" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/build/html/_static/fonts/RobotoSlab/roboto-slab-v7-bold.woff" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/build/html/_static/fonts/RobotoSlab/roboto-slab-v7-bold.woff2" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/build/html/_static/fonts/RobotoSlab/roboto-slab-v7-regular.eot" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/build/html/_static/fonts/RobotoSlab/roboto-slab-v7-regular.ttf" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/build/html/_static/fonts/RobotoSlab/roboto-slab-v7-regular.woff" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/build/html/_static/fonts/RobotoSlab/roboto-slab-v7-regular.woff2" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/build/html/_static/jquery.js" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/build/html/_static/js/badge_only.js" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/build/html/_static/js/theme.js" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/build/html/_static/js/versions.js" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/build/html/_static/language_data.js" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/build/html/_static/minus.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/build/html/_static/plus.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/build/html/_static/pygments.css" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/build/html/_static/searchtools.js" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/build/html/_static/sphinx_highlight.js" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/build/html/api/converter.html" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/build/html/api/cs-wrapper.html" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/build/html/api/cs_wrapper.html" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/build/html/api/ec.html" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/build/html/api/ffp.html" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/build/html/api/graphs.html" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/build/html/api/licor-wrapper.html" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/build/html/api/licor_wrapper.html" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/build/html/api/meteolib.html" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/build/html/api/outlier-removal.html" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/build/html/api/outlier_removal.html" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/build/html/api/quickstart.html" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/build/html/api/tools.html" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/build/html/genindex.html" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/build/html/index.html" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/build/html/objects.inv" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/build/html/py-modindex.html" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/build/html/search.html" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/build/html/searchindex.js" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/make.bat" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/source/api/converter.rst" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/source/api/cs_wrapper.rst" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/source/api/ec.rst" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/source/api/ffp.rst" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/source/api/graphs.rst" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/source/api/licor_wrapper.rst" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/source/api/meteolib.rst" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/source/api/outlier_removal.rst" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/source/api/quickstart.rst" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/source/api/tools.rst" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/source/conf.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/source/index.rst" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/micromet/outlier_removal.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tests/ffp_tests.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tests/outlier_removal_tests.py" afterDir="false" />
+    <list default="true" id="a09e9df8-2720-44bb-8605-374b38d0d9d1" name="Changes" comment="Delete outdated documentation and spectral analysis modules.&#10;&#10;Removed obsolete files: `converter_docs.rst`, `meteolib-docs.rst`, `specplot.py`, and `spectral.py`. This cleanup is part of a broader effort to streamline the project and ensure only relevant, up-to-date documentation and modules are preserved.">
+      <change afterPath="$PROJECT_DIR$/Notebooks/Flat Data Detection.ipynb" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Notebooks/Spectral-Analysis.ipynb" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/converter_docs.rst" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/meteolib-docs.rst" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/spectral-docs.rst" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/micromet/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/micromet/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Notebooks/DL_test.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/Notebooks/DL_test.ipynb" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/micromet/converter.py" beforeDir="false" afterPath="$PROJECT_DIR$/micromet/converter.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/micromet/specplot.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/micromet/spectral.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/micromet/tools.py" beforeDir="false" afterPath="$PROJECT_DIR$/micromet/tools.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/pyproject.toml" beforeDir="false" afterPath="$PROJECT_DIR$/pyproject.toml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/micromet/outlier_removal.py" beforeDir="false" afterPath="$PROJECT_DIR$/micromet/outlier_removal.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -211,6 +72,7 @@
     &quot;Python.spectral_tests_2.executor&quot;: &quot;Run&quot;,
     &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
     &quot;git-widget-placeholder&quot;: &quot;main&quot;,
     &quot;ignore.virus.scanning.warn.message&quot;: &quot;true&quot;,
     &quot;last_opened_file_path&quot;: &quot;C:/Users/paulinkenbrandt/Documents/GitHub/MicroMet&quot;,
@@ -337,8 +199,8 @@
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
-        <option value="bundled-js-predefined-1d06a55b98c1-0b3e54e931b4-JavaScript-PY-241.19416.19" />
-        <option value="bundled-python-sdk-337b0a7a993a-2767605e8bc2-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-241.19416.19" />
+        <option value="bundled-js-predefined-d6986cc7102b-e768b9ed790e-JavaScript-PY-243.21565.199" />
+        <option value="bundled-python-sdk-cab1f2013843-4ae2d6a61b08-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-243.21565.199" />
       </set>
     </attachedChunks>
   </component>
@@ -381,7 +243,12 @@
       <workItem from="1732216469116" duration="4055000" />
       <workItem from="1732249013186" duration="1170000" />
       <workItem from="1732286871397" duration="17233000" />
-      <workItem from="1732589664052" duration="6587000" />
+      <workItem from="1732589664052" duration="7038000" />
+      <workItem from="1732813996170" duration="1785000" />
+      <workItem from="1733253709734" duration="1477000" />
+      <workItem from="1733262577819" duration="1202000" />
+      <workItem from="1733343275999" duration="170000" />
+      <workItem from="1733751392690" duration="9640000" />
     </task>
     <task id="LOCAL-00001" summary="Add 'secrets' and 'station_data' to .gitignore&#10;&#10;The commit introduces two new entries to the .gitignore file. The '/secrets/' and '/station_data/' directories are now ignored to prevent sensitive or unnecessary data from being tracked by git.">
       <option name="closed" value="true" />
@@ -487,7 +354,15 @@
       <option name="project" value="LOCAL" />
       <updated>1732231056465</updated>
     </task>
-    <option name="localTasksCounter" value="14" />
+    <task id="LOCAL-00014" summary="Delete outdated documentation and spectral analysis modules.&#10;&#10;Removed obsolete files: `converter_docs.rst`, `meteolib-docs.rst`, `specplot.py`, and `spectral.py`. This cleanup is part of a broader effort to streamline the project and ensure only relevant, up-to-date documentation and modules are preserved.">
+      <option name="closed" value="true" />
+      <created>1732598350470</created>
+      <option name="number" value="00014" />
+      <option name="presentableId" value="LOCAL-00014" />
+      <option name="project" value="LOCAL" />
+      <updated>1732598350470</updated>
+    </task>
+    <option name="localTasksCounter" value="15" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -510,7 +385,9 @@
     <MESSAGE value="Add Flux variables CSV and enhance micromet functionality&#10;&#10;Added a comprehensive CSV file for Flux variables, enhancing data tracking. Updated multiple scripts in the micromet package to improve configuration handling, CSV path management, and file compilation. Moreover, introduced new dependencies in the environment file and pyproject.toml to support enhanced data visualization and statistical analysis features." />
     <MESSAGE value="Add Flux variables CSV and enhance micromet functionality&#10;&#10;Added a comprehensive CSV file for Flux variables, enhancing data tracking. Updated multiple scripts in the micromet package to improve configuration handling, CSV path management, and file compilation. Moreover, introduced new dependencies in the environment file and pyproject.toml to support enhanced data visualization and statistical analysis features.&#10;&#10;Consolidated and eliminated uneccessary files" />
     <MESSAGE value="Add functions to detect and plot data gaps in tools.py&#10;&#10;Added new functions `find_gaps` and `plot_gaps` to `tools.py` for detecting and visualizing missing data periods in time series datasets. Updated imports and provided example usage. Additionally, adjusted paths and configurations in the workspace setup and optimized dependencies in the notebook." />
-    <option name="LAST_COMMIT_MESSAGE" value="Add functions to detect and plot data gaps in tools.py&#10;&#10;Added new functions `find_gaps` and `plot_gaps` to `tools.py` for detecting and visualizing missing data periods in time series datasets. Updated imports and provided example usage. Additionally, adjusted paths and configurations in the workspace setup and optimized dependencies in the notebook." />
+    <MESSAGE value="&#10;&#10;Added new functions `find_gaps` and `plot_gaps` to `tools.py` for detecting and visualizing missing data periods in time series datasets. Updated imports and provided example usage. Additionally, adjusted paths and configurations in the workspace setup and optimized dependencies in the notebook.&#10;&#10;" />
+    <MESSAGE value="Delete outdated documentation and spectral analysis modules.&#10;&#10;Removed obsolete files: `converter_docs.rst`, `meteolib-docs.rst`, `specplot.py`, and `spectral.py`. This cleanup is part of a broader effort to streamline the project and ensure only relevant, up-to-date documentation and modules are preserved." />
+    <option name="LAST_COMMIT_MESSAGE" value="Delete outdated documentation and spectral analysis modules.&#10;&#10;Removed obsolete files: `converter_docs.rst`, `meteolib-docs.rst`, `specplot.py`, and `spectral.py`. This cleanup is part of a broader effort to streamline the project and ensure only relevant, up-to-date documentation and modules are preserved." />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/__init___py$.coverage" NAME=" Coverage Results" MODIFIED="1732590266144" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/tests" />
