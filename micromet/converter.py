@@ -336,22 +336,32 @@ class Reformatter(object):
         # change variable names
         self.name_changer()
 
+
+
+
         # set variable limits
         self.et_data = self.extreme_limiter(self.et_data)
 
-        # despike variables
+        # despike variables and remove long, flat periods
         for var in self.despikey:
             if var in self.et_data.columns:
+                # make numeric
+                self.et_data[var] = pd.to_numeric(self.et_data[var], errors='coerce')
+
+                # remove extreme values beyond natural ranges
+                self.et_data = self.replace_out_of_range_with_nan(self.et_data, var, np.nan)
+
+                # despike
                 self.et_data[var] = self.despike(self.et_data[var])
 
                 # Remove daily extremes
-                self.et_data[var] = clean_extreme_variations(
-                                                        df=self.et_data,
-                                                        fields=var,
-                                                        frequency='D',
-                                                        variation_threshold=2.2,  # More sensitive threshold
-                                                        replacement_method='nan'
-                                                        )
+                #self.et_data[var] = clean_extreme_variations(
+                #                                        df=self.et_data,
+                #                                        fields=var,
+                #                                        frequency='D',
+                #                                        variation_threshold=2.2,  # More sensitive threshold
+                #                                        replacement_method='nan'
+                #                                        )
                 # Remove Flat Values
                 self.et_data[var] = replace_flat_values(self.et_data,var,replacement_value=np.nan,null_value=-9999)
 
@@ -480,14 +490,18 @@ class Reformatter(object):
                     self.et_data[new_column] = self.et_data[old_column]
                     self.et_data = self.et_data.drop(old_column, axis=1)
 
-    def scale_and_convert(self, column):
+    def scale_and_convert(self, column, downcast='integer'):
         """
         Scale the values and then convert them to float type
         :param column: Pandas series or dataframe column
         :return: Scaled and converted dataframe column
         """
+        # make sure column is not text
+        column = pd.to_numeric(column, downcast='float')
+        # match rating to new rating
         column = column.apply(lambda i: self.rating(i))
-        return pd.to_numeric(column, downcast='float')
+        # output at integer
+        return pd.to_numeric(column, downcast=downcast)
 
     def ssitc_scale(self):
         """

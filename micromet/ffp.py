@@ -1,21 +1,25 @@
 # Standard library imports
-from __future__ import print_function
 import warnings
 from dataclasses import dataclass
 from typing import Optional, Union, Tuple, Dict, List, Any
 
 # Third party imports
-import numpy as np
-import pandas as pd
 import scipy.spatial
-import matplotlib.pyplot as plt
-from matplotlib.colors import LogNorm
-import rasterio
 import pyproj
 from pyproj import CRS, Transformer
 from rasterio.warp import transform_bounds
-from affine import Affine
+import numbers
+from scipy import signal as sg
+from matplotlib.colors import LogNorm
 
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import rasterio
+import cv2
+from affine import Affine
+from datetime import datetime
+from scipy.spatial import cKDTree
 
 
 @dataclass
@@ -736,3 +740,287 @@ def create_processor(config_dict: Dict) -> FootprintProcessor:
     """Create FootprintProcessor from configuration dictionary"""
     config = FootprintConfig(**config_dict)
     return FootprintProcessor(config)
+
+def ensure_list(value):
+    """
+    Ensures the input is a list; wraps scalar values into a list.
+
+    Args:
+        value: Input value (scalar or list).
+
+    Returns:
+        list: List-wrapped input if scalar, or the input itself if already a list.
+    """
+    return value if isinstance(value, (list, np.ndarray)) else [value]
+
+def ffp_climatology(zm=None, z0=None, umean=None, h=None, ol=None, sigmav=None, ustar=None,
+                    wind_dir=None, domain=None, dx=None, dy=None, nx=None, ny=None,
+                    rs=[0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8], rslayer=0,
+                    smooth_data=1, crop=False, pulse=None, verbosity=2, fig=False, **kwargs):
+    """
+    Derive a flux footprint estimate based on the simple parameterisation FFP
+
+    See Kljun et al., 2015 for details. Contact: natascha.kljun@cec.lu.se
+    """
+    zm = ensure_list(zm)
+    z0 = ensure_list(z0)
+    umean = ensure_list(umean)
+    h = ensure_list(h)
+    ol = ensure_list(ol)
+    sigmav = ensure_list(sigmav)
+    ustar = ensure_list(ustar)
+    wind_dir = ensure_list(wind_dir)
+
+    def define_computational_domain(domain, dx, dy, nx, ny):
+        if isinstance(dx, numbers.Number) and dy is None:
+            dy = dx
+        if isinstance(dy, numbers.Number) and dx is None:
+            dx = dy
+        if not all(isinstance(item, numbers.Number) for item in [dx, dy]):
+            dx = dy = None
+        if isinstance(nx, int) and ny is None:
+            ny = nx
+        if isinstance(ny, int) and nx is None:
+            nx = ny
+        if not all(isinstance(item, int) for item in [nx, ny]):
+            nx = ny = None
+        if not isinstance(domain, list) or len(domain) != 4:
+            domain = None
+
+        if all(item is None for item in [dx, nx, domain]):
+            domain = [-1000., 1000., -1000., 1000.]
+            dx = dy = 2.0
+            nx = ny = 1000
+        elif domain is not None:
+            if dx is not None:
+                nx = int((domain[1] - domain[0]) / dx)
+                ny = int((domain[3] - domain[2]) / dy)
+            else:
+                nx = ny = nx or 1000
+                dx = (domain[1] - domain[0]) / nx
+                dy = (domain[3] - domain[2]) / ny
+        elif dx is not None:
+            domain = [-nx * dx / 2, nx * dx / 2, -ny * dy / 2, ny * dy / 2]
+        elif nx is not None:
+            domain = [-1000, 1000, -1000, 1000]
+            dx = (domain[1] - domain[0]) / nx
+            dy = (domain[3] - domain[2]) / ny
+
+        return domain, dx, dy, nx, ny
+
+    # Define domain and grid parameters
+    domain, dx, dy, nx, ny = define_computational_domain(domain, dx, dy, nx, ny)
+    xmin, xmax, ymin, ymax = domain
+
+    # Define default values
+    def default(value, fallback):
+        return value if value is not None else fallback
+
+    rslayer = default(rslayer, 0)
+    smooth_data = default(smooth_data, 1)
+    crop = default(crop, 0)
+    pulse = default(pulse, 1 if len(ustar or []) <= 20 else len(ustar) // 20)
+    fig = default(fig, 0)
+
+    # Initialize computational grid
+    x = np.linspace(xmin, xmax, nx + 1)
+    y = np.linspace(ymin, ymax, ny + 1)
+    x_2d, y_2d = np.meshgrid(x, y)
+
+    # Initialize raster for footprint climatology
+    fclim_2d = np.zeros(x_2d.shape)
+
+    # Loop over time series
+    valids = [True if not any([val is None for val in vals]) else False \
+              for vals in zip(ustar, sigmav, h, ol, wind_dir, zm)]
+
+    if verbosity > 1:
+        print('')
+
+    for ix, (ustar, sigmav, h, ol, wind_dir, zm, z0, umean) in enumerate(zip(
+            ustar, sigmav, h, ol, wind_dir, zm, z0 or [None], umean or [None])):
+
+        if verbosity > 1 and ix % pulse == 0:
+            print(f'Calculating footprint {ix + 1} of {len(ustar)}')
+
+        if not valids[ix]:
+            continue  # Skip invalid inputs
+
+        # Rotate coordinates into wind direction
+        rotated_theta = np.arctan2(x_2d, y_2d) - wind_dir * np.pi / 180.0
+
+        # Initialize temporary variables
+        fstar_ci_dummy = np.zeros(x_2d.shape)
+        px = np.ones(x_2d.shape, dtype=bool)
+
+        # Calculate fstar_ci_dummy based on conditions
+        if z0 is not None:
+            # Use z0
+            if ol <= 0 or ol >= 5000:
+                xx = (1 - 19.0 * zm / ol) ** 0.25
+                psi_f = (np.log((1 + xx ** 2) / 2.0) + 2.0 * np.log((1 + xx) / 2.0) -
+                         2.0 * np.arctan(xx) + np.pi / 2.0)
+            else:
+                psi_f = -5.3 * zm / ol
+            xstar_ci_dummy = (np.sqrt(x_2d ** 2 + y_2d ** 2) * np.cos(rotated_theta) / zm *
+                              (1.0 - zm / h) / (np.log(zm / z0) - psi_f))
+            px = xstar_ci_dummy > 0.1359
+
+        else:
+            # Use umean
+            xstar_ci_dummy = (np.sqrt(x_2d ** 2 + y_2d ** 2) * np.cos(rotated_theta) / zm *
+                              (1.0 - zm / h) / (umean / ustar * 0.4))
+            px = xstar_ci_dummy > 0.1359
+
+        fstar_ci_dummy[px] = 1.4524 * (xstar_ci_dummy[px] - 0.1359) ** -1.9914 * \
+                             np.exp(-1.4622 / (xstar_ci_dummy[px] - 0.1359))
+
+        # Add to footprint climatology
+        fclim_2d += fstar_ci_dummy
+
+    # Normalize footprint climatology
+    if np.any(valids):
+        fclim_2d /= sum(valids)
+
+    # Apply smoothing if needed
+    if smooth_data:
+        skernel = np.array([[0.05, 0.1, 0.05], [0.1, 0.4, 0.1], [0.05, 0.1, 0.05]])
+        fclim_2d = sg.convolve2d(fclim_2d, skernel, mode='same')
+
+    return {
+        'x_2d': x_2d,
+        'y_2d': y_2d,
+        'fclim_2d': fclim_2d,
+        'n': sum(valids),
+        'flag_err': 0 if np.any(valids) else 1
+    }
+
+
+
+
+def date_parse(year, day_of_year, hour):
+    """
+    Standard date parser for flux table outputs.
+    """
+    hour = '000' if hour == '2400' else hour
+    return datetime.strptime(f'{year}{int(day_of_year):03}{int(hour):04}', '%Y%j%H%M')
+
+
+def date_parse_sigv(year, day_of_year, hour):
+    """
+    Sigv-specific date parser.
+    """
+    hour = '000' if hour == '2400' else hour
+    if hour == '000':
+        day_of_year = int(day_of_year) + 1
+    return datetime.strptime(f'{year}{int(day_of_year):03}{int(hour):04}', '%Y%j%H%M')
+
+
+def mask_fp_cutoff(f_array, cutoff=0.9):
+    """
+    Masks all values outside of the cutoff value.
+
+    Args:
+        f_array (2D np.ndarray): Footprint contribution values.
+        cutoff (float): Cumulative sum cutoff for masking.
+
+    Returns:
+        2D np.ndarray: Masked footprint array.
+    """
+    flat_values = f_array.flatten()
+    sorted_values = np.sort(flat_values)[::-1]
+    cumulative = np.cumsum(sorted_values)
+    cutoff_value = sorted_values[np.argmax(cumulative >= cutoff)]
+    f_array[f_array < cutoff_value] = 0
+    return f_array
+
+
+def find_transform(xs, ys):
+    """
+    Returns the affine transform for 2D arrays xs and ys.
+
+    Args:
+        xs (2D np.ndarray): X-coordinates.
+        ys (2D np.ndarray): Y-coordinates.
+
+    Returns:
+        affine.Affine: Affine transformation object.
+    """
+    shape = xs.shape
+    points = np.float32([[0, 0], [shape[1] - 1, 0], [0, shape[0] - 1]])
+    mapped_points = np.float32([[xs[0, 0], ys[0, 0]], [xs[0, -1], ys[0, -1]], [xs[-1, 0], ys[-1, 0]]])
+    return Affine(*cv2.getAffineTransform(points, mapped_points).flatten())
+
+
+def weight_raster(x_2d, y_2d, f_2d, raster):
+    """
+    Apply weights to raster values using footprint contributions.
+
+    Args:
+        x_2d (2D np.ndarray): X-coordinates.
+        y_2d (2D np.ndarray): Y-coordinates.
+        f_2d (2D np.ndarray): Footprint values.
+        raster (pd.DataFrame): Raster data with 'x', 'y', and 'ef' columns.
+
+    Returns:
+        float: Weighted sum of raster values.
+    """
+    footprint_df = pd.DataFrame({
+        'x_foot': x_2d.ravel(),
+        'y_foot': y_2d.ravel(),
+        'footprint': f_2d.ravel()
+    }).dropna()
+
+    points = footprint_df[['x_foot', 'y_foot']].values
+    raster_tree = cKDTree(raster[['x', 'y']].values)
+    distances, indices = raster_tree.query(points)
+
+    footprint_df['x'] = raster.iloc[indices]['x'].values
+    footprint_df['y'] = raster.iloc[indices]['y'].values
+
+    grouped = footprint_df.groupby(['x', 'y'], as_index=False)['footprint'].sum()
+    weighted_sum = np.sum(
+        grouped['footprint'] * raster.set_index(['x', 'y']).loc[grouped.set_index(['x', 'y']).index]['ef'])
+
+    return weighted_sum
+
+
+def plot_footprint(x_2d, y_2d, f_2d, station_coords, extent, time_str):
+    """
+    Plot the footprint.
+
+    Args:
+        x_2d (2D np.ndarray): X-coordinates.
+        y_2d (2D np.ndarray): Y-coordinates.
+        f_2d (2D np.ndarray): Footprint contributions.
+        station_coords (tuple): Station coordinates (x, y).
+        extent (float): Plot extent from station.
+        time_str (str): Time string for the plot title.
+    """
+    fig, ax = plt.subplots(figsize=(10, 10))
+    im = ax.pcolormesh(x_2d, y_2d, f_2d, shading='auto')
+    cbar = fig.colorbar(im, ax=ax)
+    cbar.set_label('Footprint Contribution (per point)', rotation=270, labelpad=20)
+
+    station_x, station_y = station_coords
+    ax.set_xlim(station_x - extent, station_x + extent)
+    ax.set_ylim(station_y - extent, station_y + extent)
+    ax.set_title(time_str)
+    ax.grid(ls='--')
+
+    plt.savefig(f'footprint_{time_str}.png', transparent=True)
+    plt.show()
+
+
+def footprint_cdktree(raster):
+    """
+    Create a cKDTree for raster coordinates.
+
+    Args:
+        raster (pd.DataFrame): Raster data with 'x', 'y', and 'ef' columns.
+
+    Returns:
+        scipy.spatial.cKDTree: cKDTree object for efficient querying.
+    """
+    coordinates = raster[['x', 'y']].dropna().values
+    return cKDTree(coordinates)
