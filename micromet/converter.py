@@ -337,10 +337,8 @@ class Reformatter(object):
         self.name_changer()
 
 
-
-
         # set variable limits
-        self.et_data = self.extreme_limiter(self.et_data)
+        #self.et_data = self.extreme_limiter(self.et_data)
 
         # despike variables and remove long, flat periods
         for var in self.despikey:
@@ -363,7 +361,10 @@ class Reformatter(object):
                 #                                        replacement_method='nan'
                 #                                        )
                 # Remove Flat Values
-                self.et_data[var] = replace_flat_values(self.et_data,var,replacement_value=np.nan,null_value=-9999)
+                if var in ['U','V','W','u','w','v']:
+                    pass
+                else:
+                    self.et_data[var] = replace_flat_values(self.et_data,var,replacement_value=np.nan,null_value=-9999)
 
         # switch tau sign
         self.tau_fixer()
@@ -490,18 +491,19 @@ class Reformatter(object):
                     self.et_data[new_column] = self.et_data[old_column]
                     self.et_data = self.et_data.drop(old_column, axis=1)
 
-    def scale_and_convert(self, column, downcast='integer'):
+    def scale_and_convert(self, column: pd.Series) -> pd.Series:
         """
         Scale the values and then convert them to float type
         :param column: Pandas series or dataframe column
         :return: Scaled and converted dataframe column
         """
         # make sure column is not text
-        column = pd.to_numeric(column, downcast='float')
+        #column = pd.to_numeric(column, downcast='float')
+        column = pd.to_numeric(column, downcast='integer')
         # match rating to new rating
-        column = column.apply(lambda i: self.rating(i))
+        column = column.apply(self.rating)
         # output at integer
-        return pd.to_numeric(column, downcast=downcast)
+        return column
 
     def ssitc_scale(self):
         """
@@ -511,8 +513,9 @@ class Reformatter(object):
         ssitc_columns = ['FC_SSITC_TEST', 'LE_SSITC_TEST', 'ET_SSITC_TEST', 'H_SSITC_TEST', 'TAU_SSITC_TEST']
         for column in ssitc_columns:
             if column in self.et_data.columns:
-                if (self.et_data[column] > 3).any():
+                if self.et_data[column].max() > 3:
                     self.et_data[column] = self.scale_and_convert(self.et_data[column])
+
 
     @staticmethod
     def rating(x):

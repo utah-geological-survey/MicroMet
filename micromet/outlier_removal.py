@@ -198,7 +198,7 @@ def clean_extreme_variations(
     return cleaned_df[fields]
 
 def replace_flat_values(data, column_name,
-                        flat_threshold=0.01,
+                        flat_threshold=0.001,
                         window_size=10,
                         replacement_value=np.nan,
                         null_value=-9999,
