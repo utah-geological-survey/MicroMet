@@ -1,16 +1,17 @@
-import pandas as pd
+from typing import List, Tuple
+from typing import Union, Dict
+
 import numpy as np
-from typing import Union, List, Dict
-from datetime import datetime
+import pandas as pd
 
 
 def detect_extreme_variations(
-        df: pd.DataFrame,
-        fields: Union[str, List[str]] = None,
-        frequency: str = 'D',
-        variation_threshold: float = 3.0,
-        null_value: Union[float, int] = -9999,
-        min_periods: int = 2
+    df: pd.DataFrame,
+    fields: Union[str, List[str]] = None,
+    frequency: str = "D",
+    variation_threshold: float = 3.0,
+    null_value: Union[float, int] = -9999,
+    min_periods: int = 2,
 ) -> Dict[str, pd.DataFrame]:
     """
     Detect extreme variations in specified fields of a datetime-indexed DataFrame.
@@ -66,20 +67,25 @@ def detect_extreme_variations(
 
         # Calculate variation metrics
         field_var = f"{field}_variation"
-        variations[field_var] = grouped.transform(lambda x: np.abs(x - x.mean()) / x.std()
-        if len(x.dropna()) >= min_periods else np.nan)
+        variations[field_var] = grouped.transform(
+            lambda x: (
+                np.abs(x - x.mean()) / x.std()
+                if len(x.dropna()) >= min_periods
+                else np.nan
+            )
+        )
 
         # Flag extreme variations
         extreme_points[f"{field}_extreme"] = variations[field_var] > variation_threshold
 
         # Calculate summary statistics
         field_summary = {
-            'field': field,
-            'total_observations': len(df_copy[field].dropna()),
-            'extreme_variations': extreme_points[f"{field}_extreme"].sum(),
-            'mean_variation': variations[field_var].mean(),
-            'max_variation': variations[field_var].max(),
-            'std_variation': variations[field_var].std()
+            "field": field,
+            "total_observations": len(df_copy[field].dropna()),
+            "extreme_variations": extreme_points[f"{field}_extreme"].sum(),
+            "mean_variation": variations[field_var].mean(),
+            "max_variation": variations[field_var].max(),
+            "std_variation": variations[field_var].std(),
         }
         summary_stats.append(field_summary)
 
@@ -87,20 +93,20 @@ def detect_extreme_variations(
     summary_df = pd.DataFrame(summary_stats)
 
     return {
-        'variations': variations,
-        'extreme_points': extreme_points,
-        'summary': summary_df
+        "variations": variations,
+        "extreme_points": extreme_points,
+        "summary": summary_df,
     }
 
 
 def clean_extreme_variations(
-        df: pd.DataFrame,
-        fields: Union[str, List[str]] = None,
-        frequency: str = 'D',
-        variation_threshold: float = 3.0,
-        null_value: Union[float, int] = -9999,
-        min_periods: int = 2,
-        replacement_method: str = 'nan'
+    df: pd.DataFrame,
+    fields: Union[str, List[str]] = None,
+    frequency: str = "D",
+    variation_threshold: float = 3.0,
+    null_value: Union[float, int] = -9999,
+    min_periods: int = 2,
+    replacement_method: str = "nan",
 ) -> Dict[str, Union[pd.DataFrame, pd.DataFrame]]:
     """
     Clean extreme variations from specified fields in a DataFrame.
@@ -135,7 +141,7 @@ def clean_extreme_variations(
         - 'removed_points': DataFrame containing the removed values
     """
     # Validate replacement method
-    valid_methods = ['nan', 'interpolate', 'mean', 'median']
+    valid_methods = ["nan", "interpolate", "mean", "median"]
     if replacement_method not in valid_methods:
         raise ValueError(f"replacement_method must be one of {valid_methods}")
 
@@ -146,7 +152,7 @@ def clean_extreme_variations(
         frequency=frequency,
         variation_threshold=variation_threshold,
         null_value=null_value,
-        min_periods=min_periods
+        min_periods=min_periods,
     )
 
     # Create copy of input DataFrame
@@ -164,45 +170,49 @@ def clean_extreme_variations(
 
     for field in fields:
         # Get extreme points for this field
-        extreme_mask = variation_results['extreme_points'][f"{field}_extreme"]
+        extreme_mask = variation_results["extreme_points"][f"{field}_extreme"]
 
         # Store removed values
         removed_points[field] = np.where(extreme_mask, cleaned_df[field], np.nan)
 
         # Apply replacement method
-        if replacement_method == 'nan':
+        if replacement_method == "nan":
             cleaned_df.loc[extreme_mask, field] = np.nan
 
-        elif replacement_method == 'interpolate':
+        elif replacement_method == "interpolate":
             temp_series = cleaned_df[field].copy()
             temp_series[extreme_mask] = np.nan
-            cleaned_df[field] = temp_series.interpolate(method='time')
+            cleaned_df[field] = temp_series.interpolate(method="time")
 
-        elif replacement_method in ['mean', 'median']:
+        elif replacement_method in ["mean", "median"]:
             grouped = cleaned_df[field].groupby(pd.Grouper(freq=frequency))
-            if replacement_method == 'mean':
-                replacements = grouped.transform('mean')
+            if replacement_method == "mean":
+                replacements = grouped.transform("mean")
             else:
-                replacements = grouped.transform('median')
+                replacements = grouped.transform("median")
             cleaned_df.loc[extreme_mask, field] = replacements[extreme_mask]
 
         # Calculate cleaning summary
         cleaning_stats = {
-            'field': field,
-            'points_removed': extreme_mask.sum(),
-            'percent_removed': (extreme_mask.sum() / len(df)) * 100,
-            'replacement_method': replacement_method
+            "field": field,
+            "points_removed": extreme_mask.sum(),
+            "percent_removed": (extreme_mask.sum() / len(df)) * 100,
+            "replacement_method": replacement_method,
         }
         cleaning_summary.append(cleaning_stats)
 
     return cleaned_df[fields]
 
-def replace_flat_values(data, column_name,
-                        flat_threshold=0.001,
-                        window_size=10,
-                        replacement_value=np.nan,
-                        null_value=-9999,
-                        inplace=False):
+
+def replace_flat_values(
+    data,
+    column_name,
+    flat_threshold=0.001,
+    window_size=10,
+    replacement_value=np.nan,
+    null_value=-9999,
+    inplace=False,
+):
     """
     Detects and replaces flat-line anomalies in a time series.
 
@@ -225,53 +235,105 @@ def replace_flat_values(data, column_name,
     df[column_name] = df[column_name].replace(null_value, np.nan)
 
     # Compute rolling difference
-    df['rolling_diff'] = df[column_name].diff().abs()
+    df["rolling_diff"] = df[column_name].diff().abs()
 
     # Flag flat lines
-    df['is_flat'] = (
-        df['rolling_diff'].rolling(window=window_size, min_periods=1,center=True).max() <= flat_threshold
+    df["is_flat"] = (
+        df["rolling_diff"].rolling(window=window_size, min_periods=1, center=True).max()
+        <= flat_threshold
     )
 
     # Replace flat-line anomalies with the specified replacement value
-    df.loc[df['is_flat'], column_name] = replacement_value
+    df.loc[df["is_flat"], column_name] = replacement_value
 
     # Drop helper columns
-    df.drop(columns=['rolling_diff', 'is_flat'], inplace=True)
+    df.drop(columns=["rolling_diff", "is_flat"], inplace=True)
 
     return df[column_name]
+
+
+def filter_by_wind_direction(
+    df: pd.DataFrame,
+    wind_dir_col: str,
+    filter_cols: List[str],
+    angle_ranges: List[Tuple[float, float]],
+) -> pd.DataFrame:
+    """
+    Filter specified columns in a DataFrame based on wind direction angle ranges.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        The input DataFrame containing wind direction and data to be filtered.
+    wind_dir_col : str
+        The name of the column that holds wind direction values in degrees.
+    filter_cols : list of str
+        The names of the columns to be filtered out (e.g., evapotranspiration columns).
+    angle_ranges : list of tuple
+        A list of (start_angle, end_angle) tuples representing directions to filter out.
+        Angles are in [0, 360). If end_angle < start_angle, the range is assumed to wrap around.
+
+    Returns
+    -------
+    pd.DataFrame
+        A copy of the original DataFrame with specified columns filtered (set to NaN) where
+        the wind direction falls within the given angle ranges.
+    """
+    # Create a boolean mask for rows to filter
+    mask = np.zeros(len(df), dtype=bool)
+
+    for start_angle, end_angle in angle_ranges:
+        if start_angle <= end_angle:
+            # Normal range, e.g. (90, 180)
+            mask |= (df[wind_dir_col] >= start_angle) & (df[wind_dir_col] <= end_angle)
+        else:
+            # Wrap-around range, e.g. (350, 20)
+            # This means direction is >= start_angle OR <= end_angle
+            mask |= (df[wind_dir_col] >= start_angle) | (df[wind_dir_col] <= end_angle)
+
+    # Create a copy so we don't mutate the original DataFrame
+    df_filtered = df.copy()
+
+    # Set the specified columns to NaN where the mask is True
+    df_filtered.loc[mask, filter_cols] = np.nan
+
+    return df_filtered
 
 
 # Example usage
 if __name__ == "__main__":
     # Create sample data
-    dates = pd.date_range(start='2024-01-01', end='2024-01-31', freq='H')
+    dates = pd.date_range(start="2024-01-01", end="2024-01-31", freq="H")
     np.random.seed(42)
 
-    sample_data = pd.DataFrame({
-        'temperature': np.random.normal(20, 5, len(dates)) + \
-                       10 * np.sin(np.arange(len(dates)) * 2 * np.pi / 24),  # Daily cycle
-        'humidity': np.random.normal(60, 10, len(dates)),
-        'pressure': np.random.normal(1013, 2, len(dates))
-    }, index=dates)
+    sample_data = pd.DataFrame(
+        {
+            "temperature": np.random.normal(20, 5, len(dates))
+            + 10 * np.sin(np.arange(len(dates)) * 2 * np.pi / 24),  # Daily cycle
+            "humidity": np.random.normal(60, 10, len(dates)),
+            "pressure": np.random.normal(1013, 2, len(dates)),
+        },
+        index=dates,
+    )
 
     # Add some extreme variations
-    sample_data.loc['2024-01-15', 'temperature'] = 45  # Extreme temperature
-    sample_data.loc['2024-01-20', 'humidity'] = -9999  # Null value
+    sample_data.loc["2024-01-15", "temperature"] = 45  # Extreme temperature
+    sample_data.loc["2024-01-20", "humidity"] = -9999  # Null value
 
     # Clean extreme variations
     cleaning_results = clean_extreme_variations(
         df=sample_data,
-        fields=['temperature', 'humidity', 'pressure'],
-        frequency='D',
+        fields=["temperature", "humidity", "pressure"],
+        frequency="D",
         variation_threshold=3.0,
         null_value=-9999,
-        replacement_method='interpolate'
+        replacement_method="interpolate",
     )
 
     # Print results
     print("\nCleaning Summary:")
-    print(cleaning_results['cleaning_summary'])
+    print(cleaning_results["cleaning_summary"])
 
     print("\nRemoved Points:")
-    removed = cleaning_results['removed_points'].dropna(how='all')
+    removed = cleaning_results["removed_points"].dropna(how="all")
     print(removed)
