@@ -595,10 +595,6 @@ class Reformatter(object):
                         self.et_data, var, replacement_value=np.nan, null_value=-9999
                     )
 
-           # remove extreme values beyond natural ranges
-        self.et_data = self.replace_out_of_range_with_nan(
-            self.et_data, 'P', np.nan
-            )
         # switch tau sign
         self.tau_fixer()
 

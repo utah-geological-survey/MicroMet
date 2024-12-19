@@ -207,6 +207,7 @@ def clean_extreme_variations(
 def replace_flat_values(
     data,
     column_name,
+    flat_threshold=0.001,
     window_size=10,
     replacement_value=np.nan,
     null_value=-9999,
@@ -232,8 +233,7 @@ def replace_flat_values(
 
     # Treat -9999 as NaN
     df[column_name] = df[column_name].replace(null_value, np.nan)
-    flat_threshold = df[column_name].std()*.01 
-    
+
     # Compute rolling difference
     df["rolling_diff"] = df[column_name].diff().abs()
 
