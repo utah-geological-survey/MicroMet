@@ -57,40 +57,40 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "Python tests.Python tests for converter_test.test_dataframe_from_file.executor": "Run",
-    "Python tests.Python tests for footprint_tests.test_calc_footprint_values.executor": "Run",
-    "Python tests.Python tests for footprint_tests.test_coordinate_system.executor": "Run",
-    "Python tests.Python tests for footprint_tests.test_different_stability_conditions.executor": "Run",
-    "Python tests.Python tests for meteolib_tests.TestEvaporationComparisons.test_radiation_limits.executor": "Run",
-    "Python tests.Python tests for meteolib_tests.TestVaporPressure.executor": "Run",
-    "Python tests.Python tests for test_converter.test_data_preprocessing.executor": "Run",
-    "Python tests.Python tests in converter_test.py.executor": "Run",
-    "Python tests.Python tests in ffp_tests.py.executor": "Run",
-    "Python tests.Python tests in footprint_tests.py.executor": "Run",
-    "Python tests.Python tests in meteolib_tests.py.executor": "Run",
-    "Python tests.Python tests in outlier_removal_tests.py.executor": "Run",
-    "Python tests.Python tests in spectral-tests.py.executor": "Run",
-    "Python tests.Python tests in spectral_tests_2.py.executor": "Run",
-    "Python tests.Python tests in test_converter.py.executor": "Run",
-    "Python.spectral_tests_2.executor": "Run",
-    "RunOnceActivity.OpenProjectViewOnStart": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.git.unshallow": "true",
-    "git-widget-placeholder": "main",
-    "ignore.virus.scanning.warn.message": "true",
-    "last_opened_file_path": "C:/Users/paulinkenbrandt/Documents/GitHub/MicroMet",
-    "node.js.detected.package.eslint": "true",
-    "node.js.detected.package.tslint": "true",
-    "node.js.selected.package.eslint": "(autodetect)",
-    "node.js.selected.package.tslint": "(autodetect)",
-    "nodejs_package_manager_path": "npm",
-    "run.code.analysis.last.selected.profile": "pProject Default",
-    "settings.editor.selected.configurable": "com.jetbrains.python.black.configuration.BlackFormatterConfigurable",
-    "vue.rearranger.settings.migration": "true"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;Python tests.Python tests for converter_test.test_dataframe_from_file.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.Python tests for footprint_tests.test_calc_footprint_values.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.Python tests for footprint_tests.test_coordinate_system.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.Python tests for footprint_tests.test_different_stability_conditions.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.Python tests for meteolib_tests.TestEvaporationComparisons.test_radiation_limits.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.Python tests for meteolib_tests.TestVaporPressure.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.Python tests for test_converter.test_data_preprocessing.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.Python tests in converter_test.py.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.Python tests in ffp_tests.py.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.Python tests in footprint_tests.py.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.Python tests in meteolib_tests.py.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.Python tests in outlier_removal_tests.py.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.Python tests in spectral-tests.py.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.Python tests in spectral_tests_2.py.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.Python tests in test_converter.py.executor&quot;: &quot;Run&quot;,
+    &quot;Python.spectral_tests_2.executor&quot;: &quot;Run&quot;,
+    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
+    &quot;ignore.virus.scanning.warn.message&quot;: &quot;true&quot;,
+    &quot;last_opened_file_path&quot;: &quot;C:/Users/paulinkenbrandt/Documents/GitHub/MicroMet&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;run.code.analysis.last.selected.profile&quot;: &quot;pProject Default&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;com.jetbrains.python.black.configuration.BlackFormatterConfigurable&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
-}]]></component>
+}</component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="G:\Shared drives\UGS_Flux\Data_Processing\Jupyter_Notebooks\Micromet\micromet" />
