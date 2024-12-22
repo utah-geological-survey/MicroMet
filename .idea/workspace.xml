@@ -9,9 +9,13 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="a09e9df8-2720-44bb-8605-374b38d0d9d1" name="Changes" comment="Refactor data processing logic in DL_test.ipynb&#10;&#10;Removed unnecessary imports, optimized loops, and adjusted file paths for better clarity and maintainability. Errors in data processing were identified and partial fixes applied, though some warnings persist. Output consistency was preserved while enhancing readability.">
+      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Notebooks/DL_test.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/Notebooks/DL_test.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Notebooks/DL_test_forAmeriFluxOutputOnly.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/Notebooks/DL_test_forAmeriFluxOutputOnly.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/extreme_values.csv" beforeDir="false" afterPath="$PROJECT_DIR$/data/extreme_values.csv" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/micromet/converter.py" beforeDir="false" afterPath="$PROJECT_DIR$/micromet/converter.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/outlier_removal_tests.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/outlier_removal_tests.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -99,7 +103,7 @@
       <recent name="C:\Users\paulinkenbrandt\Documents\GitHub\MicroMet" />
     </key>
   </component>
-  <component name="RunManager" selected="Python tests.Python tests in converter_test.py">
+  <component name="RunManager" selected="Python tests.Python tests in outlier_removal_tests.py">
     <configuration name="spectral_tests_2" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="Micromet" />
       <option name="ENV_FILES" value="" />
@@ -189,10 +193,10 @@
     </configuration>
     <recent_temporary>
       <list>
+        <item itemvalue="Python tests.Python tests in outlier_removal_tests.py" />
         <item itemvalue="Python tests.Python tests in converter_test.py" />
         <item itemvalue="Python tests.Python tests for converter_test.test_dataframe_from_file" />
         <item itemvalue="Python tests.Python tests in ffp_tests.py" />
-        <item itemvalue="Python tests.Python tests in outlier_removal_tests.py" />
         <item itemvalue="Python.spectral_tests_2" />
       </list>
     </recent_temporary>
@@ -261,7 +265,8 @@
       <workItem from="1734560607295" duration="5535000" />
       <workItem from="1734573004098" duration="4537000" />
       <workItem from="1734651403349" duration="140000" />
-      <workItem from="1734655544447" duration="9727000" />
+      <workItem from="1734655544447" duration="9955000" />
+      <workItem from="1734748254178" duration="23155000" />
     </task>
     <task id="LOCAL-00001" summary="Add 'secrets' and 'station_data' to .gitignore&#10;&#10;The commit introduces two new entries to the .gitignore file. The '/secrets/' and '/station_data/' directories are now ignored to prevent sensitive or unnecessary data from being tracked by git.">
       <option name="closed" value="true" />
@@ -415,7 +420,15 @@
       <option name="project" value="LOCAL" />
       <updated>1734647981633</updated>
     </task>
-    <option name="localTasksCounter" value="20" />
+    <task id="LOCAL-00020" summary="Refactor data processing logic in DL_test.ipynb&#10;&#10;Removed unnecessary imports, optimized loops, and adjusted file paths for better clarity and maintainability. Errors in data processing were identified and partial fixes applied, though some warnings persist. Output consistency was preserved while enhancing readability.">
+      <option name="closed" value="true" />
+      <created>1734668152663</created>
+      <option name="number" value="00020" />
+      <option name="presentableId" value="LOCAL-00020" />
+      <option name="project" value="LOCAL" />
+      <updated>1734668152663</updated>
+    </task>
+    <option name="localTasksCounter" value="21" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -447,7 +460,7 @@
     <option name="LAST_COMMIT_MESSAGE" value="Refactor data processing logic in DL_test.ipynb&#10;&#10;Removed unnecessary imports, optimized loops, and adjusted file paths for better clarity and maintainability. Errors in data processing were identified and partial fixes applied, though some warnings persist. Output consistency was preserved while enhancing readability." />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
-    <SUITE FILE_PATH="coverage/__init___py$.coverage" NAME=" Coverage Results" MODIFIED="1734666947783" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/tests" />
+    <SUITE FILE_PATH="coverage/__init___py$.coverage" NAME=" Coverage Results" MODIFIED="1734824538780" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/tests" />
     <SUITE FILE_PATH="coverage/__init___py$spectral_tests_2.coverage" NAME="spectral_tests_2 Coverage Results" MODIFIED="1732398159837" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/micromet" />
   </component>
 </project>

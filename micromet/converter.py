@@ -4,11 +4,30 @@ from typing import Union, List, Dict, Optional
 
 import datetime
 import pathlib
-
+import os
 import numpy as np
 import pandas as pd
 
 from .outlier_removal import replace_flat_values
+
+import logging
+
+# Set up a logger for this module.
+# In production, consider configuring logging at application start-up instead.
+logger = logging.getLogger(__name__)
+
+os.makedirs("../logs", exist_ok=True)
+# Ensure the file is created if it doesn't exist
+log_filename = "../logs/my_log_file.log"
+if not os.path.exists(log_filename):
+    open(log_filename, "w").close()  # This just creates an empty file
+
+logging.basicConfig(
+    filename=log_filename,
+    level=logging.INFO,
+    filemode="w",
+    format="%(asctime)s - %(levelname)s - %(message)s",
+)
 
 
 class AmerifluxDataProcessor:
@@ -401,8 +420,12 @@ class AmerifluxDataProcessor:
         """
         amflux = {}
         station_folder = raw_fold / station_folder_name
+
+        logger.info(f"{station_folder}")
+
         # iterate through specified folder of raw datalogger files (.dat); Match to AmeriFlux datalogger files
         for file in station_folder.rglob(search_str):
+            logger.info(f"{file}")
             # get the base number of the raw ameriflux file
             baseno = file.name.split(".")[0]
 
@@ -420,7 +443,7 @@ class AmerifluxDataProcessor:
                     # print(file)
                     amflux[baseno] = df
             else:
-                print("Error: File number is too high")
+                logger.info("Error: File number is too high")
         if amflux:
             # concat dataframes that were successfully read in
             et_data = pd.concat(amflux, axis=0).reset_index()
@@ -557,18 +580,35 @@ class Reformatter(object):
             data_path = pathlib.Path(data_path)
             self.varlimits = pd.read_csv(data_path, index_col="Name")
 
+        logger.info("Starting Processing")
+        logger.info(f"Reading first line of file: {data_path}")
+        logger.debug(f"Variable limits: \n {self.varlimits.head(5)}")
+        logger.debug(f"Variable limits: \n {self.varlimits.tail(5)}")
+        logger.debug(f"ET Data: \n {et_data.head(5)}")
+        logger.debug(f"ET Data: \n {et_data.tail(5)}")
+
         # fix datetimes
         self.et_data = self.datefixer(et_data)
+
+        logger.debug("Corrected Datetimes:")
+        logger.debug(f"{self.et_data.head(5)}")
+        logger.debug(f"{self.et_data.tail(5)}")
 
         # change variable names
         self.name_changer()
 
+        logger.debug(f"Changed Names: {self.et_data.columns}")
         # despike variables and remove long, flat periods
         for col in self.et_data.columns:
-            if col in ["MO_LENGTH", "TIMESTAMP_START", "TIMESTAMP_END", "RECORD"]:
+            logger.debug(f"column: {col}")
+            logger.debug(f"column range: {np.max(self.et_data[col])}")
+            if col in ["MO_LENGTH", "RECORD"]:
                 self.et_data[col] = pd.to_numeric(
                     self.et_data[col], downcast="integer", errors="coerce"
                 )
+
+            elif col in ["TIMESTAMP_START", "TIMESTAMP_END"]:
+                self.et_data[col] = self.et_data[col]
 
             elif "SSITC" in col:
                 self.et_data[col] = pd.to_numeric(
@@ -576,11 +616,13 @@ class Reformatter(object):
                 )
             else:
                 self.et_data[col] = pd.to_numeric(self.et_data[col], errors="coerce")
-
+            logger.debug(f"column range numeric: {np.max(self.et_data[col])}")
             self.et_data[col] = self.et_data[col].replace(-9999, np.nan)
 
             # remove values that are outside of possible ranges
             self.et_data = self.replace_out_of_range_with_nan(self.et_data, col, np.nan)
+
+            logger.debug(f"column range out of range: {np.max(self.et_data[col])}")
 
             if col in self.despikey:
 
@@ -594,7 +636,9 @@ class Reformatter(object):
                     self.et_data[col] = replace_flat_values(
                         self.et_data, col, replacement_value=np.nan, null_value=-9999
                     )
-
+            logger.debug(f"column range despike: {np.max(self.et_data[col])}")
+        logger.debug(f"Despiked: {self.et_data.head(5)}")
+        logger.debug(f"Despiked: {self.et_data.tail(5)}")
         # switch tau sign
         self.tau_fixer()
 
@@ -604,14 +648,29 @@ class Reformatter(object):
         # rescale the quality values to a 0-2 scale
         self.ssitc_scale()
 
+        logger.info(f"SSITC Values: {self.et_data["ET_SSITC_TEST"].unique()}")
+
         self.drop_extras()
+
+        logger.debug(f"Extras: {self.et_data.head(5)}")
+        logger.debug(f"Extras: {self.et_data.tail(5)}")
 
         if drop_soil:
             self.et_data = self.remove_extra_soil_params(self.et_data)
 
         self.et_data = self.et_data.fillna(value=int(-9999))
-        self.et_data = self.et_data.replace(-9999.0, int(-9999))
+        logger.debug(f"column range fillna: {np.max(self.et_data[col])}")
+        logger.debug(f"Fillna: {self.et_data.head(5)}")
+        logger.debug(f"Fillna: {self.et_data.tail(5)}")
 
+        self.et_data = self.et_data.replace(-9999.0, int(-9999))
+        logger.debug(f"Replace: {self.et_data.head(5)}")
+        logger.debug(f"Replace: {self.et_data.tail(5)}")
+
+        if "ET" in self.et_data.columns:
+            count_neg_9999 = (self.et_data["ET"] == -9999).sum()
+            logger.info(f"Null Value Count in ET: {count_neg_9999}")
+            logger.info(f"Length of ET: {len(self.et_data["ET"])}")
         self.col_order()
 
     def remove_extra_soil_params(self, df):
@@ -715,6 +774,9 @@ class Reformatter(object):
             .asfreq()  # Establishes a 30-minute frequency grid with NaNs in missing slots
             .interpolate(method="linear", limit=1)  # Fill up to 30-minute gaps
         )
+
+        # drop null index values
+        et_data = et_data[et_data.index.notnull()]
 
         # remake timestamp marks to match datetime index, filling in NA spots
         et_data["TIMESTAMP_START"] = et_data.index.strftime("%Y%m%d%H%M").astype(
