@@ -429,18 +429,16 @@ class AmerifluxDataProcessor:
             # get the base number of the raw ameriflux file
             baseno = file.name.split(".")[0]
 
-            if baseno.split("_")[-1][0] == "A":
-                file_number = 9999
-            elif baseno.split("_")[-1][0] == "(":
-                file_number = 9999
-            elif self._is_int(baseno.split("_")[-1]):
+            try:
                 file_number = int(baseno.split("_")[-1])
-            else:
+            except:
                 file_number = 9999
+
             if file_number >= 0:
                 df = self.dataframe_from_file(file)
                 if df is not None:
                     # print(file)
+                    df["file_no"] = file_number
                     amflux[baseno] = df
             else:
                 logger.info("Error: File number is too high")
@@ -448,6 +446,7 @@ class AmerifluxDataProcessor:
             # concat dataframes that were successfully read in
             et_data = pd.concat(amflux, axis=0).reset_index()
             et_data = et_data.drop(columns=["level_0", "level_1"])
+
         else:
             et_data = None
         return et_data
@@ -648,7 +647,8 @@ class Reformatter(object):
         # rescale the quality values to a 0-2 scale
         self.ssitc_scale()
 
-        logger.info(f"SSITC Values: {self.et_data["ET_SSITC_TEST"].unique()}")
+        if "ET_SSITC_TEST" in self.et_data.columns:
+            logger.info(f"SSITC Values: {self.et_data["ET_SSITC_TEST"].unique()}")
 
         self.drop_extras()
 

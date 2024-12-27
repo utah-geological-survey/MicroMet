@@ -8,14 +8,32 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="a09e9df8-2720-44bb-8605-374b38d0d9d1" name="Changes" comment="Refactor data processing logic in DL_test.ipynb&#10;&#10;Removed unnecessary imports, optimized loops, and adjusted file paths for better clarity and maintainability. Errors in data processing were identified and partial fixes applied, though some warnings persist. Output consistency was preserved while enhancing readability.">
-      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
+    <list default="true" id="a09e9df8-2720-44bb-8605-374b38d0d9d1" name="Changes" comment="Remove outdated code and improve Ameriflux data processing.&#10;&#10;Replaced unused imports and refined dataset loading for clarity. Cleaned up unnecessary comments and streamlined processing logic to prevent redundancy and enhance maintainability.">
+      <change afterPath="$PROJECT_DIR$/Notebooks/Flux QAQC and Prep/Sensor Comparisons.ipynb" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Notebooks/Plots/SANKEY Energy Balance.ipynb" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Notebooks/Processing Workflow Notebooks/DL_test.ipynb" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Notebooks/Processing Workflow Notebooks/Pull DB Data and Impute.ipynb" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/sql/met_eddy_merge_view.sql" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/sql/most_recent_date_met.sql" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/sql/set_amfluxeddy_keys.sql" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Notebooks/DL_test.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/Notebooks/DL_test.ipynb" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Notebooks/DL_test_forAmeriFluxOutputOnly.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/Notebooks/DL_test_forAmeriFluxOutputOnly.ipynb" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/extreme_values.csv" beforeDir="false" afterPath="$PROJECT_DIR$/data/extreme_values.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Notebooks/CS_Examples.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/Notebooks/Old Notebooks/CS_Examples.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Notebooks/DL_test.ipynb" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Notebooks/DL_test_forAmeriFluxOutputOnly.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/Notebooks/Processing Workflow Notebooks/DL_test_forAmeriFluxOutputOnly.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Notebooks/EC Test.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/Notebooks/High Freq Processing/EC Test.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Notebooks/Eddy Lite Example.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/Notebooks/High Freq Processing/Eddy Lite Example.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Notebooks/Flat Data Detection.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/Notebooks/Outlier Tests/Flat Data Detection.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Notebooks/GEE and SSEBOP ET (1).ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/Notebooks/Old Notebooks/GEE and SSEBOP ET (1).ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Notebooks/Outlier Example Usage.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/Notebooks/Outlier Tests/Outlier Example Usage.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Notebooks/Processing Steps.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/Notebooks/High Freq Processing/Processing Steps.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Notebooks/QAQC_Wellington.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/Notebooks/Flux QAQC and Prep/QAQC_Wellington.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Notebooks/Untitled5.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/Notebooks/High Freq Processing/Untitled5.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Notebooks/Untitled6.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/Notebooks/High Freq Processing/Untitled6.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Notebooks/Wellington_CS_output.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/Notebooks/Old Notebooks/Wellington_CS_output.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Notebooks/ffp_uses.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/Notebooks/High Freq Processing/ffp_uses.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Notebooks/footprint.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/Notebooks/Footprints/footprint.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/logs/my_log_file.log" beforeDir="false" afterPath="$PROJECT_DIR$/logs/my_log_file.log" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/micromet/converter.py" beforeDir="false" afterPath="$PROJECT_DIR$/micromet/converter.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/outlier_removal_tests.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/outlier_removal_tests.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -26,8 +44,8 @@
     <option name="RECENT_TEMPLATES">
       <list>
         <option value="Python Unit Test" />
-        <option value="Jupyter Notebook" />
         <option value="Python Script" />
+        <option value="Jupyter Notebook" />
       </list>
     </option>
   </component>
@@ -96,11 +114,11 @@
       <recent name="G:\Shared drives\UGS_Flux\Data_Processing\Jupyter_Notebooks\Micromet\micromet" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
-      <recent name="C:\Users\paulinkenbrandt\Documents\GitHub\MicroMet\micromet" />
-      <recent name="C:\Users\paulinkenbrandt\Documents\GitHub\MicroMet\docs\source\api" />
-      <recent name="C:\Users\paulinkenbrandt\Documents\GitHub\MicroMet\docs" />
-      <recent name="C:\Users\paulinkenbrandt\Documents\GitHub\MicroMet\docs\source" />
-      <recent name="C:\Users\paulinkenbrandt\Documents\GitHub\MicroMet" />
+      <recent name="C:\Users\paulinkenbrandt\Documents\GitHub\MicroMet\Notebooks\Processing Workflow Notebooks" />
+      <recent name="C:\Users\paulinkenbrandt\Documents\GitHub\MicroMet\Notebooks\High Freq Processing" />
+      <recent name="C:\Users\paulinkenbrandt\Documents\GitHub\MicroMet\Notebooks\Flux QAQC and Prep" />
+      <recent name="C:\Users\paulinkenbrandt\Documents\GitHub\MicroMet\Notebooks\Old Notebooks" />
+      <recent name="C:\Users\paulinkenbrandt\Documents\GitHub\MicroMet\Notebooks\Converter Notebooks" />
     </key>
   </component>
   <component name="RunManager" selected="Python tests.Python tests in outlier_removal_tests.py">
@@ -266,7 +284,10 @@
       <workItem from="1734573004098" duration="4537000" />
       <workItem from="1734651403349" duration="140000" />
       <workItem from="1734655544447" duration="9955000" />
-      <workItem from="1734748254178" duration="23155000" />
+      <workItem from="1734748254178" duration="27562000" />
+      <workItem from="1735010434429" duration="9150000" />
+      <workItem from="1735157553390" duration="30863000" />
+      <workItem from="1735318146789" duration="1135000" />
     </task>
     <task id="LOCAL-00001" summary="Add 'secrets' and 'station_data' to .gitignore&#10;&#10;The commit introduces two new entries to the .gitignore file. The '/secrets/' and '/station_data/' directories are now ignored to prevent sensitive or unnecessary data from being tracked by git.">
       <option name="closed" value="true" />
@@ -428,7 +449,15 @@
       <option name="project" value="LOCAL" />
       <updated>1734668152663</updated>
     </task>
-    <option name="localTasksCounter" value="21" />
+    <task id="LOCAL-00021" summary="Remove outdated code and improve Ameriflux data processing.&#10;&#10;Replaced unused imports and refined dataset loading for clarity. Cleaned up unnecessary comments and streamlined processing logic to prevent redundancy and enhance maintainability.">
+      <option name="closed" value="true" />
+      <created>1734903444567</created>
+      <option name="number" value="00021" />
+      <option name="presentableId" value="LOCAL-00021" />
+      <option name="project" value="LOCAL" />
+      <updated>1734903444567</updated>
+    </task>
+    <option name="localTasksCounter" value="22" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -457,7 +486,8 @@
     <MESSAGE value="Refactor data compilation logic and optimize imports&#10;&#10;Simplified and streamlined the raw data processing workflow for AmeriFlux files. Removed unused imports, adjusted error handling, and ensured output formatting for consistency. Improved plotting by replacing missing values with NaN prior to visualization." />
     <MESSAGE value="Add shadow parameters to US-UTJ config and fix Jupyter notebook&#10;&#10;Updated the US-UTJ.ini configuration to include shadow_start and shadow_end parameters. Additionally, truncated the Jupyter notebook DL_test.ipynb to eliminate excessive overhead and improve usability. These changes enhance config flexibility and streamline the notebook structure." />
     <MESSAGE value="Refactor data processing logic in DL_test.ipynb&#10;&#10;Removed unnecessary imports, optimized loops, and adjusted file paths for better clarity and maintainability. Errors in data processing were identified and partial fixes applied, though some warnings persist. Output consistency was preserved while enhancing readability." />
-    <option name="LAST_COMMIT_MESSAGE" value="Refactor data processing logic in DL_test.ipynb&#10;&#10;Removed unnecessary imports, optimized loops, and adjusted file paths for better clarity and maintainability. Errors in data processing were identified and partial fixes applied, though some warnings persist. Output consistency was preserved while enhancing readability." />
+    <MESSAGE value="Remove outdated code and improve Ameriflux data processing.&#10;&#10;Replaced unused imports and refined dataset loading for clarity. Cleaned up unnecessary comments and streamlined processing logic to prevent redundancy and enhance maintainability." />
+    <option name="LAST_COMMIT_MESSAGE" value="Remove outdated code and improve Ameriflux data processing.&#10;&#10;Replaced unused imports and refined dataset loading for clarity. Cleaned up unnecessary comments and streamlined processing logic to prevent redundancy and enhance maintainability." />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/__init___py$.coverage" NAME=" Coverage Results" MODIFIED="1734824538780" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/tests" />
