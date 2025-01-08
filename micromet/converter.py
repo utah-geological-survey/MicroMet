@@ -431,14 +431,16 @@ class AmerifluxDataProcessor:
 
             try:
                 file_number = int(baseno.split("_")[-1])
+                datalogger_number = int(baseno.split("_")[0])
             except:
                 file_number = 9999
-
+                datalogger_number = 9999
             if file_number >= 0:
                 df = self.dataframe_from_file(file)
                 if df is not None:
                     # print(file)
                     df["file_no"] = file_number
+                    df["datalogger_no"] = datalogger_number
                     amflux[baseno] = df
             else:
                 logger.info("Error: File number is too high")
@@ -600,7 +602,7 @@ class Reformatter(object):
         # despike variables and remove long, flat periods
         for col in self.et_data.columns:
             logger.debug(f"column: {col}")
-            logger.debug(f"column range: {np.max(self.et_data[col])}")
+
             if col in ["MO_LENGTH", "RECORD"]:
                 self.et_data[col] = pd.to_numeric(
                     self.et_data[col], downcast="integer", errors="coerce"
@@ -615,6 +617,7 @@ class Reformatter(object):
                 )
             else:
                 self.et_data[col] = pd.to_numeric(self.et_data[col], errors="coerce")
+            logger.debug(f"column range: {np.max(self.et_data[col])}")
             logger.debug(f"column range numeric: {np.max(self.et_data[col])}")
             self.et_data[col] = self.et_data[col].replace(-9999, np.nan)
 
