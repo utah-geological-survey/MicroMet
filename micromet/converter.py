@@ -4,11 +4,30 @@ from typing import Union, List, Dict, Optional
 
 import datetime
 import pathlib
-
+import os
 import numpy as np
 import pandas as pd
 
 from .outlier_removal import replace_flat_values
+
+import logging
+
+# Set up a logger for this module.
+# In production, consider configuring logging at application start-up instead.
+logger = logging.getLogger(__name__)
+
+os.makedirs("../logs", exist_ok=True)
+# Ensure the file is created if it doesn't exist
+log_filename = "../logs/my_log_file.log"
+if not os.path.exists(log_filename):
+    open(log_filename, "w").close()  # This just creates an empty file
+
+logging.basicConfig(
+    filename=log_filename,
+    level=logging.INFO,
+    filemode="w",
+    format="%(asctime)s - %(levelname)s - %(message)s",
+)
 
 
 class AmerifluxDataProcessor:
@@ -401,30 +420,35 @@ class AmerifluxDataProcessor:
         """
         amflux = {}
         station_folder = raw_fold / station_folder_name
+
+        logger.info(f"{station_folder}")
+
         # iterate through specified folder of raw datalogger files (.dat); Match to AmeriFlux datalogger files
         for file in station_folder.rglob(search_str):
+            logger.info(f"{file}")
             # get the base number of the raw ameriflux file
             baseno = file.name.split(".")[0]
 
-            if baseno.split("_")[-1][0] == "A":
-                file_number = 9999
-            elif baseno.split("_")[-1][0] == "(":
-                file_number = 9999
-            elif self._is_int(baseno.split("_")[-1]):
+            try:
                 file_number = int(baseno.split("_")[-1])
-            else:
+                datalogger_number = int(baseno.split("_")[0])
+            except:
                 file_number = 9999
+                datalogger_number = 9999
             if file_number >= 0:
                 df = self.dataframe_from_file(file)
                 if df is not None:
                     # print(file)
+                    df["file_no"] = file_number
+                    df["datalogger_no"] = datalogger_number
                     amflux[baseno] = df
             else:
-                print("Error: File number is too high")
+                logger.info("Error: File number is too high")
         if amflux:
             # concat dataframes that were successfully read in
             et_data = pd.concat(amflux, axis=0).reset_index()
             et_data = et_data.drop(columns=["level_0", "level_1"])
+
         else:
             et_data = None
         return et_data
@@ -536,7 +560,7 @@ class Reformatter(object):
         "LW_OUT",
     ]
 
-    drop_cols = ["RECORD"]
+    drop_cols = ["RECORD", "datetime_end"]
 
     def __init__(self, et_data, drop_soil=True, data_path=None, outlier_remove=True):
         # read in variable limits
@@ -555,50 +579,68 @@ class Reformatter(object):
                     self.varlimits = pd.read_csv(data_path, index_col="Name")
         else:
             data_path = pathlib.Path(data_path)
+            self.varlimits = pd.read_csv(data_path, index_col="Name")
+
+        logger.info("Starting Processing")
+        logger.info(f"Reading first line of file: {data_path}")
+        logger.debug(f"Variable limits: \n {self.varlimits.head(5)}")
+        logger.debug(f"Variable limits: \n {self.varlimits.tail(5)}")
+        logger.debug(f"ET Data: \n {et_data.head(5)}")
+        logger.debug(f"ET Data: \n {et_data.tail(5)}")
 
         # fix datetimes
         self.et_data = self.datefixer(et_data)
 
+        logger.debug("Corrected Datetimes:")
+        logger.debug(f"{self.et_data.head(5)}")
+        logger.debug(f"{self.et_data.tail(5)}")
+
         # change variable names
         self.name_changer()
 
-        # set variable limits
-        # self.et_data = self.extreme_limiter(self.et_data)
-
+        logger.debug(f"Changed Names: {self.et_data.columns}")
         # despike variables and remove long, flat periods
-        for var in self.despikey:
-            if var in self.et_data.columns:
-                # make numeric
-                self.et_data[var] = pd.to_numeric(self.et_data[var], errors="coerce")
+        for col in self.et_data.columns:
+            logger.debug(f"column: {col}")
 
-                # remove extreme values beyond natural ranges
-                self.et_data = self.replace_out_of_range_with_nan(
-                    self.et_data, var, np.nan
+            if col in ["MO_LENGTH", "RECORD"]:
+                self.et_data[col] = pd.to_numeric(
+                    self.et_data[col], downcast="integer", errors="coerce"
                 )
 
-                # despike
-                self.et_data[var] = self.despike(self.et_data[var])
+            elif col in ["TIMESTAMP_START", "TIMESTAMP_END"]:
+                self.et_data[col] = self.et_data[col]
 
-                # Remove daily extremes
-                # self.et_data[var] = clean_extreme_variations(
-                #                                        df=self.et_data,
-                #                                        fields=var,
-                #                                        frequency='D',
-                #                                        variation_threshold=2.2,  # More sensitive threshold
-                #                                        replacement_method='nan'
-                #                                        )
+            elif "SSITC" in col:
+                self.et_data[col] = pd.to_numeric(
+                    self.et_data[col], downcast="integer", errors="coerce"
+                )
+            else:
+                self.et_data[col] = pd.to_numeric(self.et_data[col], errors="coerce")
+            logger.debug(f"column range: {np.max(self.et_data[col])}")
+            logger.debug(f"column range numeric: {np.max(self.et_data[col])}")
+            self.et_data[col] = self.et_data[col].replace(-9999, np.nan)
+
+            # remove values that are outside of possible ranges
+            self.et_data = self.replace_out_of_range_with_nan(self.et_data, col, np.nan)
+
+            logger.debug(f"column range out of range: {np.max(self.et_data[col])}")
+
+            if col in self.despikey:
+
+                # despike
+                self.et_data[col] = self.despike(self.et_data[col])
+
                 # Remove Flat Values
-                if var in ["U", "V", "W", "u", "w", "v"]:
+                if col in ["U", "V", "W", "u", "w", "v"]:
                     pass
                 else:
-                    self.et_data[var] = replace_flat_values(
-                        self.et_data, var, replacement_value=np.nan, null_value=-9999
+                    self.et_data[col] = replace_flat_values(
+                        self.et_data, col, replacement_value=np.nan, null_value=-9999
                     )
-
-           # remove extreme values beyond natural ranges
-        self.et_data = self.replace_out_of_range_with_nan(
-            self.et_data, 'P', np.nan
-            )
+            logger.debug(f"column range despike: {np.max(self.et_data[col])}")
+        logger.debug(f"Despiked: {self.et_data.head(5)}")
+        logger.debug(f"Despiked: {self.et_data.tail(5)}")
         # switch tau sign
         self.tau_fixer()
 
@@ -608,27 +650,30 @@ class Reformatter(object):
         # rescale the quality values to a 0-2 scale
         self.ssitc_scale()
 
-        # self.et_data = self.et_data.dropna(subset=['TIMESTAMP_START', 'TIMESTAMP_END'])
+        if "ET_SSITC_TEST" in self.et_data.columns:
+            logger.info(f"SSITC Values: {self.et_data["ET_SSITC_TEST"].unique()}")
 
-        self.et_data = self.et_data.drop(["datetime_end"], axis=1)
+        self.drop_extras()
+
+        logger.debug(f"Extras: {self.et_data.head(5)}")
+        logger.debug(f"Extras: {self.et_data.tail(5)}")
 
         if drop_soil:
             self.et_data = self.remove_extra_soil_params(self.et_data)
-        self.et_data = self.et_data.fillna(value=int(-9999))
-        # cdf.drop('station',axis=1,inplace=True)
-        for col in self.et_data:
-            if col in ["MO_LENGTH"]:
-                self.et_data[col] = self.et_data[col].astype(np.float64)
-            elif col in ["TIMESTAMP_START", "TIMESTAMP_END", "RECORD"]:
-                self.et_data[col] = self.et_data[col].astype(np.int64)
-            elif "SSITC" in col:
-                self.et_data[col] = self.et_data[col].astype(np.int16)
-            else:
-                self.et_data[col] = pd.to_numeric(self.et_data[col], errors="coerce")
 
         self.et_data = self.et_data.fillna(value=int(-9999))
+        logger.debug(f"column range fillna: {np.max(self.et_data[col])}")
+        logger.debug(f"Fillna: {self.et_data.head(5)}")
+        logger.debug(f"Fillna: {self.et_data.tail(5)}")
+
         self.et_data = self.et_data.replace(-9999.0, int(-9999))
-        self.drop_extras()
+        logger.debug(f"Replace: {self.et_data.head(5)}")
+        logger.debug(f"Replace: {self.et_data.tail(5)}")
+
+        if "ET" in self.et_data.columns:
+            count_neg_9999 = (self.et_data["ET"] == -9999).sum()
+            logger.info(f"Null Value Count in ET: {count_neg_9999}")
+            logger.info(f"Length of ET: {len(self.et_data["ET"])}")
         self.col_order()
 
     def remove_extra_soil_params(self, df):
@@ -710,9 +755,7 @@ class Reformatter(object):
         et_data["datetime_start"] = pd.to_datetime(
             et_data["TIMESTAMP_START"], format="%Y%m%d%H%M"
         )
-        et_data["datetime_end"] = pd.to_datetime(
-            et_data["TIMESTAMP_END"], format="%Y%m%d%H%M"
-        )
+
         et_data = et_data.drop_duplicates(subset=["TIMESTAMP_START", "TIMESTAMP_END"])
         et_data = et_data.set_index(["datetime_start"]).sort_index()
 
@@ -730,22 +773,25 @@ class Reformatter(object):
 
         # fix time offsets to harmonize sample frequency to 30 min
         et_data = (
-            et_data.resample("15min")
-            .asfreq()
-            .interpolate(method="linear", limit=2)
-            .resample("30min")
-            .asfreq()
+            et_data.resample("30min")  # Directly resample to 30-minute intervals
+            .asfreq()  # Establishes a 30-minute frequency grid with NaNs in missing slots
+            .interpolate(method="linear", limit=1)  # Fill up to 30-minute gaps
         )
+
+        # drop null index values
+        et_data = et_data[et_data.index.notnull()]
 
         # remake timestamp marks to match datetime index, filling in NA spots
         et_data["TIMESTAMP_START"] = et_data.index.strftime("%Y%m%d%H%M").astype(
             np.int64
         )
+
         et_data["TIMESTAMP_END"] = (
             (et_data.index + pd.Timedelta("30min"))
             .strftime("%Y%m%d%H%M")
             .astype(np.int64)
         )
+
         return et_data
 
     def update_dataframe_column(self, new_column, old_column):
@@ -776,9 +822,6 @@ class Reformatter(object):
         :param column: Pandas series or dataframe column
         :return: Scaled and converted dataframe column
         """
-        # make sure column is not text
-        # column = pd.to_numeric(column, downcast='float')
-        column = pd.to_numeric(column, downcast="integer")
         # match rating to new rating
         column = column.apply(self.rating)
         # output at integer
@@ -861,10 +904,13 @@ class Reformatter(object):
             if variable in df.columns:
                 upper_bound = self.varlimits.loc[varlimvar, "Max"]
                 lower_bound = self.varlimits.loc[varlimvar, "Min"]
-                df[variable] = pd.to_numeric(df[variable], errors="coerce")
-                df[variable] = df[variable].apply(
-                    lambda x: replace_w if x < lower_bound or x > upper_bound else x
+                valid_mask = (df[variable] >= lower_bound) & (
+                    df[variable] <= upper_bound
                 )
+                df.loc[~valid_mask, variable] = replace_w
+                # df[variable] = df[variable].apply(
+                #    lambda x: replace_w if x < lower_bound or x > upper_bound else x
+                # )
         return df
 
     def extreme_limiter(self, df, replace_w=np.nan):
@@ -899,9 +945,7 @@ class Reformatter(object):
         avg = np.nanmean(arr)
         avgdiff = stdd - np.abs(arr - avg)
         y = np.where(avgdiff >= 0, arr, np.nan)
-        # nans, x = np.isnan(y), lambda z: z.nonzero()[0]
-        # if len(x(~nans)) > 0:
-        #    y[nans] = np.interp(x(nans), x(~nans), y[~nans])
+
         return y
 
     def tau_fixer(self):
@@ -1149,7 +1193,7 @@ def outfile(df, stationname, out_dir):
     filename = (
         stationname
         + f"_HH_{first_index.strftime('%Y%m%d%H%M')}_{last_index.strftime('%Y%m%d%H%M')}.csv"
-    )  # {last_index_plus_30min.strftime('%Y%m%d%H%M')}.csv"
+    )
     df.to_csv(out_dir + stationname + "/" + filename, index=False)
 
 

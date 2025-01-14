@@ -4,6 +4,8 @@ from typing import Union, Dict
 import numpy as np
 import pandas as pd
 
+import logging
+
 
 def detect_extreme_variations(
     df: pd.DataFrame,
@@ -232,8 +234,8 @@ def replace_flat_values(
 
     # Treat -9999 as NaN
     df[column_name] = df[column_name].replace(null_value, np.nan)
-    flat_threshold = df[column_name].std()*.01 
-    
+    flat_threshold = df[column_name].std() * 0.01
+
     # Compute rolling difference
     df["rolling_diff"] = df[column_name].diff().abs()
 
