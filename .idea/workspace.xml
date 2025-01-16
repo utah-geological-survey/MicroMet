@@ -8,19 +8,19 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="a09e9df8-2720-44bb-8605-374b38d0d9d1" name="Changes" comment="Remove outdated code and improve Ameriflux data processing.&#10;&#10;Replaced unused imports and refined dataset loading for clarity. Cleaned up unnecessary comments and streamlined processing logic to prevent redundancy and enhance maintainability.">
-      <change afterPath="$PROJECT_DIR$/Notebooks/Processing Workflow Notebooks/Phrag Processing.ipynb" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Notebooks/example with flux-data-qaqc.ipynb" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/micromet/volk.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
+    <list default="true" id="a09e9df8-2720-44bb-8605-374b38d0d9d1" name="Changes" comment="Remove unused notebook and configuration file.&#10;&#10;Deleted a test notebook and an unused configuration file as they are no longer relevant to the project. This cleanup reduces repository clutter and improves maintainability.">
+      <change afterPath="$PROJECT_DIR$/Notebooks/Processing Workflow Notebooks/AMF_US-CRT_BASE_HH_3-5.csv" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Notebooks/Processing Workflow Notebooks/SampleData.ipynb" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Notebooks/Processing Workflow Notebooks/US-CRT_config.ini" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Notebooks/example with flux-data-qaqc-test-new-code.ipynb" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Notebooks/Processing Workflow Notebooks/DL_test.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/Notebooks/Processing Workflow Notebooks/DL_test.ipynb" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Notebooks/Processing Workflow Notebooks/Pull DB Data and Impute.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/Notebooks/Processing Workflow Notebooks/Pull DB Data and Impute.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Notebooks/Processing Workflow Notebooks/Phrag Processing.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/Notebooks/Processing Workflow Notebooks/Phrag Processing.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Notebooks/example with flux-data-qaqc.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/Notebooks/example with flux-data-qaqc.ipynb" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/logs/my_log_file.log" beforeDir="false" afterPath="$PROJECT_DIR$/logs/my_log_file.log" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/micromet/converter.py" beforeDir="false" afterPath="$PROJECT_DIR$/micromet/converter.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/micromet/outlier_removal.py" beforeDir="false" afterPath="$PROJECT_DIR$/micromet/outlier_removal.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/station_config/US-UTP.ini" beforeDir="false" afterPath="$PROJECT_DIR$/station_config/US-UTP.ini" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/station_config/g.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/micromet/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/micromet/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/micromet/ffp.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/micromet/footprint.py" beforeDir="false" afterPath="$PROJECT_DIR$/micromet/footprint.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/micromet/volk.py" beforeDir="false" afterPath="$PROJECT_DIR$/micromet/volk.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -32,8 +32,8 @@
       <list>
         <option value="Python Unit Test" />
         <option value="SQL File" />
-        <option value="Jupyter Notebook" />
         <option value="Python Script" />
+        <option value="Jupyter Notebook" />
       </list>
     </option>
   </component>
@@ -86,7 +86,7 @@
     &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
     &quot;git-widget-placeholder&quot;: &quot;main&quot;,
     &quot;ignore.virus.scanning.warn.message&quot;: &quot;true&quot;,
-    &quot;last_opened_file_path&quot;: &quot;C:/Users/paulinkenbrandt/Documents/GitHub/MicroMet&quot;,
+    &quot;last_opened_file_path&quot;: &quot;C:/Users/paulinkenbrandt/Documents/GitHub/MicroMet/Notebooks&quot;,
     &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
     &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
     &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
@@ -99,14 +99,15 @@
 }</component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
+      <recent name="C:\Users\paulinkenbrandt\Documents\GitHub\MicroMet\Notebooks" />
       <recent name="G:\Shared drives\UGS_Flux\Data_Processing\Jupyter_Notebooks\Micromet\micromet" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
-      <recent name="C:\Users\paulinkenbrandt\Documents\GitHub\MicroMet\Notebooks" />
+      <recent name="C:\Users\paulinkenbrandt\Documents\GitHub\MicroMet\micromet" />
       <recent name="C:\Users\paulinkenbrandt\Documents\GitHub\MicroMet\Notebooks\Processing Workflow Notebooks" />
+      <recent name="C:\Users\paulinkenbrandt\Documents\GitHub\MicroMet\Notebooks" />
       <recent name="C:\Users\paulinkenbrandt\Documents\GitHub\MicroMet\Notebooks\High Freq Processing" />
       <recent name="C:\Users\paulinkenbrandt\Documents\GitHub\MicroMet\Notebooks\Flux QAQC and Prep" />
-      <recent name="C:\Users\paulinkenbrandt\Documents\GitHub\MicroMet\Notebooks\Old Notebooks" />
     </key>
   </component>
   <component name="RunManager" selected="Python tests.Python tests in outlier_removal_tests.py">
@@ -288,7 +289,21 @@
       <workItem from="1736190326331" duration="594000" />
       <workItem from="1736273377426" duration="296000" />
       <workItem from="1736277681763" duration="596000" />
-      <workItem from="1736302505683" duration="6545000" />
+      <workItem from="1736302505683" duration="6688000" />
+      <workItem from="1736340502252" duration="4943000" />
+      <workItem from="1736375624248" duration="684000" />
+      <workItem from="1736480451019" duration="8000" />
+      <workItem from="1736544002997" duration="3205000" />
+      <workItem from="1736610729894" duration="32645000" />
+      <workItem from="1736775158102" duration="3525000" />
+      <workItem from="1736783463386" duration="12620000" />
+      <workItem from="1736822064275" duration="4820000" />
+      <workItem from="1736861203351" duration="4012000" />
+      <workItem from="1736870894459" duration="19562000" />
+      <workItem from="1736947983529" duration="1386000" />
+      <workItem from="1736954245588" duration="22392000" />
+      <workItem from="1736987578236" duration="8942000" />
+      <workItem from="1737033437282" duration="693000" />
     </task>
     <task id="LOCAL-00001" summary="Add 'secrets' and 'station_data' to .gitignore&#10;&#10;The commit introduces two new entries to the .gitignore file. The '/secrets/' and '/station_data/' directories are now ignored to prevent sensitive or unnecessary data from being tracked by git.">
       <option name="closed" value="true" />
@@ -466,7 +481,15 @@
       <option name="project" value="LOCAL" />
       <updated>1735320371763</updated>
     </task>
-    <option name="localTasksCounter" value="23" />
+    <task id="LOCAL-00023" summary="Remove unused notebook and configuration file.&#10;&#10;Deleted a test notebook and an unused configuration file as they are no longer relevant to the project. This cleanup reduces repository clutter and improves maintainability.">
+      <option name="closed" value="true" />
+      <created>1736309239915</created>
+      <option name="number" value="00023" />
+      <option name="presentableId" value="LOCAL-00023" />
+      <option name="project" value="LOCAL" />
+      <updated>1736309239915</updated>
+    </task>
+    <option name="localTasksCounter" value="24" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -496,7 +519,8 @@
     <MESSAGE value="Add shadow parameters to US-UTJ config and fix Jupyter notebook&#10;&#10;Updated the US-UTJ.ini configuration to include shadow_start and shadow_end parameters. Additionally, truncated the Jupyter notebook DL_test.ipynb to eliminate excessive overhead and improve usability. These changes enhance config flexibility and streamline the notebook structure." />
     <MESSAGE value="Refactor data processing logic in DL_test.ipynb&#10;&#10;Removed unnecessary imports, optimized loops, and adjusted file paths for better clarity and maintainability. Errors in data processing were identified and partial fixes applied, though some warnings persist. Output consistency was preserved while enhancing readability." />
     <MESSAGE value="Remove outdated code and improve Ameriflux data processing.&#10;&#10;Replaced unused imports and refined dataset loading for clarity. Cleaned up unnecessary comments and streamlined processing logic to prevent redundancy and enhance maintainability." />
-    <option name="LAST_COMMIT_MESSAGE" value="Remove outdated code and improve Ameriflux data processing.&#10;&#10;Replaced unused imports and refined dataset loading for clarity. Cleaned up unnecessary comments and streamlined processing logic to prevent redundancy and enhance maintainability." />
+    <MESSAGE value="Remove unused notebook and configuration file.&#10;&#10;Deleted a test notebook and an unused configuration file as they are no longer relevant to the project. This cleanup reduces repository clutter and improves maintainability." />
+    <option name="LAST_COMMIT_MESSAGE" value="Remove unused notebook and configuration file.&#10;&#10;Deleted a test notebook and an unused configuration file as they are no longer relevant to the project. This cleanup reduces repository clutter and improves maintainability." />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>

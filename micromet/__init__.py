@@ -5,8 +5,7 @@ from .converter import *
 from .tools import *
 from .graphs import *
 from .meteolib import *
-from .ffp import *
+from .footprint import *
 from .outlier_removal import *
 
-__version__ = '0.5.0'
-
+__version__ = "0.5.0"
