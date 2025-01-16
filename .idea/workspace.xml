@@ -9,18 +9,8 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="a09e9df8-2720-44bb-8605-374b38d0d9d1" name="Changes" comment="Remove unused notebook and configuration file.&#10;&#10;Deleted a test notebook and an unused configuration file as they are no longer relevant to the project. This cleanup reduces repository clutter and improves maintainability.">
-      <change afterPath="$PROJECT_DIR$/Notebooks/Processing Workflow Notebooks/AMF_US-CRT_BASE_HH_3-5.csv" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Notebooks/Processing Workflow Notebooks/SampleData.ipynb" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Notebooks/Processing Workflow Notebooks/US-CRT_config.ini" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Notebooks/example with flux-data-qaqc-test-new-code.ipynb" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Notebooks/Processing Workflow Notebooks/Phrag Processing.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/Notebooks/Processing Workflow Notebooks/Phrag Processing.ipynb" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Notebooks/example with flux-data-qaqc.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/Notebooks/example with flux-data-qaqc.ipynb" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/logs/my_log_file.log" beforeDir="false" afterPath="$PROJECT_DIR$/logs/my_log_file.log" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/micromet/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/micromet/__init__.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/micromet/ffp.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/micromet/footprint.py" beforeDir="false" afterPath="$PROJECT_DIR$/micromet/footprint.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/micromet/volk.py" beforeDir="false" afterPath="$PROJECT_DIR$/micromet/volk.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Notebooks/example with flux-data-qaqc-test-new-code.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/Notebooks/example with flux-data-qaqc-test-new-code.ipynb" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -303,7 +293,7 @@
       <workItem from="1736947983529" duration="1386000" />
       <workItem from="1736954245588" duration="22392000" />
       <workItem from="1736987578236" duration="8942000" />
-      <workItem from="1737033437282" duration="693000" />
+      <workItem from="1737033437282" duration="12319000" />
     </task>
     <task id="LOCAL-00001" summary="Add 'secrets' and 'station_data' to .gitignore&#10;&#10;The commit introduces two new entries to the .gitignore file. The '/secrets/' and '/station_data/' directories are now ignored to prevent sensitive or unnecessary data from being tracked by git.">
       <option name="closed" value="true" />
@@ -489,7 +479,15 @@
       <option name="project" value="LOCAL" />
       <updated>1736309239915</updated>
     </task>
-    <option name="localTasksCounter" value="24" />
+    <task id="LOCAL-00024" summary="Remove unused notebook and configuration file.&#10;&#10;Deleted a test notebook and an unused configuration file as they are no longer relevant to the project. This cleanup reduces repository clutter and improves maintainability.">
+      <option name="closed" value="true" />
+      <created>1737034272650</created>
+      <option name="number" value="00024" />
+      <option name="presentableId" value="LOCAL-00024" />
+      <option name="project" value="LOCAL" />
+      <updated>1737034272650</updated>
+    </task>
+    <option name="localTasksCounter" value="25" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
