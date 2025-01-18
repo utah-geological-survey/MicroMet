@@ -9,10 +9,13 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="a09e9df8-2720-44bb-8605-374b38d0d9d1" name="Changes" comment="Add shadow parameters to US-UTJ config and fix Jupyter notebook&#10;&#10;Updated the US-UTJ.ini configuration to include shadow_start and shadow_end parameters. Additionally, truncated the Jupyter notebook DL_test.ipynb to eliminate excessive overhead and improve usability. These changes enhance config flexibility and streamline the notebook structure.">
+      <change afterPath="$PROJECT_DIR$/micromet/ffp_xr.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/MicroMet.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/MicroMet.iml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Notebooks/DL_test_forAmeriFluxOutputOnly.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/Notebooks/DL_test_forAmeriFluxOutputOnly.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Notebooks/Processing Workflow Notebooks/Pull DB Data and Impute.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/Notebooks/Processing Workflow Notebooks/Pull DB Data and Impute.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Notebooks/example with flux-data-qaqc-test-new-code.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/Notebooks/example with flux-data-qaqc-test-new-code.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Notebooks/example with flux-data-qaqc.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/Notebooks/example with flux-data-qaqc.ipynb" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -201,7 +204,8 @@
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
-        <option value="bundled-python-sdk-d7ad00fb9fc3-c546a90a8094-com.jetbrains.pycharm.community.sharedIndexes.bundled-PC-242.23726.102" />
+        <option value="bundled-js-predefined-d6986cc7102b-deb605915726-JavaScript-PY-243.22562.220" />
+        <option value="bundled-python-sdk-0fc6c617c4bd-9a18a617cbe4-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-243.22562.220" />
       </set>
     </attachedChunks>
   </component>
@@ -260,6 +264,10 @@
       <workItem from="1734542372801" duration="9384000" />
       <workItem from="1734560607295" duration="5535000" />
       <workItem from="1734573004098" duration="4537000" />
+      <workItem from="1737051066971" duration="437000" />
+      <workItem from="1737054118288" duration="12307000" />
+      <workItem from="1737087287362" duration="5965000" />
+      <workItem from="1737129126750" duration="15323000" />
     </task>
     <task id="LOCAL-00001" summary="Add 'secrets' and 'station_data' to .gitignore&#10;&#10;The commit introduces two new entries to the .gitignore file. The '/secrets/' and '/station_data/' directories are now ignored to prevent sensitive or unnecessary data from being tracked by git.">
       <option name="closed" value="true" />
