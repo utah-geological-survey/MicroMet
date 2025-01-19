@@ -9,13 +9,10 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="a09e9df8-2720-44bb-8605-374b38d0d9d1" name="Changes" comment="Add shadow parameters to US-UTJ config and fix Jupyter notebook&#10;&#10;Updated the US-UTJ.ini configuration to include shadow_start and shadow_end parameters. Additionally, truncated the Jupyter notebook DL_test.ipynb to eliminate excessive overhead and improve usability. These changes enhance config flexibility and streamline the notebook structure.">
-      <change afterPath="$PROJECT_DIR$/micromet/ffp_xr.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/MicroMet.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/MicroMet.iml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Notebooks/Processing Workflow Notebooks/footprint_test.ipynb" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Notebooks/Processing Workflow Notebooks/Pull DB Data and Impute.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/Notebooks/Processing Workflow Notebooks/Pull DB Data and Impute.ipynb" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Notebooks/example with flux-data-qaqc-test-new-code.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/Notebooks/example with flux-data-qaqc-test-new-code.ipynb" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Notebooks/example with flux-data-qaqc.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/Notebooks/example with flux-data-qaqc.ipynb" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -26,8 +23,8 @@
     <option name="RECENT_TEMPLATES">
       <list>
         <option value="Python Unit Test" />
-        <option value="Jupyter Notebook" />
         <option value="Python Script" />
+        <option value="Jupyter Notebook" />
       </list>
     </option>
   </component>
@@ -96,11 +93,11 @@
       <recent name="G:\Shared drives\UGS_Flux\Data_Processing\Jupyter_Notebooks\Micromet\micromet" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
+      <recent name="C:\Users\paulinkenbrandt\Documents\GitHub\MicroMet\Notebooks\Processing Workflow Notebooks" />
+      <recent name="C:\Users\paulinkenbrandt\Documents\GitHub\MicroMet\Notebooks" />
       <recent name="C:\Users\paulinkenbrandt\Documents\GitHub\MicroMet\micromet" />
       <recent name="C:\Users\paulinkenbrandt\Documents\GitHub\MicroMet\docs\source\api" />
       <recent name="C:\Users\paulinkenbrandt\Documents\GitHub\MicroMet\docs" />
-      <recent name="C:\Users\paulinkenbrandt\Documents\GitHub\MicroMet\docs\source" />
-      <recent name="C:\Users\paulinkenbrandt\Documents\GitHub\MicroMet" />
     </key>
   </component>
   <component name="RunManager" selected="Python tests.Python tests in converter_test.py">
@@ -267,7 +264,9 @@
       <workItem from="1737051066971" duration="437000" />
       <workItem from="1737054118288" duration="12307000" />
       <workItem from="1737087287362" duration="5965000" />
-      <workItem from="1737129126750" duration="15323000" />
+      <workItem from="1737129126750" duration="22841000" />
+      <workItem from="1737175778581" duration="10000" />
+      <workItem from="1737209442824" duration="28491000" />
     </task>
     <task id="LOCAL-00001" summary="Add 'secrets' and 'station_data' to .gitignore&#10;&#10;The commit introduces two new entries to the .gitignore file. The '/secrets/' and '/station_data/' directories are now ignored to prevent sensitive or unnecessary data from being tracked by git.">
       <option name="closed" value="true" />
@@ -405,7 +404,15 @@
       <option name="project" value="LOCAL" />
       <updated>1734554480714</updated>
     </task>
-    <option name="localTasksCounter" value="18" />
+    <task id="LOCAL-00018" summary="Add shadow parameters to US-UTJ config and fix Jupyter notebook&#10;&#10;Updated the US-UTJ.ini configuration to include shadow_start and shadow_end parameters. Additionally, truncated the Jupyter notebook DL_test.ipynb to eliminate excessive overhead and improve usability. These changes enhance config flexibility and streamline the notebook structure.">
+      <option name="closed" value="true" />
+      <created>1737160834554</created>
+      <option name="number" value="00018" />
+      <option name="presentableId" value="LOCAL-00018" />
+      <option name="project" value="LOCAL" />
+      <updated>1737160834554</updated>
+    </task>
+    <option name="localTasksCounter" value="19" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
