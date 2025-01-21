@@ -9,7 +9,8 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="a09e9df8-2720-44bb-8605-374b38d0d9d1" name="Changes" comment="Add shadow parameters to US-UTJ config and fix Jupyter notebook&#10;&#10;Updated the US-UTJ.ini configuration to include shadow_start and shadow_end parameters. Additionally, truncated the Jupyter notebook DL_test.ipynb to eliminate excessive overhead and improve usability. These changes enhance config flexibility and streamline the notebook structure.">
-      <change beforePath="$PROJECT_DIR$/micromet/tools.py" beforeDir="false" afterPath="$PROJECT_DIR$/micromet/tools.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Notebooks/Footprints/row_footprint.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/Notebooks/Footprints/row_footprint.ipynb" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />

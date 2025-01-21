@@ -434,6 +434,35 @@ def polar_to_cartesian_dataframe(df, wd_column="WD", dist_column="Dist"):
     return df
 
 
+def aggregate_to_daily_centroid(
+    df, date_column="Timestamp", x_column="X", y_column="Y"
+):
+    """
+    Aggregate half-hourly coordinate data to daily centroids.
+
+    Parameters:
+        df (pd.DataFrame): DataFrame containing timestamp and coordinates.
+        date_column (str): Column containing datetime values.
+        x_column (str): Column name for X coordinate.
+        y_column (str): Column name for Y coordinate.
+
+    Returns:
+        pd.DataFrame: Aggregated daily centroids.
+    """
+    # Ensure datetime format
+    df[date_column] = pd.to_datetime(df[date_column])
+
+    # Group by date (ignoring time component)
+    df["Date"] = df[date_column].dt.date
+
+    # Calculate centroid (mean of X and Y)
+    daily_centroids = (
+        df.groupby("Date").agg({x_column: "mean", y_column: "mean"}).reset_index()
+    )
+
+    return daily_centroids
+
+
 # Example usage:
 if __name__ == "__main__":
     # Create sample data
