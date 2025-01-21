@@ -9,12 +9,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="a09e9df8-2720-44bb-8605-374b38d0d9d1" name="Changes" comment="Add shadow parameters to US-UTJ config and fix Jupyter notebook&#10;&#10;Updated the US-UTJ.ini configuration to include shadow_start and shadow_end parameters. Additionally, truncated the Jupyter notebook DL_test.ipynb to eliminate excessive overhead and improve usability. These changes enhance config flexibility and streamline the notebook structure.">
-      <change afterPath="$PROJECT_DIR$/Notebooks/Footprints/row_footprint.ipynb" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Notebooks/Flux QAQC and Prep/QAQC_Wellington.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/Notebooks/Flux QAQC and Prep/QAQC_Wellington.ipynb" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Notebooks/Processing Workflow Notebooks/footprint_test.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/Notebooks/Processing Workflow Notebooks/footprint_test.ipynb" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/station_config/US-CdM.ini" beforeDir="false" afterPath="$PROJECT_DIR$/station_config/US-CdM.ini" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/station_config/US-UTW.ini" beforeDir="false" afterPath="$PROJECT_DIR$/station_config/US-UTW.ini" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/micromet/tools.py" beforeDir="false" afterPath="$PROJECT_DIR$/micromet/tools.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -270,7 +265,7 @@
       <workItem from="1737175778581" duration="10000" />
       <workItem from="1737209442824" duration="41426000" />
       <workItem from="1737381616428" duration="3867000" />
-      <workItem from="1737465388949" duration="3825000" />
+      <workItem from="1737465388949" duration="4726000" />
     </task>
     <task id="LOCAL-00001" summary="Add 'secrets' and 'station_data' to .gitignore&#10;&#10;The commit introduces two new entries to the .gitignore file. The '/secrets/' and '/station_data/' directories are now ignored to prevent sensitive or unnecessary data from being tracked by git.">
       <option name="closed" value="true" />
@@ -424,7 +419,15 @@
       <option name="project" value="LOCAL" />
       <updated>1737265106636</updated>
     </task>
-    <option name="localTasksCounter" value="20" />
+    <task id="LOCAL-00020" summary="Add shadow parameters to US-UTJ config and fix Jupyter notebook&#10;&#10;Updated the US-UTJ.ini configuration to include shadow_start and shadow_end parameters. Additionally, truncated the Jupyter notebook DL_test.ipynb to eliminate excessive overhead and improve usability. These changes enhance config flexibility and streamline the notebook structure.">
+      <option name="closed" value="true" />
+      <created>1737470949155</created>
+      <option name="number" value="00020" />
+      <option name="presentableId" value="LOCAL-00020" />
+      <option name="project" value="LOCAL" />
+      <updated>1737470949155</updated>
+    </task>
+    <option name="localTasksCounter" value="21" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">

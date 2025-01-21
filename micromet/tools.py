@@ -7,12 +7,9 @@ from datetime import datetime
 import plotly.graph_objects as go
 from typing import Union, List, Dict
 
-def find_irr_dates(df,
-                   swc_col="SWC_1_1_1",
-                   do_plot=False,
-                   dist=20,
-                   height=30,
-                   prom=0.6
+
+def find_irr_dates(
+    df, swc_col="SWC_1_1_1", do_plot=False, dist=20, height=30, prom=0.6
 ):
     """
     Finds irrigation dates within a DataFrame.
@@ -97,19 +94,28 @@ def find_gaps(df, columns, missing_value=-9999, min_gap_periods=1):
                 # Calculate duration in hours
                 duration_hours = (gap_end - gap_start).total_seconds() / 3600
 
-                gaps.append({
-                    'gap_start': gap_start,
-                    'gap_end': gap_end,
-                    'duration_hours': duration_hours,
-                    'missing_records': len(run_indices),
-                    'column': col
-                })
+                gaps.append(
+                    {
+                        "gap_start": gap_start,
+                        "gap_end": gap_end,
+                        "duration_hours": duration_hours,
+                        "missing_records": len(run_indices),
+                        "column": col,
+                    }
+                )
 
     if not gaps:
-        return pd.DataFrame(columns=['gap_start', 'gap_end', 'duration_hours',
-                                     'missing_records', 'column'])
+        return pd.DataFrame(
+            columns=[
+                "gap_start",
+                "gap_end",
+                "duration_hours",
+                "missing_records",
+                "column",
+            ]
+        )
 
-    return pd.DataFrame(gaps).sort_values('gap_start').reset_index(drop=True)
+    return pd.DataFrame(gaps).sort_values("gap_start").reset_index(drop=True)
 
 
 def plot_gaps(gaps_df, title="Time Series Data Gaps"):
@@ -136,57 +142,69 @@ def plot_gaps(gaps_df, title="Time Series Data Gaps"):
     fig = go.Figure()
 
     # Get unique columns and assign colors
-    unique_columns = gaps_df['column'].unique()
+    unique_columns = gaps_df["column"].unique()
     # Define a set of colors manually
-    colors = ['rgb(166,206,227)', 'rgb(31,120,180)', 'rgb(178,223,138)',
-              'rgb(51,160,44)', 'rgb(251,154,153)', 'rgb(227,26,28)',
-              'rgb(253,191,111)', 'rgb(255,127,0)', 'rgb(202,178,214)']
+    colors = [
+        "rgb(166,206,227)",
+        "rgb(31,120,180)",
+        "rgb(178,223,138)",
+        "rgb(51,160,44)",
+        "rgb(251,154,153)",
+        "rgb(227,26,28)",
+        "rgb(253,191,111)",
+        "rgb(255,127,0)",
+        "rgb(202,178,214)",
+    ]
     # Cycle through colors if more variables than colors
-    color_map = dict(zip(unique_columns, [colors[i % len(colors)] for i in range(len(unique_columns))]))
+    color_map = dict(
+        zip(
+            unique_columns,
+            [colors[i % len(colors)] for i in range(len(unique_columns))],
+        )
+    )
 
     # Add gaps as horizontal bars
     for idx, row in gaps_df.iterrows():
-        fig.add_trace(go.Bar(
-            x=[row['duration_hours']],
-            y=[row['column']],
-            orientation='h',
-            base=[(row['gap_start'] - pd.Timestamp.min).total_seconds() / 3600],
-            marker_color=color_map[row['column']],
-            name=row['column'],
-            showlegend=False,
-            hovertemplate=(
-                    f"Column: {row['column']}<br>" +
-                    f"Start: {row['gap_start']}<br>" +
-                    f"End: {row['gap_end']}<br>" +
-                    f"Duration: {row['duration_hours']:.1f} hours<br>" +
-                    f"Missing Records: {row['missing_records']}"
+        fig.add_trace(
+            go.Bar(
+                x=[row["duration_hours"]],
+                y=[row["column"]],
+                orientation="h",
+                base=[(row["gap_start"] - pd.Timestamp.min).total_seconds() / 3600],
+                marker_color=color_map[row["column"]],
+                name=row["column"],
+                showlegend=False,
+                hovertemplate=(
+                    f"Column: {row['column']}<br>"
+                    + f"Start: {row['gap_start']}<br>"
+                    + f"End: {row['gap_end']}<br>"
+                    + f"Duration: {row['duration_hours']:.1f} hours<br>"
+                    + f"Missing Records: {row['missing_records']}"
+                ),
             )
-        ))
+        )
 
     # Update layout
     fig.update_layout(
         title=title,
         xaxis_title="Time",
         yaxis_title="Variables",
-        barmode='overlay',
+        barmode="overlay",
         height=max(200, 100 * len(unique_columns)),
         showlegend=False,
-        xaxis=dict(
-            tickformat='%Y-%m-%d %H:%M',
-            type='date'
-        )
+        xaxis=dict(tickformat="%Y-%m-%d %H:%M", type="date"),
     )
 
     return fig
 
 
 def detect_extreme_variations(
-        df: pd.DataFrame,
-        fields: Union[str, List[str]] = None,
-        frequency: str = 'D',
-        variation_threshold: float = 3.0,
-        null_value: Union[float, int] = -9999,
-        min_periods: int = 2
+    df: pd.DataFrame,
+    fields: Union[str, List[str]] = None,
+    frequency: str = "D",
+    variation_threshold: float = 3.0,
+    null_value: Union[float, int] = -9999,
+    min_periods: int = 2,
 ) -> Dict[str, pd.DataFrame]:
     """
     Detect extreme variations in specified fields of a datetime-indexed DataFrame.
@@ -242,20 +260,25 @@ def detect_extreme_variations(
 
         # Calculate variation metrics
         field_var = f"{field}_variation"
-        variations[field_var] = grouped.transform(lambda x: np.abs(x - x.mean()) / x.std()
-        if len(x.dropna()) >= min_periods else np.nan)
+        variations[field_var] = grouped.transform(
+            lambda x: (
+                np.abs(x - x.mean()) / x.std()
+                if len(x.dropna()) >= min_periods
+                else np.nan
+            )
+        )
 
         # Flag extreme variations
         extreme_points[f"{field}_extreme"] = variations[field_var] > variation_threshold
 
         # Calculate summary statistics
         field_summary = {
-            'field': field,
-            'total_observations': len(df_copy[field].dropna()),
-            'extreme_variations': extreme_points[f"{field}_extreme"].sum(),
-            'mean_variation': variations[field_var].mean(),
-            'max_variation': variations[field_var].max(),
-            'std_variation': variations[field_var].std()
+            "field": field,
+            "total_observations": len(df_copy[field].dropna()),
+            "extreme_variations": extreme_points[f"{field}_extreme"].sum(),
+            "mean_variation": variations[field_var].mean(),
+            "max_variation": variations[field_var].max(),
+            "std_variation": variations[field_var].std(),
         }
         summary_stats.append(field_summary)
 
@@ -263,20 +286,20 @@ def detect_extreme_variations(
     summary_df = pd.DataFrame(summary_stats)
 
     return {
-        'variations': variations,
-        'extreme_points': extreme_points,
-        'summary': summary_df
+        "variations": variations,
+        "extreme_points": extreme_points,
+        "summary": summary_df,
     }
 
 
 def clean_extreme_variations(
-        df: pd.DataFrame,
-        fields: Union[str, List[str]] = None,
-        frequency: str = 'D',
-        variation_threshold: float = 3.0,
-        null_value: Union[float, int] = -9999,
-        min_periods: int = 2,
-        replacement_method: str = 'nan'
+    df: pd.DataFrame,
+    fields: Union[str, List[str]] = None,
+    frequency: str = "D",
+    variation_threshold: float = 3.0,
+    null_value: Union[float, int] = -9999,
+    min_periods: int = 2,
+    replacement_method: str = "nan",
 ) -> Dict[str, Union[pd.DataFrame, pd.DataFrame]]:
     """
     Clean extreme variations from specified fields in a DataFrame.
@@ -311,7 +334,7 @@ def clean_extreme_variations(
         - 'removed_points': DataFrame containing the removed values
     """
     # Validate replacement method
-    valid_methods = ['nan', 'interpolate', 'mean', 'median']
+    valid_methods = ["nan", "interpolate", "mean", "median"]
     if replacement_method not in valid_methods:
         raise ValueError(f"replacement_method must be one of {valid_methods}")
 
@@ -322,7 +345,7 @@ def clean_extreme_variations(
         frequency=frequency,
         variation_threshold=variation_threshold,
         null_value=null_value,
-        min_periods=min_periods
+        min_periods=min_periods,
     )
 
     # Create copy of input DataFrame
@@ -340,44 +363,45 @@ def clean_extreme_variations(
 
     for field in fields:
         # Get extreme points for this field
-        extreme_mask = variation_results['extreme_points'][f"{field}_extreme"]
+        extreme_mask = variation_results["extreme_points"][f"{field}_extreme"]
 
         # Store removed values
         removed_points[field] = np.where(extreme_mask, cleaned_df[field], np.nan)
 
         # Apply replacement method
-        if replacement_method == 'nan':
+        if replacement_method == "nan":
             cleaned_df.loc[extreme_mask, field] = np.nan
 
-        elif replacement_method == 'interpolate':
+        elif replacement_method == "interpolate":
             temp_series = cleaned_df[field].copy()
             temp_series[extreme_mask] = np.nan
-            cleaned_df[field] = temp_series.interpolate(method='time')
+            cleaned_df[field] = temp_series.interpolate(method="time")
 
-        elif replacement_method in ['mean', 'median']:
+        elif replacement_method in ["mean", "median"]:
             grouped = cleaned_df[field].groupby(pd.Grouper(freq=frequency))
-            if replacement_method == 'mean':
-                replacements = grouped.transform('mean')
+            if replacement_method == "mean":
+                replacements = grouped.transform("mean")
             else:
-                replacements = grouped.transform('median')
+                replacements = grouped.transform("median")
             cleaned_df.loc[extreme_mask, field] = replacements[extreme_mask]
 
         # Calculate cleaning summary
         cleaning_stats = {
-            'field': field,
-            'points_removed': extreme_mask.sum(),
-            'percent_removed': (extreme_mask.sum() / len(df)) * 100,
-            'replacement_method': replacement_method
+            "field": field,
+            "points_removed": extreme_mask.sum(),
+            "percent_removed": (extreme_mask.sum() / len(df)) * 100,
+            "replacement_method": replacement_method,
         }
         cleaning_summary.append(cleaning_stats)
 
     return {
-        'cleaned_data': cleaned_df,
-        'cleaning_summary': pd.DataFrame(cleaning_summary),
-        'removed_points': removed_points
+        "cleaned_data": cleaned_df,
+        "cleaning_summary": pd.DataFrame(cleaning_summary),
+        "removed_points": removed_points,
     }
 
-def polar_to_cartesian_dataframe(df, wd_column='WD', dist_column='Dist'):
+
+def polar_to_cartesian_dataframe(df, wd_column="WD", dist_column="Dist"):
     """
     Convert polar coordinates from a DataFrame to Cartesian coordinates.
 
@@ -400,29 +424,34 @@ def polar_to_cartesian_dataframe(df, wd_column='WD', dist_column='Dist'):
     theta_radians = np.radians(90 - wd)
 
     # Calculate Cartesian coordinates, setting invalid values to NaN
-    df[f'X_{dist_column}'] = np.where(invalid_mask, np.nan, dist * np.cos(theta_radians))
-    df[f'Y_{dist_column}'] = np.where(invalid_mask, np.nan, dist * np.sin(theta_radians))
+    df[f"X_{dist_column}"] = np.where(
+        invalid_mask, np.nan, dist * np.cos(theta_radians)
+    )
+    df[f"Y_{dist_column}"] = np.where(
+        invalid_mask, np.nan, dist * np.sin(theta_radians)
+    )
 
     return df
+
 
 # Example usage:
 if __name__ == "__main__":
     # Create sample data
-    dates = pd.date_range(start='2024-01-01', end='2024-01-02', freq='30min')
+    dates = pd.date_range(start="2024-01-01", end="2024-01-02", freq="30min")
     df = pd.DataFrame(index=dates)
 
     # Create multiple columns with gaps
-    df['temperature'] = 20 + np.random.randn(len(dates))
-    df['humidity'] = 60 + np.random.randn(len(dates))
-    df['pressure'] = 1013 + np.random.randn(len(dates))
+    df["temperature"] = 20 + np.random.randn(len(dates))
+    df["humidity"] = 60 + np.random.randn(len(dates))
+    df["pressure"] = 1013 + np.random.randn(len(dates))
 
     # Insert some gaps
-    df.loc['2024-01-01 10:00':'2024-01-01 12:00', 'temperature'] = -9999
-    df.loc['2024-01-01 15:00':'2024-01-01 16:00', 'humidity'] = np.nan
-    df.loc['2024-01-01 18:00':'2024-01-01 20:00', 'pressure'] = -9999
+    df.loc["2024-01-01 10:00":"2024-01-01 12:00", "temperature"] = -9999
+    df.loc["2024-01-01 15:00":"2024-01-01 16:00", "humidity"] = np.nan
+    df.loc["2024-01-01 18:00":"2024-01-01 20:00", "pressure"] = -9999
 
     # Find gaps
-    gaps_df = find_gaps(df, ['temperature', 'humidity', 'pressure'], min_gap_periods=1)
+    gaps_df = find_gaps(df, ["temperature", "humidity", "pressure"], min_gap_periods=1)
 
     # Create and show plot
     fig = plot_gaps(gaps_df, "Sample Data Gaps")

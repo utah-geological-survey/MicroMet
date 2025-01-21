@@ -617,8 +617,8 @@ class Reformatter(object):
                 )
             else:
                 self.et_data[col] = pd.to_numeric(self.et_data[col], errors="coerce")
-            logger.debug(f"column range: {np.max(self.et_data[col])}")
-            logger.debug(f"column range numeric: {np.max(self.et_data[col])}")
+            logger.debug(f"column {col} range: {np.max(self.et_data[col])}")
+            logger.debug(f"column {col} range numeric: {np.max(self.et_data[col])}")
             self.et_data[col] = self.et_data[col].replace(-9999, np.nan)
 
             # remove values that are outside of possible ranges
