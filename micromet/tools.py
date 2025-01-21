@@ -377,6 +377,34 @@ def clean_extreme_variations(
         'removed_points': removed_points
     }
 
+def polar_to_cartesian_dataframe(df, wd_column='WD', dist_column='Dist'):
+    """
+    Convert polar coordinates from a DataFrame to Cartesian coordinates.
+
+    Parameters:
+        df (pd.DataFrame): Input DataFrame containing polar coordinates.
+        wd_column (str): Column name for degrees from north.
+        dist_column (str): Column name for distance from origin.
+
+    Returns:
+        pd.DataFrame: A DataFrame with added 'X' and 'Y' columns.
+    """
+    # Create copies of the input columns to avoid modifying original data
+    wd = df[wd_column].copy()
+    dist = df[dist_column].copy()
+
+    # Identify invalid values (-9999 or NaN)
+    invalid_mask = (wd == -9999) | (dist == -9999) | wd.isna() | dist.isna()
+
+    # Convert degrees from north to standard polar angle (radians) where valid
+    theta_radians = np.radians(90 - wd)
+
+    # Calculate Cartesian coordinates, setting invalid values to NaN
+    df[f'X_{dist_column}'] = np.where(invalid_mask, np.nan, dist * np.cos(theta_radians))
+    df[f'Y_{dist_column}'] = np.where(invalid_mask, np.nan, dist * np.sin(theta_radians))
+
+    return df
+
 # Example usage:
 if __name__ == "__main__":
     # Create sample data
