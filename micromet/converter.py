@@ -574,7 +574,7 @@ class Reformatter(object):
                     self.varlimits = pd.read_csv(data_path, index_col="Name")
                 except FileNotFoundError:
                     data_path = pathlib.Path(
-                        "/content/drive/Shareddrives/UGS_Flux/Data_Processing/Jupyter_Notebooks/Micromet/data/extreme_values.csv"
+                        "G:/Shared drives/UGS_Flux/Data_Processing/Jupyter_Notebooks/Micromet/data/extreme_values.csv"
                     )
                     self.varlimits = pd.read_csv(data_path, index_col="Name")
         else:
@@ -779,7 +779,12 @@ class Reformatter(object):
         )
 
         # drop null index values
-        et_data = et_data[et_data.index.notnull()]
+        et_data = (
+            et_data.reset_index()
+            .dropna(subset=["datetime_start"])
+            .set_index("datetime_start")
+        )
+        # et_data = et_data[et_data.index.notnull()]
 
         # remake timestamp marks to match datetime index, filling in NA spots
         et_data["TIMESTAMP_START"] = et_data.index.strftime("%Y%m%d%H%M").astype(
