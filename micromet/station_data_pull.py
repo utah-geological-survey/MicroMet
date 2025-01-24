@@ -75,3 +75,64 @@ def get_station_data(station, config, reformat=True, loggertype="eddy"):
     else:
         print(f"Error: {response_1.status_code}")
         return None, None
+
+
+def remove_existing_records(df1, column_to_check, values_to_remove):
+    """
+    Remove rows from df1 where the specified column values exist in the given list.
+
+    Parameters:
+    df1 (pd.DataFrame): The DataFrame to be filtered.
+    column_to_check (str): The column name to check for values to remove.
+    values_to_remove (list): List of values to be removed from the DataFrame.
+
+    Returns:
+    pd.DataFrame: A filtered DataFrame excluding matching rows.
+    """
+    # Ensure the specified column exists in the DataFrame
+    if column_to_check not in df1.columns:
+        raise ValueError(f"Column '{column_to_check}' not found in DataFrame")
+
+    # Filter out rows where the specified column has values in the list
+    df_filtered = df1[~df1[column_to_check].isin(values_to_remove)]
+
+    return df_filtered
+
+
+def compare_sql_to_station(
+    df, station, engine, field="timestamp_end", loggertype="eddy"
+):
+    # SQL query to get the max value from a field
+    if loggertype == "eddy":
+        table = "amfluxeddy"
+    else:
+        table = "amfluxmet"
+
+    query = f"SELECT {field} FROM {table} WHERE stationid = '{station}';"
+
+    # Execute query and fetch results into a DataFrame
+    exist = pd.read_sql(query, con=engine)
+
+    existing = exist["timestamp_end"].values
+
+    df_filtered = remove_existing_records(df, field, existing)
+
+    return df_filtered
+
+
+def get_max_date(station, engine, loggertype="eddy"):
+    # SQL query to get the max value from a field
+    if loggertype == "eddy":
+        table = "amfluxeddy"
+    else:
+        table = "amfluxmet"
+
+    query = f"SELECT MAX(timestamp_end) AS max_value FROM {table} WHERE stationid = '{station}';"
+
+    # Execute query and fetch results into a DataFrame
+    df = pd.read_sql(query, con=engine)
+
+    # Access the max value
+    max_value = df["max_value"].iloc[0]
+
+    return max_value
