@@ -7,11 +7,30 @@ from .converter import Reformatter
 
 
 def get_times(station, config, loggertype="eddy"):
+    """
+    Retrieves the current logger time and the computer system time.
+
+    Parameters:
+        station (str): The station identifier.
+        config (dict): Configuration dictionary containing station IPs and credentials.
+        loggertype (str): Logger type, either 'eddy' or 'met'. Default is 'eddy'.
+
+    Returns:
+        tuple: Logger time and current system time in string format.
+    """
     ip = config[station]["ip"]
     if loggertype == "eddy":
-        port = config[station]["eddy_port"]
+        if "eddy_port" in config[station].keys():
+            port = config[station]["eddy_port"]
+        else:
+            port = 80
+        print(port)
     else:
-        port = config[station]["met_port"]
+        if "met_port" in config[station].keys():
+            port = config[station]["met_port"]
+        else:
+            port = 80
+        print(port)
 
     clk_url = f"http://{ip}:{port}/?"
     # url = f"http://{ip}/tables.html?command=DataQuery&mode=since-record&format=toA5&uri=dl:Flux_AmeriFluxFormat&p1=0"
@@ -35,6 +54,18 @@ def get_times(station, config, loggertype="eddy"):
 
 
 def get_station_data(station, config, reformat=True, loggertype="eddy"):
+    """
+    Fetches data from a specified station and processes it.
+
+    Parameters:
+        station (str): The station identifier.
+        config (dict): Configuration dictionary containing station details.
+        reformat (bool): Whether to reformat the data. Default is True.
+        loggertype (str): Logger type, either 'eddy' or 'met'. Default is 'eddy'.
+
+    Returns:
+        tuple: Processed data as DataFrame and data packet size.
+    """
     ip = config[station]["ip"]
 
     if loggertype == "eddy":
@@ -111,6 +142,19 @@ def remove_existing_records(df1, column_to_check, values_to_remove):
 def compare_sql_to_station(
     df, station, engine, field="timestamp_end", loggertype="eddy"
 ):
+    """
+    Compares station data with SQL records and filters new entries.
+
+    Parameters:
+        df (pd.DataFrame): DataFrame containing station data.
+        station (str): Station ID.
+        engine: SQLAlchemy engine instance.
+        field (str): Field to compare.
+        loggertype (str): Logger type, 'eddy' or 'met'. Default is 'eddy'.
+
+    Returns:
+        pd.DataFrame: Filtered DataFrame.
+    """
     # SQL query to get the max value from a field
     if loggertype == "eddy":
         table = "amfluxeddy"
@@ -130,6 +174,17 @@ def compare_sql_to_station(
 
 
 def get_max_date(station, engine, loggertype="eddy"):
+    """
+    Retrieves the maximum timestamp from the station database.
+
+    Parameters:
+        station (str): Station ID.
+        engine: SQLAlchemy engine instance.
+        loggertype (str): Logger type, 'eddy' or 'met'. Default is 'eddy'.
+
+    Returns:
+        datetime: Latest timestamp from the database.
+    """
     # SQL query to get the max value from a field
     if loggertype == "eddy":
         table = "amfluxeddy"
@@ -148,6 +203,14 @@ def get_max_date(station, engine, loggertype="eddy"):
 
 
 def stat_dl_con_ul(site_folders, config, engine):
+    """
+    Downloads, processes, and uploads station data to the database.
+
+    Parameters:
+        site_folders (dict): Site folder mapping.
+        config (dict): Configuration dictionary.
+        engine: SQLAlchemy engine instance.
+    """
     for stationid, name in site_folders.items():
         station = stationid.split("-")[-1]
         for dat in ["eddy", "met"]:
