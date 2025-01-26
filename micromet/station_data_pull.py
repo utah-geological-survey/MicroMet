@@ -152,12 +152,8 @@ def stat_dl_con_ul(site_folders, config, engine):
         station = stationid.split("-")[-1]
         for dat in ["eddy", "met"]:
             if dat in config[station].keys():
-                stationtime, comptime = get_times(
-                    station, config, loggertype=dat
-                )
-                am_df, pack_size = get_station_data(
-                    station, config, loggertype=dat
-                )
+                stationtime, comptime = get_times(station, config, loggertype=dat)
+                am_df, pack_size = get_station_data(station, config, loggertype=dat)
 
                 if am_df is not None:
                     am_df_filt = compare_sql_to_station(
@@ -180,6 +176,8 @@ def stat_dl_con_ul(site_folders, config, engine):
                         "datasize_mb": pack_size,
                         "stationdf_len": raw_len,
                         "uploaddf_len": am_df_len,
+                        "stationtime": stationtime,
+                        "comptime": comptime,
                     }
 
                     # Create a single-row dataframe
