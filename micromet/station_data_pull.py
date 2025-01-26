@@ -90,11 +90,20 @@ def remove_existing_records(df1, column_to_check, values_to_remove):
     pd.DataFrame: A filtered DataFrame excluding matching rows.
     """
     # Ensure the specified column exists in the DataFrame
-    if column_to_check not in df1.columns:
+    if column_to_check in df1.columns:
+        print(f"Column '{column_to_check}' found in DataFrame")
+        newcol = column_to_check
+    if column_to_check.upper() in df1.columns:
+        print(f"Column '{column_to_check}' found in DataFrame, trying lowercase")
+        newcol = column_to_check.upper()
+    elif column_to_check.lower() in df1.columns:
+        print(f"Column '{column_to_check}' found in DataFrame, trying lowercase")
+        newcol = column_to_check.lower()
+    else:
         raise ValueError(f"Column '{column_to_check}' not found in DataFrame")
 
     # Filter out rows where the specified column has values in the list
-    df_filtered = df1[~df1[column_to_check].isin(values_to_remove)]
+    df_filtered = df1[~df1[newcol].isin(values_to_remove)]
 
     return df_filtered
 
@@ -136,3 +145,57 @@ def get_max_date(station, engine, loggertype="eddy"):
     max_value = df["max_value"].iloc[0]
 
     return max_value
+
+
+def stat_dl_con_ul(site_folders, config, engine):
+    for stationid, name in site_folders.items():
+        station = stationid.split("-")[-1]
+        for dat in ["eddy", "met"]:
+            if dat in config[station].keys():
+                stationtime, comptime = get_times(
+                    station, config, loggertype=dat
+                )
+                am_df, pack_size = get_station_data(
+                    station, config, loggertype=dat
+                )
+
+                if am_df is not None:
+                    am_df_filt = compare_sql_to_station(
+                        am_df, station, engine, loggertype=dat
+                    )
+                    mindate = am_df_filt["TIMESTAMP_START"].min()
+                    maxdate = am_df_filt["TIMESTAMP_START"].min()
+                    raw_len = len(am_df)
+                    am_df_len = len(am_df_filt)
+                    am_df_filt = am_df_filt.rename(columns=str.lower)
+                    am_df_filt.to_sql(
+                        f"amflux{dat}", con=engine, if_exists="append", index=False
+                    )
+                    # Define variable names and values
+                    variables = {
+                        "stationid": stationid,
+                        "talbetype": dat,
+                        "mindate": mindate,
+                        "maxdate": maxdate,
+                        "datasize_mb": pack_size,
+                        "stationdf_len": raw_len,
+                        "uploaddf_len": am_df_len,
+                    }
+
+                    # Create a single-row dataframe
+                    df = pd.DataFrame([variables])
+                    df.to_sql(
+                        f"uploadstats", con=engine, if_exists="append", index=False
+                    )
+                    # Display the dataframe
+                else:
+                    mindate = None
+                    maxdate = None
+                    raw_len = None
+                    am_df_len = None
+
+                print(dat)
+                print(f"Station {station}")
+                print(f"Mindate {mindate}  Maxdate {maxdate}")
+                print(f"data size = {pack_size}")
+                print(f"{am_df_len} vs {raw_len} rows")

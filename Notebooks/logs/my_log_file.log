@@ -1,0 +1,25 @@
+2025-01-25 20:24:18,015 - INFO - Starting Processing
+2025-01-25 20:24:18,015 - INFO - Reading first line of file: G:\Shared drives\UGS_Flux\Data_Processing\Jupyter_Notebooks\Micromet\data\extreme_values.csv
+2025-01-25 20:24:18,239 - INFO - SSITC Values: [2 1 0]
+2025-01-25 20:24:18,277 - INFO - Null Value Count in ET: 1
+2025-01-25 20:24:18,277 - INFO - Length of ET: 336
+2025-01-25 20:36:39,382 - INFO - Starting Processing
+2025-01-25 20:36:39,383 - INFO - Reading first line of file: G:\Shared drives\UGS_Flux\Data_Processing\Jupyter_Notebooks\Micromet\data\extreme_values.csv
+2025-01-25 20:36:39,621 - INFO - SSITC Values: [2 1 0]
+2025-01-25 20:36:39,669 - INFO - Null Value Count in ET: 1
+2025-01-25 20:36:39,669 - INFO - Length of ET: 336
+2025-01-25 21:17:34,691 - INFO - Starting Processing
+2025-01-25 21:17:34,691 - INFO - Reading first line of file: G:\Shared drives\UGS_Flux\Data_Processing\Jupyter_Notebooks\Micromet\data\extreme_values.csv
+2025-01-25 21:17:34,897 - INFO - SSITC Values: [2 1 0]
+2025-01-25 21:17:34,932 - INFO - Null Value Count in ET: 1
+2025-01-25 21:17:34,933 - INFO - Length of ET: 336
+2025-01-25 21:19:13,470 - INFO - Starting Processing
+2025-01-25 21:19:13,470 - INFO - Reading first line of file: G:\Shared drives\UGS_Flux\Data_Processing\Jupyter_Notebooks\Micromet\data\extreme_values.csv
+2025-01-25 21:19:13,676 - INFO - SSITC Values: [2 1 0]
+2025-01-25 21:19:13,714 - INFO - Null Value Count in ET: 1
+2025-01-25 21:19:13,714 - INFO - Length of ET: 336
+2025-01-25 21:20:11,325 - INFO - Starting Processing
+2025-01-25 21:20:11,325 - INFO - Reading first line of file: G:\Shared drives\UGS_Flux\Data_Processing\Jupyter_Notebooks\Micromet\data\extreme_values.csv
+2025-01-25 21:20:11,523 - INFO - SSITC Values: [2 1 0]
+2025-01-25 21:20:11,563 - INFO - Null Value Count in ET: 1
+2025-01-25 21:20:11,563 - INFO - Length of ET: 336
