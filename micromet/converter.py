@@ -771,6 +771,8 @@ class Reformatter(object):
         if "TIMESTAMP" in et_data.columns:
             et_data = et_data.drop("TIMESTAMP", axis=1)
 
+        et_data = et_data.infer_objects(copy=False)
+
         # fix time offsets to harmonize sample frequency to 30 min
         et_data = (
             et_data.resample("30min")  # Directly resample to 30-minute intervals
@@ -779,11 +781,14 @@ class Reformatter(object):
         )
 
         # drop null index values
-        et_data = (
-            et_data.reset_index()
-            .dropna(subset=["datetime_start"])
-            .set_index("datetime_start")
-        )
+        if "datetime_start" in et_data.columns:
+            et_data = et_data.drop("datetime_start", axis=1)
+            et_data = et_data.reset_index()
+        else:
+            et_data = et_data.reset_index()
+
+        et_data = et_data.dropna(subset=["datetime_start"])
+        et_data = et_data.set_index("datetime_start")
         # et_data = et_data[et_data.index.notnull()]
 
         # remake timestamp marks to match datetime index, filling in NA spots

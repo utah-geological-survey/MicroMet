@@ -1,262 +1,281 @@
 import requests
 import datetime
+from typing import Union, Tuple, Optional
+
+# from numba import Boolean
 from requests.auth import HTTPBasicAuth
 import pandas as pd
 from io import BytesIO
+import configparser
+import sqlalchemy
 from .converter import Reformatter
 
 
-def get_times(station, config, loggertype="eddy"):
+class StationDataManager:
     """
-    Retrieves the current logger time and the computer system time.
-
-    Parameters:
-        station (str): The station identifier.
-        config (dict): Configuration dictionary containing station IPs and credentials.
-        loggertype (str): Logger type, either 'eddy' or 'met'. Default is 'eddy'.
-
-    Returns:
-        tuple: Logger time and current system time in string format.
+    A class to manage station data operations including fetching, processing, and database interactions.
     """
-    ip = config[station]["ip"]
-    if loggertype == "eddy":
-        if "eddy_port" in config[station].keys():
-            port = config[station]["eddy_port"]
-        else:
-            port = 80
-        print(port)
-    else:
-        if "met_port" in config[station].keys():
-            port = config[station]["met_port"]
-        else:
-            port = 80
-        print(port)
 
-    clk_url = f"http://{ip}:{port}/?"
-    # url = f"http://{ip}/tables.html?command=DataQuery&mode=since-record&format=toA5&uri=dl:Flux_AmeriFluxFormat&p1=0"
-    clk_args = {
-        "command": "ClockCheck",
-        "uri": "dl",
-        "format": "json",
-    }
-    clktimeresp = requests.get(
-        clk_url,
-        params=clk_args,
-        auth=HTTPBasicAuth(config["LOGGER"]["login"], config["LOGGER"]["pw"]),
-    ).json()
-    if "time" in clktimeresp.keys():
-        clktime = clktimeresp["time"]
-    else:
-        clktime = None
+    def __init__(
+        self,
+        config: Union[configparser.ConfigParser, dict],
+        engine: sqlalchemy.engine.base.Engine,
+    ):
+        """
+        Initialize the StationDataManager with configuration and database engine.
 
-    comptime = f"{datetime.datetime.now():%Y-%m-%d %H:%M:%S}"
-    return clktime, comptime
+        Args:
+            config: Configuration containing station details and credentials
+            engine: SQLAlchemy database engine
+        """
+        self.config = config
+        self.engine = engine
+        self.logger_credentials = HTTPBasicAuth(
+            config["LOGGER"]["login"], config["LOGGER"]["pw"]
+        )
 
+    def _get_port(self, station: str, loggertype: str) -> int:
+        """
+        Get the port number for a given station and logger type.
 
-def get_station_data(station, config, reformat=True, loggertype="eddy"):
-    """
-    Fetches data from a specified station and processes it.
+        Args:
+            station: Station identifier
+            loggertype: Type of logger ('eddy' or 'met')
 
-    Parameters:
-        station (str): The station identifier.
-        config (dict): Configuration dictionary containing station details.
-        reformat (bool): Whether to reformat the data. Default is True.
-        loggertype (str): Logger type, either 'eddy' or 'met'. Default is 'eddy'.
+        Returns:
+            Port number
+        """
+        port_key = f"{loggertype}_port"
+        return int(self.config[station].get(port_key, 80))
 
-    Returns:
-        tuple: Processed data as DataFrame and data packet size.
-    """
-    ip = config[station]["ip"]
+    def get_times(
+        self, station: str, loggertype: str = "eddy"
+    ) -> Tuple[Optional[str], str]:
+        """
+        Retrieve current logger time and system time.
 
-    if loggertype == "eddy":
-        tabletype = "Flux_AmeriFluxFormat"
-        port = config[station]["eddy_port"]
-    else:
-        tabletype = "Statistics_AmeriFlux"
-        port = config[station]["met_port"]
+        Args:
+            station: Station identifier
+            loggertype: Logger type ('eddy' or 'met')
 
-    url = f"http://{ip}:{port}/tables.html?"
-    params = {
-        "command": "DataQuery",
-        "mode": "since-record",
-        "format": "toA5",
-        "uri": f"dl:{tabletype}",
-        "p1": "0",
-    }
+        Returns:
+            Tuple of logger time and system time
+        """
+        ip = self.config[station]["ip"]
+        port = self._get_port(station, loggertype)
 
-    response_1 = requests.get(
-        url,
-        params=params,
-        auth=HTTPBasicAuth(config["LOGGER"]["login"], config["LOGGER"]["pw"]),
-    )
+        clk_url = f"http://{ip}:{port}/?"
+        clk_args = {
+            "command": "ClockCheck",
+            "uri": "dl",
+            "format": "json",
+        }
 
-    if response_1.status_code == 200:
-        headers = pd.read_csv(BytesIO(response_1.content), skiprows=[0]).iloc[0:2, :].T
-        raw_data = pd.read_csv(BytesIO(response_1.content), skiprows=[0, 2, 3])
-        pack_size = len(response_1.content) * 1e-6
+        clktimeresp = requests.get(
+            clk_url, params=clk_args, auth=self.logger_credentials
+        ).json()
 
-        if raw_data is not None:
-            if reformat is True:
+        clktime = clktimeresp.get("time")
+        comptime = f"{datetime.datetime.now():%Y-%m-%d %H:%M:%S}"
+
+        return clktime, comptime
+
+    @staticmethod
+    def get_station_id(stationid: str) -> str:
+        """Extract station ID from full station identifier."""
+        return stationid.split("-")[-1]
+
+    def get_station_data(
+        self, station: str, reformat: bool = True, loggertype: str = "eddy"
+    ) -> Tuple[Optional[pd.DataFrame], Optional[float]]:
+        """
+        Fetch and process station data.
+
+        Args:
+            station: Station identifier
+            reformat: Whether to reformat the data
+            loggertype: Logger type ('eddy' or 'met')
+
+        Returns:
+            Tuple of processed DataFrame and data packet size
+        """
+        ip = self.config[station]["ip"]
+        port = self._get_port(station, loggertype)
+        tabletype = (
+            "Flux_AmeriFluxFormat" if loggertype == "eddy" else "Statistics_AmeriFlux"
+        )
+
+        url = f"http://{ip}:{port}/tables.html?"
+        params = {
+            "command": "DataQuery",
+            "mode": "since-record",
+            "format": "toA5",
+            "uri": f"dl:{tabletype}",
+            "p1": "0",
+        }
+
+        response = requests.get(url, params=params, auth=self.logger_credentials)
+
+        if response.status_code == 200:
+            raw_data = pd.read_csv(BytesIO(response.content), skiprows=[0, 2, 3])
+            pack_size = len(response.content) * 1e-6
+
+            if raw_data is not None and reformat:
                 am_data = Reformatter(raw_data)
                 am_df = am_data.et_data
             else:
                 am_df = raw_data
 
             return am_df, pack_size
-    else:
-        print(f"Error: {response_1.status_code}")
+
+        print(f"Error: {response.status_code}")
         return None, None
 
+    @staticmethod
+    def remove_existing_records(
+        df: pd.DataFrame, column_to_check: str, values_to_remove: list
+    ) -> pd.DataFrame:
+        """
+        Remove existing records from DataFrame.
 
-def remove_existing_records(df1, column_to_check, values_to_remove):
-    """
-    Remove rows from df1 where the specified column values exist in the given list.
+        Args:
+            df: Input DataFrame
+            column_to_check: Column name to check
+            values_to_remove: Values to remove
 
-    Parameters:
-    df1 (pd.DataFrame): The DataFrame to be filtered.
-    column_to_check (str): The column name to check for values to remove.
-    values_to_remove (list): List of values to be removed from the DataFrame.
+        Returns:
+            Filtered DataFrame
+        """
+        column_variations = [
+            column_to_check,
+            column_to_check.upper(),
+            column_to_check.lower(),
+        ]
 
-    Returns:
-    pd.DataFrame: A filtered DataFrame excluding matching rows.
-    """
-    # Ensure the specified column exists in the DataFrame
-    if column_to_check in df1.columns:
-        print(f"Column '{column_to_check}' found in DataFrame")
-        newcol = column_to_check
-    if column_to_check.upper() in df1.columns:
-        print(f"Column '{column_to_check}' found in DataFrame, trying lowercase")
-        newcol = column_to_check.upper()
-    elif column_to_check.lower() in df1.columns:
-        print(f"Column '{column_to_check}' found in DataFrame, trying lowercase")
-        newcol = column_to_check.lower()
-    else:
+        for col in column_variations:
+            if col in df.columns:
+                print(f"Column '{col}' found in DataFrame")
+                return df[~df[col].isin(values_to_remove)]
+
         raise ValueError(f"Column '{column_to_check}' not found in DataFrame")
 
-    # Filter out rows where the specified column has values in the list
-    df_filtered = df1[~df1[newcol].isin(values_to_remove)]
+    def compare_sql_to_station(
+        self,
+        df: pd.DataFrame,
+        station: str,
+        field: str = "timestamp_end",
+        loggertype: str = "eddy",
+    ) -> pd.DataFrame:
+        """
+        Compare station data with SQL records and filter new entries.
 
-    return df_filtered
+        Args:
+            df: Station data DataFrame
+            station: Station identifier
+            field: Field to compare
+            loggertype: Logger type
 
+        Returns:
+            Filtered DataFrame
+        """
+        table = f"amflux{loggertype}"
+        query = f"SELECT {field} FROM {table} WHERE stationid = '{station}';"
 
-def compare_sql_to_station(
-    df, station, engine, field="timestamp_end", loggertype="eddy"
-):
-    """
-    Compares station data with SQL records and filters new entries.
+        exist = pd.read_sql(query, con=self.engine)
+        existing = exist["timestamp_end"].values
 
-    Parameters:
-        df (pd.DataFrame): DataFrame containing station data.
-        station (str): Station ID.
-        engine: SQLAlchemy engine instance.
-        field (str): Field to compare.
-        loggertype (str): Logger type, 'eddy' or 'met'. Default is 'eddy'.
+        return self.remove_existing_records(df, field, existing)
 
-    Returns:
-        pd.DataFrame: Filtered DataFrame.
-    """
-    # SQL query to get the max value from a field
-    if loggertype == "eddy":
-        table = "amfluxeddy"
-    else:
-        table = "amfluxmet"
+    def get_max_date(self, station: str, loggertype: str = "eddy") -> datetime.datetime:
+        """
+        Get maximum timestamp from station database.
 
-    query = f"SELECT {field} FROM {table} WHERE stationid = '{station}';"
+        Args:
+            station: Station identifier
+            loggertype: Logger type
 
-    # Execute query and fetch results into a DataFrame
-    exist = pd.read_sql(query, con=engine)
+        Returns:
+            Latest timestamp
+        """
+        table = f"amflux{loggertype}"
+        query = f"SELECT MAX(timestamp_end) AS max_value FROM {table} WHERE stationid = '{station}';"
 
-    existing = exist["timestamp_end"].values
+        df = pd.read_sql(query, con=self.engine)
+        return df["max_value"].iloc[0]
 
-    df_filtered = remove_existing_records(df, field, existing)
+    def process_station_data(self, site_folders: dict) -> None:
+        """
+        Process data for all stations.
 
-    return df_filtered
+        Args:
+            site_folders: Dictionary mapping station IDs to names
+        """
+        for stationid, name in site_folders.items():
+            station = self.get_station_id(stationid)
 
+            for dat in ["eddy", "met"]:
+                if dat not in self.config[station]:
+                    continue
 
-def get_max_date(station, engine, loggertype="eddy"):
-    """
-    Retrieves the maximum timestamp from the station database.
+                stationtime, comptime = self.get_times(station, loggertype=dat)
+                am_df, pack_size = self.get_station_data(station, loggertype=dat)
 
-    Parameters:
-        station (str): Station ID.
-        engine: SQLAlchemy engine instance.
-        loggertype (str): Logger type, 'eddy' or 'met'. Default is 'eddy'.
+                if am_df is None:
+                    continue
 
-    Returns:
-        datetime: Latest timestamp from the database.
-    """
-    # SQL query to get the max value from a field
-    if loggertype == "eddy":
-        table = "amfluxeddy"
-    else:
-        table = "amfluxmet"
+                am_df_filt = self.compare_sql_to_station(am_df, station, loggertype=dat)
+                stats = self._prepare_upload_stats(
+                    am_df_filt,
+                    stationid,
+                    dat,
+                    pack_size,
+                    len(am_df),
+                    len(am_df_filt),
+                    stationtime,
+                    comptime,
+                )
 
-    query = f"SELECT MAX(timestamp_end) AS max_value FROM {table} WHERE stationid = '{station}';"
+                # Upload data
+                am_df_filt = am_df_filt.rename(columns=str.lower)
+                self._upload_to_database(am_df_filt, stats, dat)
 
-    # Execute query and fetch results into a DataFrame
-    df = pd.read_sql(query, con=engine)
+                self._print_processing_summary(station, stats)
 
-    # Access the max value
-    max_value = df["max_value"].iloc[0]
+    def _prepare_upload_stats(
+        self,
+        df: pd.DataFrame,
+        stationid: str,
+        tabletype: str,
+        pack_size: float,
+        raw_len: int,
+        filtered_len: int,
+        stationtime: str,
+        comptime: str,
+    ) -> dict:
+        """Prepare statistics for upload."""
+        return {
+            "stationid": stationid,
+            "talbetype": tabletype,
+            "mindate": df["TIMESTAMP_START"].min(),
+            "maxdate": df["TIMESTAMP_START"].max(),
+            "datasize_mb": pack_size,
+            "stationdf_len": raw_len,
+            "uploaddf_len": filtered_len,
+            "stationtime": stationtime,
+            "comptime": comptime,
+        }
 
-    return max_value
+    def _upload_to_database(self, df: pd.DataFrame, stats: dict, dat: str) -> None:
+        """Upload data and stats to database."""
+        df.to_sql(f"amflux{dat}", con=self.engine, if_exists="append", index=False)
+        pd.DataFrame([stats]).to_sql(
+            "uploadstats", con=self.engine, if_exists="append", index=False
+        )
 
-
-def stat_dl_con_ul(site_folders, config, engine):
-    """
-    Downloads, processes, and uploads station data to the database.
-
-    Parameters:
-        site_folders (dict): Site folder mapping.
-        config (dict): Configuration dictionary.
-        engine: SQLAlchemy engine instance.
-    """
-    for stationid, name in site_folders.items():
-        station = stationid.split("-")[-1]
-        for dat in ["eddy", "met"]:
-            if dat in config[station].keys():
-                stationtime, comptime = get_times(station, config, loggertype=dat)
-                am_df, pack_size = get_station_data(station, config, loggertype=dat)
-
-                if am_df is not None:
-                    am_df_filt = compare_sql_to_station(
-                        am_df, station, engine, loggertype=dat
-                    )
-                    mindate = am_df_filt["TIMESTAMP_START"].min()
-                    maxdate = am_df_filt["TIMESTAMP_START"].min()
-                    raw_len = len(am_df)
-                    am_df_len = len(am_df_filt)
-                    am_df_filt = am_df_filt.rename(columns=str.lower)
-                    am_df_filt.to_sql(
-                        f"amflux{dat}", con=engine, if_exists="append", index=False
-                    )
-                    # Define variable names and values
-                    variables = {
-                        "stationid": stationid,
-                        "talbetype": dat,
-                        "mindate": mindate,
-                        "maxdate": maxdate,
-                        "datasize_mb": pack_size,
-                        "stationdf_len": raw_len,
-                        "uploaddf_len": am_df_len,
-                        "stationtime": stationtime,
-                        "comptime": comptime,
-                    }
-
-                    # Create a single-row dataframe
-                    df = pd.DataFrame([variables])
-                    df.to_sql(
-                        f"uploadstats", con=engine, if_exists="append", index=False
-                    )
-                    # Display the dataframe
-                else:
-                    mindate = None
-                    maxdate = None
-                    raw_len = None
-                    am_df_len = None
-
-                print(dat)
-                print(f"Station {station}")
-                print(f"Mindate {mindate}  Maxdate {maxdate}")
-                print(f"data size = {pack_size}")
-                print(f"{am_df_len} vs {raw_len} rows")
+    @staticmethod
+    def _print_processing_summary(station: str, stats: dict) -> None:
+        """Print processing summary."""
+        print(f"Station {station}")
+        print(f"Mindate {stats['mindate']}  Maxdate {stats['maxdate']}")
+        print(f"data size = {stats['datasize_mb']}")
+        print(f"{stats['uploaddf_len']} vs {stats['stationdf_len']} rows")

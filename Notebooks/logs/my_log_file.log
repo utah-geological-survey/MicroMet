@@ -1,21 +1,5 @@
-2025-01-26 10:29:38,154 - INFO - Starting Processing
-2025-01-26 10:29:38,155 - INFO - Reading first line of file: G:\Shared drives\UGS_Flux\Data_Processing\Jupyter_Notebooks\Micromet\data\extreme_values.csv
-2025-01-26 10:29:38,367 - INFO - SSITC Values: [0 1 2]
-2025-01-26 10:29:38,408 - INFO - Null Value Count in ET: 1
-2025-01-26 10:29:38,408 - INFO - Length of ET: 336
-2025-01-26 10:29:43,030 - INFO - Starting Processing
-2025-01-26 10:29:43,030 - INFO - Reading first line of file: G:\Shared drives\UGS_Flux\Data_Processing\Jupyter_Notebooks\Micromet\data\extreme_values.csv
-2025-01-26 10:29:43,230 - INFO - SSITC Values: [1 0 2]
-2025-01-26 10:29:43,265 - INFO - Null Value Count in ET: 260
-2025-01-26 10:29:43,265 - INFO - Length of ET: 336
-2025-01-26 10:30:02,353 - INFO - Starting Processing
-2025-01-26 10:30:02,354 - INFO - Reading first line of file: G:\Shared drives\UGS_Flux\Data_Processing\Jupyter_Notebooks\Micromet\data\extreme_values.csv
-2025-01-26 10:30:07,311 - INFO - Starting Processing
-2025-01-26 10:30:07,311 - INFO - Reading first line of file: G:\Shared drives\UGS_Flux\Data_Processing\Jupyter_Notebooks\Micromet\data\extreme_values.csv
-2025-01-26 10:30:07,527 - INFO - SSITC Values: [2 0 1]
-2025-01-26 10:30:07,568 - INFO - Null Value Count in ET: 41
-2025-01-26 10:30:07,568 - INFO - Length of ET: 336
-2025-01-26 10:30:37,167 - INFO - Starting Processing
-2025-01-26 10:30:37,167 - INFO - Reading first line of file: G:\Shared drives\UGS_Flux\Data_Processing\Jupyter_Notebooks\Micromet\data\extreme_values.csv
-2025-01-26 10:30:44,258 - INFO - Starting Processing
-2025-01-26 10:30:44,258 - INFO - Reading first line of file: G:\Shared drives\UGS_Flux\Data_Processing\Jupyter_Notebooks\Micromet\data\extreme_values.csv
+2025-01-26 15:29:50,000 - INFO - Starting Processing
+2025-01-26 15:29:50,000 - INFO - Reading first line of file: G:\Shared drives\UGS_Flux\Data_Processing\Jupyter_Notebooks\Micromet\data\extreme_values.csv
+2025-01-26 15:29:50,217 - INFO - SSITC Values: [0 2 1]
+2025-01-26 15:29:50,255 - INFO - Null Value Count in ET: 1
+2025-01-26 15:29:50,255 - INFO - Length of ET: 336
