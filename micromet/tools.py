@@ -7,6 +7,8 @@ from datetime import datetime
 import plotly.graph_objects as go
 from typing import Union, List, Dict
 
+import pandas as pd
+
 
 def find_irr_dates(
     df, swc_col="SWC_1_1_1", do_plot=False, dist=20, height=30, prom=0.6
@@ -461,6 +463,68 @@ def aggregate_to_daily_centroid(
     )
 
     return daily_centroids
+
+
+import numpy as np
+import geopandas as gpd
+import rasterio
+from rasterio.transform import from_origin
+from scipy.stats import gaussian_kde
+
+
+def generate_density_raster(
+    gdf,
+    resolution=50,  # Cell size in meters
+    buffer_distance=200,  # Buffer beyond extent in meters
+    epsg=5070,  # Default coordinate system
+    weight_field="ET",
+):
+    """
+    Generate a density raster from a point GeoDataFrame, weighted by the ET field.
+
+    Parameters:
+        gdf (GeoDataFrame): Input point GeoDataFrame with an 'ET' field.
+        resolution (float): Raster cell size in meters (default: 50m).
+        buffer_distance (float): Buffer beyond point extent (default: 200m).
+        epsg (int): Coordinate system EPSG code (default: 5070).
+        weight_field (str): Weight field name (default: ET).
+
+    Returns:
+        raster (numpy.ndarray): Normalized density raster.
+        transform (Affine): Affine transformation for georeferencing.
+        bounds (tuple): (xmin, ymin, xmax, ymax) of the raster extent.
+    """
+
+    # Ensure correct CRS
+    gdf = gdf.to_crs(epsg=epsg)
+
+    # Extract point coordinates and ET values
+    x = gdf.geometry.x
+    y = gdf.geometry.y
+    weights = gdf[weight_field].values
+
+    # Define raster extent with buffer
+    xmin, ymin, xmax, ymax = gdf.total_bounds
+    xmin, xmax = xmin - buffer_distance, xmax + buffer_distance
+    ymin, ymax = ymin - buffer_distance, ymax + buffer_distance
+
+    # Create a mesh grid
+    xgrid = np.arange(xmin, xmax, resolution)
+    ygrid = np.arange(ymin, ymax, resolution)
+    xmesh, ymesh = np.meshgrid(xgrid, ygrid)
+
+    # Perform KDE with weights
+    kde = gaussian_kde(np.vstack([x, y]), weights=weights)
+    density = kde(np.vstack([xmesh.ravel(), ymesh.ravel()])).reshape(xmesh.shape)
+
+    # Normalize to ensure sum of cell values is 1
+    print(np.sum(density))
+    # density /= np.sum(density)
+
+    # Define raster transform
+    transform = from_origin(xmin, ymax, resolution, resolution)
+
+    return density, transform, (xmin, ymin, xmax, ymax)
 
 
 # Example usage:

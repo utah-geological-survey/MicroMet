@@ -1,5 +1,0 @@
-2025-01-26 15:29:50,000 - INFO - Starting Processing
-2025-01-26 15:29:50,000 - INFO - Reading first line of file: G:\Shared drives\UGS_Flux\Data_Processing\Jupyter_Notebooks\Micromet\data\extreme_values.csv
-2025-01-26 15:29:50,217 - INFO - SSITC Values: [0 2 1]
-2025-01-26 15:29:50,255 - INFO - Null Value Count in ET: 1
-2025-01-26 15:29:50,255 - INFO - Length of ET: 336
