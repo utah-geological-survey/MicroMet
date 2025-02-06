@@ -437,7 +437,11 @@ def polar_to_cartesian_dataframe(df, wd_column="WD", dist_column="Dist"):
 
 
 def aggregate_to_daily_centroid(
-    df, date_column="Timestamp", x_column="X", y_column="Y"
+    df,
+    date_column="Timestamp",
+    x_column="X",
+    y_column="Y",
+    weighted=True,
 ):
     """
     Aggregate half-hourly coordinate data to daily centroids.
@@ -447,10 +451,14 @@ def aggregate_to_daily_centroid(
         date_column (str): Column containing datetime values.
         x_column (str): Column name for X coordinate.
         y_column (str): Column name for Y coordinate.
+        weighted (bool): Weighted by ET column or not (default: True).
 
     Returns:
         pd.DataFrame: Aggregated daily centroids.
     """
+    # Define a lambda function to compute the weighted mean:
+    wm = lambda x: np.average(x, weights=df.loc[x.index, "ET"])
+
     # Ensure datetime format
     df[date_column] = pd.to_datetime(df[date_column])
 
@@ -458,10 +466,26 @@ def aggregate_to_daily_centroid(
     df["Date"] = df[date_column].dt.date
 
     # Calculate centroid (mean of X and Y)
-    daily_centroids = (
-        df.groupby("Date").agg({x_column: "mean", y_column: "mean"}).reset_index()
-    )
+    if weighted:
 
+        # Compute weighted average using ET as weights
+        daily_centroids = (
+            df.groupby("Date")
+            .apply(
+                lambda g: pd.Series(
+                    {
+                        x_column: (g[x_column] * g["ET"]).sum() / g["ET"].sum(),
+                        y_column: (g[y_column] * g["ET"]).sum() / g["ET"].sum(),
+                    }
+                )
+            )
+            .reset_index()
+        )
+    else:
+        daily_centroids = (
+            df.groupby("Date").agg({x_column: "mean", y_column: "mean"}).reset_index()
+        )
+    # Groupby and aggregate with namedAgg [1]:
     return daily_centroids
 
 
