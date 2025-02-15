@@ -1352,7 +1352,7 @@ class CalcFlux(object):
         return bigval, lagindex
 
 
-    def calc_max_covariance_df(self, df: pd.DataFrame, colx: str, coly: str, lags: int = 10) -> [float, int]:
+    def calc_max_covariance_df(self, df: pd.DataFrame, colx: str, coly: str, lags: int = 10) -> list[float, int]:
         """
         Find maximum covariance between two variables
         :param df: Pandas DataFrame containing the data

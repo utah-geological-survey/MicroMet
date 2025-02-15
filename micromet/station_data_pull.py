@@ -212,7 +212,7 @@ class StationDataManager:
         """
         for stationid, name in site_folders.items():
             station = self.get_station_id(stationid)
-
+            print(stationid)
             for dat in ["eddy", "met"]:
                 if dat not in self.config[station]:
                     continue

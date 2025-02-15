@@ -16,7 +16,11 @@ from numpy import ma
 from scipy import signal as sg
 from scipy.ndimage import gaussian_filter
 
-import xarray as xr
+import requests
+from pathlib import Path
+
+import xarray
+import refet
 
 ###############################################################################
 # Configure logging
@@ -1115,6 +1119,159 @@ def raise_ffp_exception(code, verbosity):
             logger.warning(string)
 
 
+def download_nldas(date,
+                   hour,
+                   ed_user,
+                   ed_pass,):
+
+    #NLDAS version 2, primary forcing set (a), DOY must be 3 digit zero padded, HH 2-digit between 00-23, MM and DD also 2 digit
+    YYYY = date.year
+    DOY = date.timetuple().tm_yday
+    MM = date.month
+    DD = date.day
+    HH = hour
+
+    nldas_out_dir = Path('NLDAS_data')
+    if not nldas_out_dir.is_dir():
+        nldas_out_dir.mkdir(parents=True, exist_ok=True)
+
+    nldas_outf_path = nldas_out_dir / f'{YYYY}_{MM:02}_{DD:02}_{HH:02}.nc'
+    if nldas_outf_path.is_file():
+        print(f'{nldas_outf_path} already exists, not overwriting.')
+        pass
+        # do not overwrite!
+    else:
+        #data_url = f'https://hydro1.gesdisc.eosdis.nasa.gov/data/NLDAS/NLDAS_FORA0125_H.002/{YYYY}/{DOY:03}/NLDAS_FORA0125_H.A{YYYY}{MM:02}{DD:02}.{HH:02}00.002.grb'
+        data_url = f'https://hydro1.gesdisc.eosdis.nasa.gov/data/NLDAS/NLDAS_FORA0125_H.2.0/{YYYY}/{DOY:03}/NLDAS_FORA0125_H.A{YYYY}{MM:02}{DD:02}.{HH:02}00.020.nc'
+        session = requests.Session()
+        r1 = session.request('get', data_url)
+        r = session.get(r1.url, stream=True, auth=(ed_user, ed_pass))
+
+        # write grib file temporarily
+        with open(nldas_outf_path, 'wb') as outf:
+            for chunk in r.iter_content(chunk_size=1024 * 1024):
+                if chunk:  # filter out keep-alive new chunks
+                    outf.write(chunk)
+
+def read_compiled_input(path):
+    """
+    Check if required input data exists in file and is formatted appropriately.
+
+    Input files should be hourly or finer temporal frequency, drops hours
+    without required input data.
+    """
+    ret = None
+    need_vars = {'latitude', 'longitude', 'ET_corr', 'wind_dir', 'u_star', 'sigma_v', 'zm', 'hc', 'd', 'L'}
+    # don't parse dates first check if required inputs exist to save processing time
+    df = pd.read_csv(path, index_col='date', parse_dates=False)
+    cols = df.columns
+    check_1 = need_vars.issubset(cols)
+    check_2 = len({'u_mean', 'z0'}.intersection(cols)) >= 1  # need one or the other
+    # if either test failed then insufficient input data for footprint, abort
+    if not check_1 or not check_2:
+        return ret
+    ret = df
+    ret.index = pd.to_datetime(df.index)
+    ret = ret.resample('H').mean()
+    lat, lon = ret[['latitude', 'longitude']].values[0]
+    keep_vars = need_vars.union({'u_mean', 'z0', 'IGBP_land_classification', 'secondary_veg_type'})
+    drop_vars = list(set(cols).difference(keep_vars))
+    ret.drop(drop_vars, 1, inplace=True)
+    ret.dropna(subset=['wind_dir', 'u_star', 'sigma_v', 'd', 'zm', 'L', 'ET_corr'], how='any', inplace=True)
+    return ret, lat, lon
+
+def snap_centroid(station_x, station_y):
+
+    # move coord to snap centroid to 30m grid, minimal distortion
+    rx = station_x % 15
+    if rx > 7.5:
+        station_x += (15 - rx)
+        # final coords should be odd factors of 15
+        if (station_x / 15) % 2 == 0:
+            station_x -= 15
+    else:
+        station_x -= rx
+        if (station_x / 15) % 2 == 0:
+            station_x += 15
+
+    ry = station_y % 15
+    if ry > 7.5:
+        print('ry > 7.5')
+        station_y += (15 - ry)
+        if (station_y / 15) % 2 == 0:
+            station_y -= 15
+    else:
+        print('ry <= 7.5')
+        station_y -= ry
+        if (station_y / 15) % 2 == 0:
+            station_y += 15
+    print('adjusted coordinates:', station_x, station_y)
+    return station_x, station_y
+
+def calc_nldas_refet(date, hour, nldas_out_dir, latitude, longitude, elevation, zm):
+    YYYY = date.year
+    DOY = date.timetuple().tm_yday
+    MM = date.month
+    DD = date.day
+    HH = hour
+    # already ensured to exist above loop
+    nldas_outf_path = nldas_out_dir / f'{YYYY}_{MM:02}_{DD:02}_{HH:02}.grb'
+    # open grib and extract needed data at nearest gridcell, calc ETr/ETo anf append to time series
+    ds = xarray.open_dataset(nldas_outf_path,engine='pynio').sel(lat_110=latitude, lon_110=longitude, method='nearest')
+    # calculate hourly ea from specific humidity
+    pair = ds.get('PRES_110_SFC').data / 1000 # nldas air pres in Pa convert to kPa
+    sph = ds.get('SPF_H_110_HTGL').data # kg/kg
+    ea = refet.calcs._actual_vapor_pressure(q=sph, pair=pair) # ea in kPa
+    # calculate hourly wind
+    wind_u = ds.get('U_GRD_110_HTGL').data
+    wind_v = ds.get('V_GRD_110_HTGL').data
+    wind = np.sqrt(wind_u ** 2 + wind_v ** 2)
+    # get temp convert to C
+    temp = ds.get('TMP_110_HTGL').data - 273.15
+    # get rs
+    rs = ds.get('DSWRF_110_SFC').data
+    unit_dict = {'rs': 'w/m2'}
+    # create refet object for calculating
+
+    refet_obj = refet.Hourly(
+        tmean=temp, ea=ea, rs=rs, uz=wind,
+        zw=zm, elev=elevation, lat=latitude, lon=longitude,
+        doy=DOY, time=HH, method='asce', input_units=unit_dict) #HH must be int
+
+    out_dir = Path('All_output')/'AMF'/f'{station}'
+
+    if not out_dir.is_dir():
+        out_dir.mkdir(parents=True, exist_ok=True)
+
+    # this one is saved under the site_ID subdir
+    nldas_ts_outf = out_dir/ f'nldas_ETr.csv'
+    # save/append time series of point data
+    dt = pd.datetime(YYYY,MM,DD,HH)
+    ETr_df = pd.DataFrame(columns=['ETr','ETo','ea','sph','wind','pair','temp','rs'])
+    ETr_df.loc[dt, 'ETr'] = refet_obj.etr()[0]
+    ETr_df.loc[dt, 'ETo'] = refet_obj.eto()[0]
+    ETr_df.loc[dt, 'ea'] = ea[0]
+    ETr_df.loc[dt, 'sph'] = sph
+    ETr_df.loc[dt, 'wind'] = wind
+    ETr_df.loc[dt, 'pair'] = pair
+    ETr_df.loc[dt, 'temp'] = temp
+    ETr_df.loc[dt, 'rs'] = rs
+    ETr_df.index.name = 'date'
+
+
+    # if first run save file with individual datetime (hour data) else open and overwrite hour
+    if not nldas_ts_outf.is_file():
+        ETr_df.round(4).to_csv(nldas_ts_outf)
+        nldas_df = ETr_df.round(4)
+    else:
+        curr_df = pd.read_csv(nldas_ts_outf, index_col='date', parse_dates=True)
+        curr_df.loc[dt] = ETr_df.loc[dt]
+        curr_df.round(4).to_csv(nldas_ts_outf)
+        nldas_df = curr_df.round(4)
+
+    return nldas_df
+
+
 class ffp_climatology_new:
     """
     Derive a flux footprint estimate based on the simple parameterisation FFP
@@ -1382,26 +1539,26 @@ class ffp_climatology_new:
         # Polar coordinates
         # Set theta such that North is pointing upwards and angles increase clockwise
         # Polar coordinates
-        self.rho = xr.DataArray(
+        self.rho = xarray.DataArray(
             np.sqrt(self.xv**2 + self.yv**2),
             dims=("x", "y"),
             coords={"x": self.x, "y": self.y},
         )
-        self.theta = xr.DataArray(
+        self.theta = xarray.DataArray(
             np.arctan2(self.yv, self.xv),
             dims=("x", "y"),
             coords={"x": self.x, "y": self.y},
         )
         self.logger.debug(f"rho: {self.rho}, theta: {self.theta}")
         # Initialize raster for footprint climatology
-        self.fclim_2d = xr.zeros_like(self.rho)
+        self.fclim_2d = xarray.zeros_like(self.rho)
 
         # ===========================================================================
 
     def create_xr_dataset(self):
         # Time series inputs as an xarray.Dataset
         self.df.index.name = "time"
-        self.ds = xr.Dataset.from_dataframe(self.df)
+        self.ds = xarray.Dataset.from_dataframe(self.df)
 
     def calc_xr_footprint(self):
         # Rotate coordinates into wind direction
@@ -1412,7 +1569,7 @@ class ffp_climatology_new:
         # Compute xstar_ci_dummy for all timestamps
         xx = (1.0 - 19.0 * self.ds["zm"] / self.ds["ol"]) ** 0.25
 
-        psi_f = xr.where(
+        psi_f = xarray.where(
             psi_cond,
             -5.3 * self.ds["zm"] / self.ds["ol"],
             np.log((1.0 + xx**2) / 2.0)
@@ -1421,13 +1578,13 @@ class ffp_climatology_new:
             + np.pi / 2.0,
         )
 
-        xstar_bottom = xr.where(
+        xstar_bottom = xarray.where(
             self.ds["z0"].isnull(),
             (self.ds["umean"] / self.ds["ustar"] * self.k),
             (np.log(self.ds["zm"] / self.ds["z0"]) - psi_f),
         )
 
-        xstar_ci_dummy = xr.where(
+        xstar_ci_dummy = xarray.where(
             (np.log(self.ds["zm"] / self.ds["z0"]) - psi_f) > 0,
             self.rho
             * np.cos(self.rotated_theta)
@@ -1442,7 +1599,7 @@ class ffp_climatology_new:
         px = xstar_ci_dummy > self.d
 
         # Compute fstar_ci_dummy and f_ci_dummy
-        fstar_ci_dummy = xr.where(
+        fstar_ci_dummy = xarray.where(
             px,
             self.a
             * (xstar_ci_dummy - self.d) ** self.b
@@ -1450,7 +1607,7 @@ class ffp_climatology_new:
             0.0,
         )
 
-        f_ci_dummy = xr.where(
+        f_ci_dummy = xarray.where(
             px,
             fstar_ci_dummy
             / self.ds["zm"]
@@ -1460,7 +1617,7 @@ class ffp_climatology_new:
         )
 
         # Calculate sigystar_dummy for valid points
-        sigystar_dummy = xr.where(
+        sigystar_dummy = xarray.where(
             px,
             self.ac
             * np.sqrt(
@@ -1471,18 +1628,18 @@ class ffp_climatology_new:
             0.0,  # Default value for invalid points
         )
 
-        self.ds["ol"] = xr.where(self.ds["ol"] > self.oln, -1e6, self.ds["ol"])
+        self.ds["ol"] = xarray.where(self.ds["ol"] > self.oln, -1e6, self.ds["ol"])
 
         # Calculate scale_const in a vectorized way
-        scale_const = xr.where(
+        scale_const = xarray.where(
             self.ds["ol"] <= 0,
             1e-5 * abs(self.ds["zm"] / self.ds["ol"]) ** (-1) + 0.80,
             1e-5 * abs(self.ds["zm"] / self.ds["ol"]) ** (-1) + 0.55,
         )
-        scale_const = xr.where(scale_const > 1.0, 1.0, scale_const)
+        scale_const = xarray.where(scale_const > 1.0, 1.0, scale_const)
 
         # Calculate sigy_dummy
-        sigy_dummy = xr.where(
+        sigy_dummy = xarray.where(
             px,
             sigystar_dummy
             / scale_const
@@ -1492,12 +1649,12 @@ class ffp_climatology_new:
             0.0,  # Default value for invalid points
         )
 
-        sigy_dummy = xr.where(sigy_dummy <= 0.0, np.nan, sigy_dummy)
+        sigy_dummy = xarray.where(sigy_dummy <= 0.0, np.nan, sigy_dummy)
 
         # sig_cond = np.logical_or(sigy_dummy.isnull(), px, sigy_dummy == 0.0)
 
         # Calculate the footprint in real scale
-        self.f_2d = xr.where(
+        self.f_2d = xarray.where(
             sigy_dummy.isnull(),
             0.0,
             f_ci_dummy
@@ -1514,7 +1671,7 @@ class ffp_climatology_new:
 
         # Apply smoothing if requested
         if self.smooth_data:
-            self.f_2d = xr.apply_ufunc(
+            self.f_2d = xarray.apply_ufunc(
                 gaussian_filter,
                 self.f_2d,
                 kwargs={"sigma": 1.0},
@@ -1541,7 +1698,7 @@ class ffp_climatology_new:
 
         # Apply smoothing if requested
         if self.smooth_data:
-            self.ds["footprint"] = xr.apply_ufunc(
+            self.ds["footprint"] = xarray.apply_ufunc(
                 gaussian_filter,
                 self.ds["footprint"],
                 kwargs={"sigma": 1.0},
@@ -1555,7 +1712,7 @@ class ffp_climatology_new:
         contours = {r: cumulative.where(cumulative >= r).fillna(0) for r in self.rs}
 
         # Combine results into a dataset
-        climatology = xr.Dataset(
+        climatology = xarray.Dataset(
             {f"contour_{int(r * 100)}": data for r, data in contours.items()}
         )
 

@@ -8,5 +8,6 @@ from .meteolib import *
 from .footprint import *
 from .outlier_removal import *
 from .station_data_pull import *
+from .volk import *
 
 __version__ = "0.5.0"
