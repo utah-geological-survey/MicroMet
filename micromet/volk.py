@@ -26,7 +26,7 @@ import refet
 # Configure logging
 ###############################################################################
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.WARNING)
 
 # You can send logs to stdout, a file, or elsewhere. Here we just use StreamHandler:
 stream_handler = logging.StreamHandler()
@@ -43,7 +43,7 @@ log_file_path = "../logs/volk.log"
 
 # Create a FileHandler and set the level
 file_handler = logging.FileHandler(log_file_path)
-file_handler.setLevel(logging.DEBUG)
+file_handler.setLevel(logging.WARNING)
 
 # Create a Formatter
 formatter = logging.Formatter(
