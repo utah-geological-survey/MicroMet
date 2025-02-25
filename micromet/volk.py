@@ -5,12 +5,7 @@ from typing import Optional, Tuple, Union
 import cv2
 import matplotlib.cm as cm
 import matplotlib.pyplot as plt
-import numpy as np
-import pandas as pd
-import pyproj
-import rasterio
 import configparser
-import requests
 import pandas as pd
 import numpy as np
 import pathlib
@@ -18,9 +13,7 @@ import pyproj
 import rasterio
 import logging
 import multiprocessing as mp
-from ffp import ffp_climatology, mask_fp_cutoff
-from micromet import find_transform
-
+import datetime
 from affine import Affine
 from fluxdataqaqc import Data
 from matplotlib.colors import LogNorm
@@ -71,9 +64,9 @@ logger.addHandler(file_handler)
 ###############################################################################
 
 
-
-
-def _load_configs(station, config_path, secrets_path):
+def _load_configs(station,
+                  config_path='../../station_config/',
+                  secrets_path="../../secrets/config.ini"):
     """
     Load station metadata and secrets from configuration files.
 
@@ -91,8 +84,20 @@ def _load_configs(station, config_path, secrets_path):
     dict
         A dictionary containing station metadata and database URL.
     """
+
+    if isinstance(config_path, Path):
+        pass
+    else:
+        config_path = Path(config_path)
+
+    config_path_loc = config_path / f'{station}.ini'
     config = configparser.ConfigParser()
-    config.read(config_path)
+    config.read(config_path_loc)
+
+    if isinstance(secrets_path, Path):
+        pass
+    else:
+        secrets_path = Path(secrets_path)
 
     secrets_config = configparser.ConfigParser()
     secrets_config.read(secrets_path)
@@ -198,7 +203,7 @@ def _compute_hourly_footprint(temp_df, station_x, station_y, zm, h_s, z0, dx, or
 
     return footprints
 
-def _write_footprint_to_raster(footprints, output_path):
+def _write_footprint_to_raster(footprints, output_path, epsg=5070):
     """
     Write computed footprint climatology to a GeoTIFF raster file.
 
@@ -226,7 +231,7 @@ def _write_footprint_to_raster(footprints, output_path):
             height=first_footprint.shape[0],
             width=first_footprint.shape[1],
             transform=transform,
-            crs="EPSG:5070",  # Ensure this matches the projection used in `pyproj`
+            crs=epsg,  # Ensure this matches the projection used in `pyproj`
             nodata=0.0
         ) as raster:
 
@@ -320,7 +325,7 @@ def weighted_rasters(
 
         # Parse the date from the file name
         try:
-            date = datetime.strptime(out_f.stem, '%Y-%m-%d')
+            date = datetime.datetime.strptime(out_f.stem, '%Y-%m-%d')
         except ValueError:
             logging.warning(f"Skipping {out_f.name} because its filename is not in 'YYYY-MM-DD' format.")
             continue
@@ -735,7 +740,7 @@ def calc_hourly_ffp(station, startdate='2022-01-01', config_path=None, secrets_p
 
         footprints = _compute_hourly_footprint(temp_df, station_x, station_y, zm, h_s, z0, dx, origin_d)
         if footprints:
-            _write_footprint_to_raster(footprints, final_outf)
+            _write_footprint_to_raster(footprints, final_outf, epsg=epsg)
 
 
 
