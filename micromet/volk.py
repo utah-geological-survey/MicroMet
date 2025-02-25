@@ -9,6 +9,18 @@ import numpy as np
 import pandas as pd
 import pyproj
 import rasterio
+import configparser
+import requests
+import pandas as pd
+import numpy as np
+import pathlib
+import pyproj
+import rasterio
+import logging
+import multiprocessing as mp
+from ffp import ffp_climatology, mask_fp_cutoff
+from micromet import find_transform
+
 from affine import Affine
 from fluxdataqaqc import Data
 from matplotlib.colors import LogNorm
@@ -57,6 +69,674 @@ file_handler.setFormatter(formatter)
 logger.addHandler(file_handler)
 
 ###############################################################################
+
+
+
+
+def _load_configs(station, config_path, secrets_path):
+    """
+    Load station metadata and secrets from configuration files.
+
+    Parameters:
+    ----------
+    station : str
+        Station identifier.
+    config_path : str
+        Path to station configuration file.
+    secrets_path : str
+        Path to secrets configuration file.
+
+    Returns:
+    -------
+    dict
+        A dictionary containing station metadata and database URL.
+    """
+    config = configparser.ConfigParser()
+    config.read(config_path)
+
+    secrets_config = configparser.ConfigParser()
+    secrets_config.read(secrets_path)
+
+    return {
+        "url": secrets_config["DEFAULT"]["url"],
+        "latitude": float(config["METADATA"]["station_latitude"]),
+        "longitude": float(config["METADATA"]["station_longitude"]),
+        "elevation": float(config["METADATA"]["station_elevation"])
+    }
+
+
+def _fetch_and_preprocess_data(url, station, startdate):
+    """
+    Retrieve flux data and preprocess it.
+
+    Parameters:
+    ----------
+    url : str
+        Database URL.
+    station : str
+        Station identifier.
+    startdate : str
+        Start date for data retrieval.
+
+    Returns:
+    -------
+    pd.DataFrame
+        Preprocessed dataframe of flux data.
+    """
+    headers = {'Accept-Profile': 'groundwater', 'Content-Type': 'application/json'}
+    params = {'stationid': f'eq.{station}', 'datetime_start': f'gte.{startdate}'}
+
+    try:
+        response = requests.get(f"{url}/amfluxeddy", headers=headers, params=params)
+        response.raise_for_status()
+        df = pd.DataFrame(response.json())
+        df['datetime_start'] = pd.to_datetime(df['datetime_start'])
+        df = df.set_index('datetime_start')
+        df.replace(-9999, np.nan, inplace=True)
+        df = df.resample('1h').mean(numeric_only=True)
+        df.dropna(subset=['h2o', 'wd', 'ustar', 'v_sigma'], inplace=True)
+        return df
+    except requests.RequestException as e:
+        logging.error(f"Failed to fetch data for station {station}: {e}")
+        return pd.DataFrame()
+
+
+def _compute_hourly_footprint(temp_df, station_x, station_y, zm, h_s, z0, dx, origin_d):
+    """
+    Compute hourly footprint climatology.
+
+    Parameters:
+    ----------
+    temp_df : pd.DataFrame
+        Filtered dataframe for a specific day and time window.
+    station_x, station_y : float
+        UTM coordinates of the station.
+    zm : float
+        Adjusted measurement height.
+    h_s : float
+        Atmospheric boundary layer height.
+    z0 : float
+        Roughness length.
+    dx : float
+        Model resolution.
+    origin_d : float
+        Model domain boundary.
+
+    Returns:
+    -------
+    list
+        List of tuples containing hour, footprint array, and metadata.
+    """
+    footprints = []
+    for hour in range(6, 19):  # From 7 AM to 8 PM
+        temp_line = temp_df[temp_df.index.hour == hour]
+        if temp_line.empty:
+            logging.warning(f"No data for {hour}:00, skipping.")
+            continue
+
+        try:
+            ffp_result = ffp_climatology(
+                domain=[-origin_d, origin_d, -origin_d, origin_d],
+                dx=dx, dy=dx, zm=zm, h=h_s, rs=None, z0=z0,
+                ol=temp_line['mo_length'].values,
+                sigmav=temp_line['v_sigma'].values,
+                ustar=temp_line['ustar'].values,
+                umean=temp_line['ws'].values,
+                wind_dir=temp_line['wd'].values,
+                crop=0, fig=0, verbosity=0
+            )
+
+            f_2d = np.array(ffp_result['fclim_2d']) * dx ** 2
+            x_2d = np.array(ffp_result['x_2d']) + station_x
+            y_2d = np.array(ffp_result['y_2d']) + station_y
+            f_2d = mask_fp_cutoff(f_2d)
+
+            footprints.append((hour, f_2d, x_2d, y_2d))
+        except Exception as e:
+            logging.error(f"Error computing footprint for hour {hour}: {e}")
+            continue
+
+    return footprints
+
+def _write_footprint_to_raster(footprints, output_path):
+    """
+    Write computed footprint climatology to a GeoTIFF raster file.
+
+    Parameters:
+    ----------
+    footprints : list of tuples
+        Each tuple contains (hour, footprint array, x_2d, y_2d).
+    output_path : pathlib.Path
+        Path to the output raster file.
+    """
+    if not footprints:
+        logging.warning(f"No footprints to write for {output_path}. Skipping.")
+        return
+
+    try:
+        first_footprint = footprints[0][1]
+        transform = find_transform(footprints[0][2], footprints[0][3])
+        n_bands = len(footprints)
+
+        with rasterio.open(
+            output_path, 'w',
+            driver='GTiff',
+            dtype=rasterio.float64,
+            count=n_bands,
+            height=first_footprint.shape[0],
+            width=first_footprint.shape[1],
+            transform=transform,
+            crs="EPSG:5070",  # Ensure this matches the projection used in `pyproj`
+            nodata=0.0
+        ) as raster:
+
+            for i, (hour, f_2d, _, _) in enumerate(footprints, start=1):
+                raster.write(f_2d, i)
+                raster.update_tags(i, hour=f'{hour:02}00', total_footprint=np.nansum(f_2d))
+
+        logging.info(f"Footprint raster saved: {output_path}")
+
+    except Exception as e:
+        logging.error(f"Failed to write raster {output_path}: {e}")
+
+def weighted_rasters(
+    stationid='US-UTW',
+    start_hr=6,
+    end_hr=18,
+    normed_NLDAS_stats_path='nldas_all_normed.parquet',
+    out_dir=None
+):
+    """
+    Generate daily weighted footprint rasters based on hourly fetch and normalized ETo data.
+
+    This function reads a Parquet file containing daily normalized ETo values for multiple
+    stations, filters it by the specified station ID, and applies hourly weighting to existing
+    footprint rasters. For each unweighted TIFF file in `out_dir`, the function:
+    1. Parses the date from the filename.
+    2. Reads hourly bands from the raster, normalizes them by their global sum, and multiplies
+       by the normalized ETo value for that hour.
+    3. Sums these hourly weighted rasters into a single daily footprint raster.
+    4. Writes the result to a new file named `<YYYY-MM-DD>_weighted.tif` in `out_dir`.
+
+    Parameters
+    ----------
+    stationid : str, optional
+        Station identifier used to look up normalized ETo values (default: 'US-UTW').
+    start_hr : int, optional
+        Starting hour for the data slice (default: 6, i.e. 7 AM).
+    end_hr : int, optional
+        Ending hour for the data slice (default: 18, i.e. 8 PM).
+    normed_NLDAS_stats_path : str or pathlib.Path, optional
+        Path to the Parquet file containing normalized ETo data (default: 'nldas_all_normed.parquet').
+    out_dir : str or pathlib.Path, optional
+        Output directory containing unweighted footprint rasters (default: current directory).
+
+    Notes
+    -----
+    - Any TIFF files in `out_dir` with filenames starting with '20' (e.g., '2022-01-01.tif') are
+      processed, unless they already contain the substring 'weighted' in their filename.
+    - The function expects the TIFF filename to be in the form 'YYYY-MM-DD.tif' so it can parse
+      out the date.
+    - Only generates a weighted TIFF file if the total sum of the final footprint is within 0.15
+      of 1.0.
+    - Hourly rasters with all NaN values are replaced with zeros.
+    - Written rasters preserve the same georeferencing, resolution, and coordinate reference
+      system as the input rasters.
+
+    Returns
+    -------
+    None
+        This function does not return anything. It writes a single-band, daily-weighted footprint
+        raster to `out_dir` for each processed date.
+
+    Example
+    -------
+    >>> weighted_rasters(
+    ...     stationid='US-UTW',
+    ...     start_hr=6,
+    ...     end_hr=18,
+    ...     normed_NLDAS_stats_path='nldas_all_normed.parquet',
+    ...     out_dir='/path/to/tif/files'
+    ... )
+    """
+    # Ensure out_dir is a Path
+    if out_dir is None:
+        out_dir = pathlib.Path('./output/')
+    else:
+        out_dir = pathlib.Path(out_dir)
+
+    # Read the Parquet file and filter data for the specified station
+    eto_df = pd.read_parquet(normed_NLDAS_stats_path)
+    eto_df['daily_ETo_normed'] = eto_df['daily_ETo_normed'].fillna(0)  # Fill missing ETo with 0
+    nldas_df = eto_df.loc[stationid]
+
+    # Iterate over all TIFF files in out_dir that begin with '20'
+    for out_f in out_dir.glob('20*.tif'):
+        # Skip if the file is already weighted
+        if 'weighted' in out_f.stem:
+            continue
+
+        logging.info(f"Processing {out_f.name}")
+
+        # Parse the date from the file name
+        try:
+            date = datetime.strptime(out_f.stem, '%Y-%m-%d')
+        except ValueError:
+            logging.warning(f"Skipping {out_f.name} because its filename is not in 'YYYY-MM-DD' format.")
+            continue
+
+        # Prepare output file name
+        final_outf = out_dir / f"{date.year:04d}-{date.month:02d}-{date.day:02d}_weighted.tif"
+
+        # Skip if output already exists
+        if final_outf.is_file():
+            logging.info(f"Weighted file already exists for {date.date()}. Skipping.")
+            continue
+
+        # Open the source raster once
+        with rasterio.open(out_f) as src:
+            band_indexes = src.indexes  # e.g. [1, 2, 3, ...] for each hour
+            # We'll accumulate the weighted footprint across all hours
+            normed_fetch_rasters = []
+
+            for band_idx in band_indexes:
+                # The hour we are processing: band 1 corresponds to (start_hr), band 2 -> (start_hr+1), etc.
+                hour = band_idx + start_hr - 1
+                dtindex = pd.to_datetime(f"{date:%Y-%m-%d} {hour:02d}:00:00")
+
+                # Attempt to read the normalized ETo from nldas_df
+                try:
+                    norm_eto = nldas_df.loc[dtindex, 'daily_ETo_normed']
+                except KeyError:
+                    logging.warning(f"No NLDAS record for {dtindex}; using 0 as fallback.")
+                    norm_eto = 0.0
+
+                arr = src.read(band_idx)
+                band_sum = np.nansum(arr)
+
+                # Avoid division by zero
+                if band_sum == 0 or np.isnan(band_sum):
+                    # If everything is NaN or zero, use a zeros array
+                    tmp = np.zeros_like(arr)
+                else:
+                    # Normalize by band sum
+                    tmp = arr / band_sum
+
+                # Multiply by normalized ETo
+                weighted_arr = tmp * norm_eto
+                normed_fetch_rasters.append(weighted_arr)
+
+            # Sum the weighted hourly rasters into a single daily footprint
+            final_footprint = sum(normed_fetch_rasters)
+
+            # Only proceed if the daily sum is close to 1.0
+            footprint_sum = final_footprint.sum()
+            if np.isclose(footprint_sum, 1.0, atol=0.15):
+                # Write output raster
+                logging.info(f"Writing weighted footprint to {final_outf}")
+                with rasterio.open(
+                    final_outf, 'w',
+                    driver='GTiff',
+                    dtype=rasterio.float64,
+                    count=1,
+                    height=final_footprint.shape[0],
+                    width=final_footprint.shape[1],
+                    transform=src.transform,
+                    crs=src.crs,
+                    nodata=0.0
+                ) as out_raster:
+                    out_raster.write(final_footprint, 1)
+            else:
+                logging.warning(
+                    f"Final footprint sum check failed for {date.date()}: sum={footprint_sum:.3f}"
+                )
+
+def clip_to_utah_merge(file_dir="./NLDAS_data/", years=None):
+    """
+    Clip NLDAS NetCDF files to Utah boundaries and merge them by year.
+
+    This function scans a specified directory for NetCDF files matching the given
+    `years`, extracts data within Utah's latitude and longitude bounds, and merges
+    them along the time dimension. The final merged dataset is saved both in NetCDF
+    and Parquet formats for easy downstream use. If no `years` are specified, defaults
+    to [2022, 2023, 2024].
+
+    Parameters
+    ----------
+    file_dir : str or pathlib.Path, optional
+        Directory path containing NLDAS NetCDF files (default: "./NLDAS_data/").
+    years : list of int, optional
+        List of years for which files will be processed (default: [2022, 2023, 2024]).
+
+    Notes
+    -----
+    - The latitude and longitude bounds for Utah are hard-coded:
+        * lat: 37.0 to 42.0
+        * lon: -114.0 to -109.0
+    - The function merges all files from a given year along the `time` dimension using
+      `xarray.concat`.
+    - Each merged dataset is saved to:
+        * NetCDF:  `<year>_utah_merged.nc`
+        * Parquet: `<year>_utah_merged.parquet`
+    - The function prints progress information and the filenames of created outputs.
+
+    Returns
+    -------
+    None
+        This function does not return anything. It saves output files to the working directory.
+
+    Example
+    -------
+    >>> clip_to_utah_merge(file_dir="./NLDAS_data/", years=[2021, 2022])
+    """
+    # Define Utah's latitude and longitude boundaries
+    utah_lat_min, utah_lat_max = 37.0, 42.0
+    utah_lon_min, utah_lon_max = -114.0, -109.0
+
+    if isinstance(file_dir, Path):
+        netcdf_files = file_dir
+    else:
+        # List of uploaded NetCDF files
+        netcdf_files = pathlib.Path(file_dir)
+
+    if isinstance(years, list):
+        pass
+    else:
+        years = [2022, 2023, 2024]
+
+    for year in years:
+        print(year)
+        # Extract Utah-specific data from each file and store datasets
+        utah_datasets = []
+        for file in netcdf_files.glob(f"{year}*.nc"):
+            print(file)
+            ds_temp = xarray.open_dataset(file)
+            ds_utah_temp = ds_temp.sel(
+                lat=slice(utah_lat_min, utah_lat_max),
+                lon=slice(utah_lon_min, utah_lon_max),
+            )
+            utah_datasets.append(ds_utah_temp)
+
+        # Merge all extracted datasets along the time dimension
+        ds_merged = xarray.concat(utah_datasets, dim="time")
+
+        # Save as NetCDF using a compatible format (default for xarray in this environment)
+        netcdf_output_path = f"{year}_utah_merged.nc"
+        ds_merged.to_netcdf(netcdf_output_path)
+
+        # Convert to Pandas DataFrame for Parquet format
+        df_parquet = ds_merged.to_dataframe().reset_index()
+
+        # Save as Parquet
+        parquet_output_path = f"{year}_utah_merged.parquet"
+        df_parquet.to_parquet(parquet_output_path, engine="pyarrow")
+
+        # Provide download links
+        print(netcdf_output_path, parquet_output_path)
+
+def calc_nldas_refet(date, hour, nldas_out_dir, latitude, longitude, elevation, zm):
+    """
+    Calculate reference evapotranspiration (ETr and ETo) using NLDAS data for a specific
+    date, hour, and point location, then append or create a CSV time series of results.
+
+    This function:
+    1. Constructs a file path based on the specified year, month, day, and hour.
+    2. Opens the corresponding NLDAS GRIB file using `xarray` and extracts the nearest grid
+       cell to the given latitude and longitude.
+    3. Computes hourly vapor pressure, wind speed, temperature, and solar radiation from
+       the dataset.
+    4. Uses the `refet` library to calculate hourly reference evapotranspiration (ETr) and
+       reference evaporation (ETo) using the ASCE method.
+    5. Creates or updates a CSV file (`nldas_ETr.csv`) with the calculated ETr/ETo values
+       and relevant meteorological variables for the specified datetime.
+    6. Returns the updated DataFrame containing all ETr/ETo records up to the current datetime.
+
+    Parameters
+    ----------
+    date : datetime.datetime
+        The date for which to calculate reference ET.
+    hour : int
+        The hour (0-23) for which to calculate reference ET.
+    nldas_out_dir : str or pathlib.Path
+        Directory containing hour-specific NLDAS GRIB files (e.g., "YYYY_MM_DD_HH.grb").
+    latitude : float
+        The latitude of the point of interest.
+    longitude : float
+        The longitude of the point of interest.
+    elevation : float
+        The elevation (in meters) of the point of interest.
+    zm : float
+        Measurement (wind) height above the ground, in meters.
+
+    Returns
+    -------
+    pandas.DataFrame
+        A DataFrame (indexed by datetime) containing the updated ETr, ETo, and related
+        meteorological variables (vapor pressure, specific humidity, wind speed, air
+        pressure, temperature, solar radiation).
+
+    Notes
+    -----
+    - The function uses the `pynio` engine for reading GRIB files with `xarray`.
+    - Vapor pressure, wind speed, temperature, and solar radiation are computed from the
+      NLDAS variables:
+        * `PRES_110_SFC` (air pressure in Pa),
+        * `SPF_H_110_HTGL` (specific humidity in kg/kg),
+        * `U_GRD_110_HTGL` / `V_GRD_110_HTGL` (wind components in m/s),
+        * `TMP_110_HTGL` (air temperature in K),
+        * `DSWRF_110_SFC` (downward shortwave radiation in W/m²).
+    - It expects a valid NLDAS GRIB file matching the pattern "YYYY_MM_DD_HH.grb" located
+      in `nldas_out_dir`. Otherwise, an error may occur.
+    - The function writes results to a CSV file named `nldas_ETr.csv` within the directory
+      `All_output/AMF/<station>` (the `station` variable is assumed to be defined elsewhere).
+
+    Example
+    -------
+    >>> from datetime import datetime
+    >>> calc_nldas_refet(
+    ...     date=datetime(2023, 7, 15),
+    ...     hour=12,
+    ...     nldas_out_dir=Path("./NLDAS_data"),
+    ...     latitude=40.0,
+    ...     longitude=-111.9,
+    ...     elevation=1500,
+    ...     zm=2.0
+    ... )
+    """
+    YYYY = date.year
+    DOY = date.timetuple().tm_yday
+    MM = date.month
+    DD = date.day
+    HH = hour
+    # already ensured to exist above loop
+    nldas_outf_path = nldas_out_dir / f"{YYYY}_{MM:02}_{DD:02}_{HH:02}.grb"
+    # open grib and extract needed data at nearest gridcell, calc ETr/ETo anf append to time series
+    ds = xarray.open_dataset(nldas_outf_path, engine="pynio").sel(
+        lat_110=latitude, lon_110=longitude, method="nearest"
+    )
+    # calculate hourly ea from specific humidity
+    pair = ds.get("PRES_110_SFC").data / 1000  # nldas air pres in Pa convert to kPa
+    sph = ds.get("SPF_H_110_HTGL").data  # kg/kg
+    ea = refet.calcs._actual_vapor_pressure(q=sph, pair=pair)  # ea in kPa
+    # calculate hourly wind
+    wind_u = ds.get("U_GRD_110_HTGL").data
+    wind_v = ds.get("V_GRD_110_HTGL").data
+    wind = np.sqrt(wind_u**2 + wind_v**2)
+    # get temp convert to C
+    temp = ds.get("TMP_110_HTGL").data - 273.15
+    # get rs
+    rs = ds.get("DSWRF_110_SFC").data
+    unit_dict = {"rs": "w/m2"}
+    # create refet object for calculating
+
+    refet_obj = refet.Hourly(
+        tmean=temp,
+        ea=ea,
+        rs=rs,
+        uz=wind,
+        zw=zm,
+        elev=elevation,
+        lat=latitude,
+        lon=longitude,
+        doy=DOY,
+        time=HH,
+        method="asce",
+        input_units=unit_dict,
+    )  # HH must be int
+
+    out_dir = Path("All_output") / "AMF" / f"{station}"
+
+    if not out_dir.is_dir():
+        out_dir.mkdir(parents=True, exist_ok=True)
+
+    # this one is saved under the site_ID subdir
+    nldas_ts_outf = out_dir / f"nldas_ETr.csv"
+    # save/append time series of point data
+    dt = pd.datetime(YYYY, MM, DD, HH)
+    ETr_df = pd.DataFrame(
+        columns=["ETr", "ETo", "ea", "sph", "wind", "pair", "temp", "rs"]
+    )
+    ETr_df.loc[dt, "ETr"] = refet_obj.etr()[0]
+    ETr_df.loc[dt, "ETo"] = refet_obj.eto()[0]
+    ETr_df.loc[dt, "ea"] = ea[0]
+    ETr_df.loc[dt, "sph"] = sph
+    ETr_df.loc[dt, "wind"] = wind
+    ETr_df.loc[dt, "pair"] = pair
+    ETr_df.loc[dt, "temp"] = temp
+    ETr_df.loc[dt, "rs"] = rs
+    ETr_df.index.name = "date"
+
+    # if first run save file with individual datetime (hour data) else open and overwrite hour
+    if not nldas_ts_outf.is_file():
+        ETr_df.round(4).to_csv(nldas_ts_outf)
+        nldas_df = ETr_df.round(4)
+    else:
+        curr_df = pd.read_csv(nldas_ts_outf, index_col="date", parse_dates=True)
+        curr_df.loc[dt] = ETr_df.loc[dt]
+        curr_df.round(4).to_csv(nldas_ts_outf)
+        nldas_df = curr_df.round(4)
+
+    return nldas_df
+
+
+def calc_hourly_ffp(station, startdate='2022-01-01', config_path=None, secrets_path='../../secrets/config.ini',
+             epsg=5070, h_c=0.2, zm_s=2.0, dx=3.0, h_s=2000.0, origin_d=200.0):
+    """
+    Calculate the footprint climatology for an eddy covariance flux station.
+
+    This function retrieves flux and meteorological data from a database, processes the data,
+    and calculates footprint climatology for each valid day. The results are stored as GeoTIFF
+    raster files representing daily footprints.
+
+    Parameters:
+    ----------
+    station : str
+        Station identifier used to retrieve configuration and observational data.
+    startdate : str, optional (default: '2022-01-01')
+        The start date for querying flux and meteorological data.
+    config_path : str, optional
+        Path to the station configuration file containing metadata.
+    secrets_path : str, optional
+        Path to the secrets configuration file containing database credentials.
+    epsg : int, optional (default: 5070)
+        EPSG code for coordinate transformation (default is NAD83/Conus Albers).
+    h_c : float, optional (default: 0.2)
+        Height of the canopy in meters.
+    zm_s : float, optional (default: 2.0)
+        Measurement height above ground in meters.
+    dx : float, optional (default: 3.0)
+        Grid resolution for the footprint model in meters.
+    h_s : float, optional (default: 2000.0)
+        Assumed height of the atmospheric boundary layer in meters.
+    origin_d : float, optional (default: 200.0)
+        Distance from the origin defining the model domain in meters.
+
+    Process:
+    --------
+    1. Loads station metadata (latitude, longitude, elevation) from a configuration file.
+    2. Retrieves flux data (`amfluxeddy`) from the database and preprocesses it:
+       - Converts timestamps to datetime format.
+       - Resamples data to hourly intervals.
+       - Filters out invalid or missing values.
+    3. Converts station coordinates from latitude/longitude to UTM using the specified EPSG code.
+    4. Computes displacement height (`d`) and adjusts the measurement height (`zm`).
+    5. Loops through each valid day and processes hourly footprint fields:
+       - Calls `ffp.ffp_climatology` to compute footprint climatology.
+       - Transforms footprint grid coordinates.
+       - Creates an affine transformation for georeferencing.
+    6. Writes the output to a multi-band GeoTIFF file, where each band represents an hourly footprint.
+    7. Closes the dataset safely after writing all footprint data.
+
+    Output:
+    -------
+    - GeoTIFF Raster File: `{YYYY-MM-DD}_weighted.tif`
+      - Stores footprint climatology for each valid day.
+      - Georeferenced to the station’s UTM coordinates.
+
+    Dependencies:
+    -------------
+    - configparser
+    - requests
+    - pandas
+    - numpy
+    - pathlib
+    - pyproj
+    - rasterio
+    - micromet
+    - ffp (Footprint modeling library)
+    - multiprocessing
+
+    Example Usage:
+    --------------
+    >>> calc_ffp('US-UTW')
+
+    Parallel Execution:
+    -------------------
+    The function can be executed in parallel for multiple stations using multiprocessing:
+
+    >>> pool = mp.Pool(processes=8)
+    >>> pool.map(calc_ffp, ['US-UTW', 'US-XYZ', 'US-ABC'])
+
+    Notes:
+    ------
+    - The function skips days with fewer than 5 valid hourly records.
+    - Existing daily raster files are not overwritten.
+    - Only data from 7 AM to 8 PM is used for footprint calculations.
+    - Errors during hourly footprint computations are handled gracefully, skipping affected hours.
+    """
+    if config_path is None:
+        config_path = f'../../station_config/{station}.ini'
+
+    metadata = _load_configs(station, config_path, secrets_path)
+    df = _fetch_and_preprocess_data(metadata["url"], station, startdate)
+    if df.empty:
+        logging.error(f"No valid data found for station {station}. Skipping.")
+        return
+
+    transformer = pyproj.Transformer.from_crs("EPSG:4326", f"EPSG:{epsg}")
+    station_y, station_x = transformer.transform(metadata["latitude"], metadata["longitude"])
+
+    d = 10 ** (0.979 * np.log10(h_c) - 0.154)
+    zm = zm_s - d
+    z0 = h_c * 0.123
+
+    out_dir = pathlib.Path('.')
+
+    for date in df.index.date:
+        temp_df = df[df.index.date == date].between_time("07:00", "20:00")
+        if len(temp_df) < 5:
+            logging.warning(f"Less than 5 hours of data on {date}, skipping.")
+            continue
+
+        final_outf = out_dir / f'{date}_weighted.tif'
+        if final_outf.is_file():
+            logging.info(f"Final weighted footprint already exists: {final_outf}. Skipping.")
+            continue
+
+        footprints = _compute_hourly_footprint(temp_df, station_x, station_y, zm, h_s, z0, dx, origin_d)
+        if footprints:
+            _write_footprint_to_raster(footprints, final_outf)
+
 
 
 def mask_fp_cutoff(f_array, cutoff=0.9):

@@ -36,3 +36,5 @@ micromet/__pycache__/tools.cpython-312.pyc
 /Notebooks/Footprints/NLDAS_data/
 /Notebooks/.ipynb_checkpoints/
 /micromet/.ipynb_checkpoints/
+*.pyc
+/Notebooks/Footprints/output/
