@@ -34,3 +34,5 @@ micromet/__pycache__/meteolib.cpython-312.pyc
 micromet/__pycache__/outlier_removal.cpython-312.pyc
 micromet/__pycache__/tools.cpython-312.pyc
 /Notebooks/Footprints/NLDAS_data/
+/Notebooks/.ipynb_checkpoints/
+/micromet/.ipynb_checkpoints/
