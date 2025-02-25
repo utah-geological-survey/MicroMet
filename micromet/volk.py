@@ -623,6 +623,112 @@ def calc_nldas_refet(date, hour, nldas_out_dir, latitude, longitude, elevation, 
 
     return nldas_df
 
+def calc_hourly_ffp_xr(input_data_dir=None, years=None, output_dir=None, ):
+    if years is None:
+        years = [2021,2022,2023,2024]
+    else:
+        years = years
+
+    if input_data_dir is None:
+        input_data_dir = Path("./output/")
+    elif isinstance(input_data_dir, Path):
+        input_data_dir = input_data_dir
+    else:
+        input_data_dir = Path(input_data_dir)
+
+    if output_dir is None:
+        output_dir = input_data_dir
+    elif isinstance(output_dir, Path):
+        output_dir = output_dir
+    else:
+        output_dir = Path(output_dir)
+
+    for year in years:
+        print(year)
+
+        ds = xarray.open_dataset(input_data_dir / f"{year}_utah_merged.nc", )
+
+        # Convert temperature to Celsius
+        temp = ds["Tair"].values - 273.15
+
+        # Compute actual vapor pressure (ea)
+        pair = ds["PSurf"].values / 1000  # Convert pressure from Pa to kPa
+        sph = ds["Qair"].values  # Specific humidity (kg/kg)
+        ea = refet.calcs._actual_vapor_pressure(q=sph, pair=pair)  # Vapor pressure (kPa)
+
+        # Compute wind speed from u and v components
+        wind_u = ds["Wind_E"].values
+        wind_v = ds["Wind_N"].values
+        uz = np.sqrt(wind_u ** 2 + wind_v ** 2)  # Wind speed (m/s)
+
+        # Extract shortwave radiation
+        rs = ds["SWdown"].values  # Solar radiation (W/m²)
+
+        # Extract time variables
+        time_vals = ds["time"].values  # Convert to numpy datetime64
+        dt_index = pd.to_datetime(time_vals)  # Convert to Pandas datetime index
+        DOY = dt_index.dayofyear.values  # Day of year
+        HH = dt_index.hour.values  # Hour of day
+        # Expand DOY and HH to match (time, lat, lon) shape
+        doy_expanded = np.broadcast_to(DOY[:, np.newaxis, np.newaxis], temp.shape)
+        hh_expanded = np.broadcast_to(HH[:, np.newaxis, np.newaxis], temp.shape)
+
+        # Define measurement height (assumed)
+        zw = 2.0  # Wind measurement height in meters
+
+        # Define elevation range (664m to 4125m, step 100m)
+        elevation_range = np.arange(1100, 2000, 25)
+
+        # Create an empty array to store ETo values
+        eto_results = np.zeros((len(elevation_range),) + temp.shape)  # Shape (elevations, time, lat, lon)
+        etr_results = np.zeros((len(elevation_range),) + temp.shape)
+
+        # Loop over elevations and compute ETo
+        for i, elev in enumerate(elevation_range):
+            refet_obj = refet.Hourly(
+                tmean=temp, ea=ea, rs=rs, uz=uz,
+                zw=2, elev=elev, lat=ds["lat"].values, lon=ds["lon"].values,
+                doy=doy_expanded, time=hh_expanded, method="asce", input_units={"rs": "w/m2"}
+            )
+            eto_results[i] = refet_obj.eto()  # Store ETo results for each elevation
+            etr_results[i] = refet_obj.etr()  # Store ETr results for each elevation
+
+        # Convert ETo results to an xarray DataArray
+        eto_da = xarray.DataArray(
+            data=eto_results,
+            dims=("elevation", "time", "lat", "lon"),
+            coords={
+                "elevation": elevation_range,
+                "time": ds["time"],
+                "lat": ds["lat"],
+                "lon": ds["lon"]
+            },
+            attrs={"units": "mm/hour",
+                   "description": "Hourly reference evapotranspiration (ASCE) at different elevations"}
+        )
+
+        # Convert ETo results to an xarray DataArray
+        etr_da = xarray.DataArray(
+            data=etr_results,
+            dims=("elevation", "time", "lat", "lon"),
+            coords={
+                "elevation": elevation_range,
+                "time": ds["time"],
+                "lat": ds["lat"],
+                "lon": ds["lon"]
+            },
+            attrs={"units": "mm/hour",
+                   "description": "Hourly reference evapotranspiration (ASCE) at different elevations"}
+        )
+
+        # Add ETo to the dataset
+        ds = ds.assign(ETo=eto_da)
+        # Add ETo to the dataset
+        ds = ds.assign(ETr=etr_da)
+
+        # Save the modified dataset (Optional)
+        ds.to_netcdf(output_dir / f"{year}_with_eto.nc")
+
 
 def calc_hourly_ffp(station, startdate='2022-01-01', config_path=None, secrets_path='../../secrets/config.ini',
              epsg=5070, h_c=0.2, zm_s=2.0, dx=3.0, h_s=2000.0, origin_d=200.0):
@@ -706,7 +812,7 @@ def calc_hourly_ffp(station, startdate='2022-01-01', config_path=None, secrets_p
     ------
     - The function skips days with fewer than 5 valid hourly records.
     - Existing daily raster files are not overwritten.
-    - Only data from 7 AM to 8 PM is used for footprint calculations.
+    - Only data from 6 AM to 8 PM is used for footprint calculations.
     - Errors during hourly footprint computations are handled gracefully, skipping affected hours.
     """
     if config_path is None:
@@ -728,7 +834,7 @@ def calc_hourly_ffp(station, startdate='2022-01-01', config_path=None, secrets_p
     out_dir = pathlib.Path('.')
 
     for date in df.index.date:
-        temp_df = df[df.index.date == date].between_time("07:00", "20:00")
+        temp_df = df[df.index.date == date].between_time("06:00", "20:00")
         if len(temp_df) < 5:
             logging.warning(f"Less than 5 hours of data on {date}, skipping.")
             continue
@@ -1892,6 +1998,125 @@ def snap_centroid(station_x, station_y):
             station_y += 15
     print('adjusted coordinates:', station_x, station_y)
     return station_x, station_y
+
+def extract_nldas_xr_to_df(years,
+                           input_path = '.',
+                           config_path='../../station_config/',
+                           secrets_path="../../secrets/config.ini",
+                           output_path="./output/"
+                           ):
+
+    if isinstance(input_path, Path):
+        pass
+    else:
+        input_path = Path(input_path)
+
+    if isinstance(config_path, Path):
+        pass
+    else:
+        config_path = Path(config_path)
+
+    if isinstance(output_path, Path):
+        pass
+    else:
+        output_path = Path(output_path)
+
+
+    dataset = {}
+    for year in years:
+        ds = xarray.open_dataset(input_path / f"{year}_with_eto.nc", )
+        dfs = {}
+        for file in config_path.glob('US*.ini'):
+            name = file.stem
+            print(name)
+            config = _load_configs(name, config_path=config_path, secrets_path=secrets_path)
+
+            # Define the target latitude, longitude, and elevation (adjust as needed)
+            target_lat = pd.to_numeric(config["latitude"])
+            target_lon = pd.to_numeric(config["longitude"])
+            target_elev = int(pd.to_numeric(config["elevation"]))
+
+            # Find the nearest latitude, longitude, and elevation in the dataset
+            nearest_lat = ds["lat"].sel(lat=target_lat, method="nearest").values
+            nearest_lon = ds["lon"].sel(lon=target_lon, method="nearest").values
+            nearest_elev = ds["elevation"].sel(elevation=target_elev, method="nearest").values
+
+            # Extract ETo time series at the nearest matching location
+            eto_timeseries = ds["ETo"].sel(elevation=nearest_elev, lat=nearest_lat, lon=nearest_lon)
+            etr_timeseries = ds["ETr"].sel(elevation=nearest_elev, lat=nearest_lat, lon=nearest_lon)
+
+            # Extract PotEvap time series at the same location
+            pet_ts = ds["PotEvap"].sel(lat=nearest_lat, lon=nearest_lon)
+            lwd_ts = ds["LWdown"].sel(lat=nearest_lat, lon=nearest_lon)
+            swd_ts = ds["SWdown"].sel(lat=nearest_lat, lon=nearest_lon)
+            temp_ts = ds["Tair"].sel(lat=nearest_lat, lon=nearest_lon)
+            rh_ts = ds["Qair"].sel(lat=nearest_lat, lon=nearest_lon)
+            pres_ts = ds['PSurf'].sel(lat=nearest_lat, lon=nearest_lon)
+            wind_u_ts = ds['Wind_E'].sel(lat=nearest_lat, lon=nearest_lon)
+            wind_v_ts = ds['Wind_N'].sel(lat=nearest_lat, lon=nearest_lon)
+            wind_ts = np.sqrt(wind_u_ts ** 2 + wind_v_ts ** 2)
+
+            dfs[name] = pd.DataFrame({'datetime': ds["time"],
+                                      'eto': eto_timeseries,
+                                      'etr': etr_timeseries,
+                                      'pet': pet_ts,
+                                      'lwdown': lwd_ts,
+                                      'swdown': swd_ts,
+                                      'temperature': temp_ts,
+                                      'rh': rh_ts,
+                                      'pressure': pres_ts,
+                                      'wind': wind_ts,
+                                      }).round(4)
+        dataset[year] = pd.concat(dfs)
+    alldata = pd.concat(dataset)
+    alldata['datetime'] = pd.to_datetime(alldata['datetime'])
+    eto_df = alldata.reset_index().rename(columns={'level_0': 'year',
+                                                  'level_1': 'stationid'})
+    eto_df['datetime'] = eto_df['datetime'] - pd.Timedelta(hours=7)
+    eto_df = eto_df.set_index(['stationid', 'datetime'])
+
+    # Save DataFrame to Parquet
+    eto_df.to_parquet(output_path / 'nldas_all.parquet')
+
+
+def norm_minmax_dly_et(x):
+    # Normalize using min-max scaling and then divide by the sum,
+    # rounding to 4 decimal places.
+    return np.round(((x - x.min()) / (x.max() - x.min())), 4)
+
+
+def norm_dly_et(x):
+    return np.round(x / x.sum(), 4)
+
+
+def normalize_eto_df(eto_df, eto_field='eto'):
+    # Assuming eto_df has a datetime index or a 'datetime' column:
+    df = eto_df.reset_index()
+    df['date'] = df['datetime'].dt.date
+    df['hour'] = df['datetime'].dt.hour
+
+    # Define the desired hour range (inclusive start, exclusive end)
+    start_hour = 6
+    end_hour = 18
+
+    # Filter the DataFrame for only the hours within the specified range
+    mask = (df['hour'] >= start_hour) & (df['hour'] <= end_hour)
+    df_subset = df.loc[mask].copy()
+
+    # Apply the normalization for each station and each day
+    df_subset['daily_min_max_ETo'] = df_subset.groupby(['stationid', 'date'])[eto_field].transform(norm_minmax_dly_et)
+    df_subset['daily_ETo_normed'] = df_subset.groupby(['stationid', 'date'])['daily_min_max_ETo'].transform(norm_dly_et)
+    df_subset = df_subset.set_index(['stationid', 'datetime'])
+
+    df_final = pd.merge(eto_df,
+                        df_subset[['daily_min_max_ETo', 'daily_ETo_normed']],
+                        how='left',
+                        left_index=True,
+                        right_index=True, )
+    # df_final = df.merge(df_subset[['datetime', 'daily_ETo_normed']], on='datetime', how='left')
+    df_final['daily_ETo_normed'] = df_final['daily_ETo_normed'].fillna(0)
+    return df_final
+
 
 def calc_nldas_refet(date, hour, nldas_out_dir, latitude, longitude, elevation, zm):
     YYYY = date.year
