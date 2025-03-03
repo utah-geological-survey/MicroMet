@@ -1,54 +1,33 @@
-2025-02-24 11:54:25,097 - INFO - G:\Shared drives\UGS_Flux\Data_Downloads\Escalante
-2025-02-24 11:54:25,104 - INFO - G:\Shared drives\UGS_Flux\Data_Downloads\Escalante\Escalante_Flux_AmeriFluxFormat.dat
-2025-02-24 11:54:27,345 - INFO - G:\Shared drives\UGS_Flux\Data_Downloads\Escalante\e20240808\21021_Flux_AmeriFluxFormat_0.dat
-2025-02-24 11:54:27,829 - INFO - G:\Shared drives\UGS_Flux\Data_Downloads\Escalante\e20240808\21021_Flux_AmeriFluxFormat_6.dat
-2025-02-24 11:54:29,145 - INFO - G:\Shared drives\UGS_Flux\Data_Downloads\Escalante\e20240808\21021_Flux_AmeriFluxFormat_4.dat
-2025-02-24 11:54:29,846 - INFO - G:\Shared drives\UGS_Flux\Data_Downloads\Escalante\e20240808\21021_Flux_AmeriFluxFormat_5.dat
-2025-02-24 11:54:30,594 - INFO - G:\Shared drives\UGS_Flux\Data_Downloads\Escalante\e20240808\21021_Flux_AmeriFluxFormat_3.dat
-2025-02-24 11:54:31,144 - INFO - G:\Shared drives\UGS_Flux\Data_Downloads\Escalante\e20240808\21021_Flux_AmeriFluxFormat_2.dat
-2025-02-24 11:54:31,794 - INFO - G:\Shared drives\UGS_Flux\Data_Downloads\Escalante\e20240808\21021_Flux_AmeriFluxFormat_1.dat
-2025-02-24 11:54:32,427 - INFO - G:\Shared drives\UGS_Flux\Data_Downloads\Escalante\e20240925\21021_Flux_AmeriFluxFormat_2.dat
-2025-02-24 11:54:33,642 - INFO - G:\Shared drives\UGS_Flux\Data_Downloads\Escalante\e20240925\21021_Flux_AmeriFluxFormat_1.dat
-2025-02-24 11:54:34,293 - INFO - G:\Shared drives\UGS_Flux\Data_Downloads\Escalante\e20240925\21021_Flux_AmeriFluxFormat_0.dat
-2025-02-24 11:54:35,161 - INFO - Starting Processing
-2025-02-24 11:54:35,161 - INFO - Reading first line of file: ..\data\extreme_values.csv
-2025-02-24 11:54:36,391 - INFO - SSITC Values: [1 2 0]
-2025-02-24 11:54:36,503 - INFO - Null Value Count in ET: 41
-2025-02-24 11:54:36,503 - INFO - Length of ET: 4463
-2025-02-24 11:54:38,447 - INFO - G:\Shared drives\UGS_Flux\Data_Downloads\Desert_View_Myton
-2025-02-24 11:54:38,464 - INFO - G:\Shared drives\UGS_Flux\Data_Downloads\Desert_View_Myton\Desert View_Flux_AmeriFluxFormat.dat
-2025-02-24 11:54:38,828 - INFO - G:\Shared drives\UGS_Flux\Data_Downloads\Desert_View_Myton\e20231023\21311_Flux_AmeriFluxFormat_3.dat
-2025-02-24 11:54:39,024 - INFO - G:\Shared drives\UGS_Flux\Data_Downloads\Desert_View_Myton\e20231023\21311_Flux_AmeriFluxFormat_2.dat
-2025-02-24 11:54:39,074 - INFO - G:\Shared drives\UGS_Flux\Data_Downloads\Desert_View_Myton\e20231023\21311_Flux_AmeriFluxFormat_1.dat
-2025-02-24 11:54:39,113 - INFO - G:\Shared drives\UGS_Flux\Data_Downloads\Desert_View_Myton\e20231023\21311_Flux_AmeriFluxFormat_0.dat
-2025-02-24 11:54:39,744 - INFO - G:\Shared drives\UGS_Flux\Data_Downloads\Desert_View_Myton\e20231121\21311_Flux_AmeriFluxFormat_3.dat
-2025-02-24 11:54:39,819 - INFO - G:\Shared drives\UGS_Flux\Data_Downloads\Desert_View_Myton\e20231121\21311_Flux_AmeriFluxFormat_2.dat
-2025-02-24 11:54:39,866 - INFO - G:\Shared drives\UGS_Flux\Data_Downloads\Desert_View_Myton\e20231121\21311_Flux_AmeriFluxFormat_1.dat
-2025-02-24 11:54:39,898 - INFO - G:\Shared drives\UGS_Flux\Data_Downloads\Desert_View_Myton\e20231121\21311_Flux_AmeriFluxFormat_0.dat
-2025-02-24 11:54:39,931 - INFO - G:\Shared drives\UGS_Flux\Data_Downloads\Desert_View_Myton\e20231121\21311_Flux_AmeriFluxFormat_5.dat
-2025-02-24 11:54:39,968 - INFO - G:\Shared drives\UGS_Flux\Data_Downloads\Desert_View_Myton\e20231121\21311_Flux_AmeriFluxFormat_4.dat
-2025-02-24 11:54:40,083 - INFO - G:\Shared drives\UGS_Flux\Data_Downloads\Desert_View_Myton\e20240326\21311_Flux_AmeriFluxFormat_9.dat
-2025-02-24 11:54:40,156 - INFO - G:\Shared drives\UGS_Flux\Data_Downloads\Desert_View_Myton\e20240326\21311_Flux_AmeriFluxFormat_8.dat
-2025-02-24 11:54:40,195 - INFO - G:\Shared drives\UGS_Flux\Data_Downloads\Desert_View_Myton\e20240326\21311_Flux_AmeriFluxFormat_6.dat
-2025-02-24 11:54:40,271 - INFO - G:\Shared drives\UGS_Flux\Data_Downloads\Desert_View_Myton\e20240326\21311_Flux_AmeriFluxFormat_5.dat
-2025-02-24 11:54:40,346 - INFO - G:\Shared drives\UGS_Flux\Data_Downloads\Desert_View_Myton\e20240326\21311_Flux_AmeriFluxFormat_7.dat
-2025-02-24 11:54:40,438 - INFO - G:\Shared drives\UGS_Flux\Data_Downloads\Desert_View_Myton\e20240326\21311_Flux_AmeriFluxFormat_10.dat
-2025-02-24 11:54:40,535 - INFO - G:\Shared drives\UGS_Flux\Data_Downloads\Desert_View_Myton\e20240905\21311_Flux_AmeriFluxFormat_16.dat
-2025-02-24 11:54:40,595 - INFO - G:\Shared drives\UGS_Flux\Data_Downloads\Desert_View_Myton\e20240905\21311_Flux_AmeriFluxFormat_15.dat
-2025-02-24 11:54:40,751 - INFO - G:\Shared drives\UGS_Flux\Data_Downloads\Desert_View_Myton\e20240801\21311_Flux_AmeriFluxFormat_10.dat
-2025-02-24 11:54:40,808 - INFO - G:\Shared drives\UGS_Flux\Data_Downloads\Desert_View_Myton\e20240801\21311_Flux_AmeriFluxFormat_11.dat
-2025-02-24 11:54:40,879 - INFO - G:\Shared drives\UGS_Flux\Data_Downloads\Desert_View_Myton\e20240801\21311_Flux_AmeriFluxFormat_15.dat
-2025-02-24 11:54:40,905 - INFO - G:\Shared drives\UGS_Flux\Data_Downloads\Desert_View_Myton\e20240801\21311_Flux_AmeriFluxFormat_14.dat
-2025-02-24 11:54:40,984 - INFO - G:\Shared drives\UGS_Flux\Data_Downloads\Desert_View_Myton\e20240801\21311_Flux_AmeriFluxFormat_13.dat
-2025-02-24 11:54:41,069 - INFO - G:\Shared drives\UGS_Flux\Data_Downloads\Desert_View_Myton\e20240801\21311_Flux_AmeriFluxFormat_12.dat
-2025-02-24 11:54:41,173 - INFO - G:\Shared drives\UGS_Flux\Data_Downloads\Desert_View_Myton\e20241104\21311_Flux_AmeriFluxFormat_18.dat
-2025-02-24 11:54:41,218 - INFO - G:\Shared drives\UGS_Flux\Data_Downloads\Desert_View_Myton\e20241104\21311_Flux_AmeriFluxFormat_17.dat
-2025-02-24 11:54:41,284 - INFO - G:\Shared drives\UGS_Flux\Data_Downloads\Desert_View_Myton\e20241104\21311_Flux_AmeriFluxFormat_16.dat
-2025-02-24 11:54:41,394 - INFO - G:\Shared drives\UGS_Flux\Data_Downloads\Desert_View_Myton\e20241211\21311_Flux_AmeriFluxFormat_19.dat
-2025-02-24 11:54:41,442 - INFO - G:\Shared drives\UGS_Flux\Data_Downloads\Desert_View_Myton\e20241211\21311_Flux_AmeriFluxFormat_21.dat
-2025-02-24 11:54:41,477 - INFO - G:\Shared drives\UGS_Flux\Data_Downloads\Desert_View_Myton\e20241211\21311_Flux_AmeriFluxFormat_20.dat
-2025-02-24 11:54:41,844 - INFO - Starting Processing
-2025-02-24 11:54:41,844 - INFO - Reading first line of file: ..\data\extreme_values.csv
-2025-02-24 11:54:45,603 - INFO - SSITC Values: [2 0 1]
-2025-02-24 11:54:45,780 - INFO - Null Value Count in ET: 2095
-2025-02-24 11:54:45,780 - INFO - Length of ET: 21164
+2025-03-03 12:53:06,702 - INFO - G:\Shared drives\UGS_Flux\Data_Downloads\Phrag
+2025-03-03 12:53:06,738 - INFO - G:\Shared drives\UGS_Flux\Data_Downloads\Phrag\Great Salt Lake Phragmites_Flux_AmeriFluxFormat_(3).dat
+2025-03-03 12:53:08,310 - INFO - G:\Shared drives\UGS_Flux\Data_Downloads\Phrag\Great Salt Lake Phragmites_Flux_AmeriFluxFormat_(2).dat
+2025-03-03 12:53:10,269 - INFO - G:\Shared drives\UGS_Flux\Data_Downloads\Phrag\Great Salt Lake Phragmites_Flux_AmeriFluxFormat (5).dat
+2025-03-03 12:53:12,278 - INFO - G:\Shared drives\UGS_Flux\Data_Downloads\Phrag\8441_Flux_AmeriFluxFormat_1.dat
+2025-03-03 12:53:12,922 - INFO - G:\Shared drives\UGS_Flux\Data_Downloads\Phrag\8441_Flux_AmeriFluxFormat_0.dat
+2025-03-03 12:53:13,489 - INFO - G:\Shared drives\UGS_Flux\Data_Downloads\Phrag\8441_Flux_AmeriFluxFormat_2.dat
+2025-03-03 12:53:14,041 - INFO - G:\Shared drives\UGS_Flux\Data_Downloads\Phrag\8441_Flux_AmeriFluxFormat_3.dat
+2025-03-03 12:53:14,434 - INFO - G:\Shared drives\UGS_Flux\Data_Downloads\Phrag\New folder\8442_Flux_AmeriFluxFormat_0.dat
+2025-03-03 12:53:14,920 - INFO - G:\Shared drives\UGS_Flux\Data_Downloads\Phrag\New folder\8442_Flux_AmeriFluxFormat_1.dat
+2025-03-03 12:53:15,549 - INFO - G:\Shared drives\UGS_Flux\Data_Downloads\Phrag\New folder\8442_Flux_AmeriFluxFormat_2.dat
+2025-03-03 12:53:15,988 - INFO - G:\Shared drives\UGS_Flux\Data_Downloads\Phrag\New folder\8442_Flux_AmeriFluxFormat_3.dat
+2025-03-03 12:53:17,088 - INFO - G:\Shared drives\UGS_Flux\Data_Downloads\Phrag\New folder\8442_Flux_AmeriFluxFormat_5.dat
+2025-03-03 12:53:18,380 - INFO - G:\Shared drives\UGS_Flux\Data_Downloads\Phrag\New folder\8442_Flux_AmeriFluxFormat_6.dat
+2025-03-03 12:53:18,849 - INFO - G:\Shared drives\UGS_Flux\Data_Downloads\Phrag\New folder\8442_Flux_AmeriFluxFormat_4.dat
+2025-03-03 12:53:19,401 - INFO - G:\Shared drives\UGS_Flux\Data_Downloads\Phrag\New folder\8442_Flux_AmeriFluxFormat_7.dat
+2025-03-03 12:53:19,913 - INFO - G:\Shared drives\UGS_Flux\Data_Downloads\Phrag\m20250210\8441_Flux_AmeriFluxFormat_0.dat
+2025-03-03 12:53:20,624 - INFO - G:\Shared drives\UGS_Flux\Data_Downloads\Phrag\m20250210\8441_Flux_AmeriFluxFormat_1.dat
+2025-03-03 12:53:22,320 - INFO - G:\Shared drives\UGS_Flux\Data_Downloads\Phrag\m20250210\8441_Flux_AmeriFluxFormat_2.dat
+2025-03-03 12:53:22,792 - INFO - G:\Shared drives\UGS_Flux\Data_Downloads\Phrag\m20250210\8441_Flux_AmeriFluxFormat_3.dat
+2025-03-03 12:53:23,522 - INFO - G:\Shared drives\UGS_Flux\Data_Downloads\Phrag\e20250210\8442_Flux_AmeriFluxFormat_45.dat
+2025-03-03 12:53:24,289 - INFO - G:\Shared drives\UGS_Flux\Data_Downloads\Phrag\e20250210\8442_Flux_AmeriFluxFormat_43.dat
+2025-03-03 12:53:24,997 - INFO - G:\Shared drives\UGS_Flux\Data_Downloads\Phrag\e20250210\8442_Flux_AmeriFluxFormat_44.dat
+2025-03-03 12:53:26,583 - INFO - G:\Shared drives\UGS_Flux\Data_Downloads\Phrag\e20250210\8442_Flux_AmeriFluxFormat_39.dat
+2025-03-03 12:53:27,043 - INFO - G:\Shared drives\UGS_Flux\Data_Downloads\Phrag\e20250210\8442_Flux_AmeriFluxFormat_38.dat
+2025-03-03 12:53:27,550 - INFO - G:\Shared drives\UGS_Flux\Data_Downloads\Phrag\e20250210\8442_Flux_AmeriFluxFormat_41.dat
+2025-03-03 12:53:28,205 - INFO - G:\Shared drives\UGS_Flux\Data_Downloads\Phrag\e20250210\8442_Flux_AmeriFluxFormat_40.dat
+2025-03-03 12:53:28,842 - INFO - G:\Shared drives\UGS_Flux\Data_Downloads\Phrag\e20250210\8442_Flux_AmeriFluxFormat_42.dat
+2025-03-03 12:53:29,582 - INFO - Starting Processing
+2025-03-03 12:53:29,583 - INFO - Reading first line of file: ..\data\extreme_values.csv
+2025-03-03 12:53:33,499 - INFO - SSITC Values: [2 0 1]
+2025-03-03 12:53:33,634 - INFO - Null Value Count in ET: 27775
+2025-03-03 12:53:33,634 - INFO - Length of ET: 35795
