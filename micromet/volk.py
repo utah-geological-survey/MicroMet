@@ -157,7 +157,7 @@ def fetch_and_preprocess_data(url, station, startdate):
         return pd.DataFrame()
 
 
-def multiply_directories_rast(dir1=None, dir2=None, out_dir=None):
+def multiply_directories_rast(dir1=None, dir2=None, out_dir=None, model = 'ensemble'):
     """
     Multiply matching GeoTIFF rasters from two directories based on date patterns in their filenames.
 
@@ -176,6 +176,8 @@ def multiply_directories_rast(dir1=None, dir2=None, out_dir=None):
     out_dir : pathlib.Path or str
         The directory where the resulting multiplied GeoTIFF files are saved. If it does not exist,
         it is created.
+    model : str
+        Model to use. Options are ensemble (default), eemetric, or ssebop
 
     Returns
     -------
@@ -223,7 +225,7 @@ def multiply_directories_rast(dir1=None, dir2=None, out_dir=None):
 
     # 1) Build a dictionary of {date_string: full_path} for files in dir2
     date_to_file_dir2 = {}
-    for filename in dir2.glob("ensemble_et_*.tif"):
+    for filename in dir2.glob(f"{model}_et_*.tif"):
         match = date_pattern.search(filename.stem)
         if match:
             date_str = match.group(0)
@@ -242,7 +244,7 @@ def multiply_directories_rast(dir1=None, dir2=None, out_dir=None):
                 date = pd.to_datetime(date_str, format="%Y_%m_%d")
                 file1 = filename
                 file2 = date_to_file_dir2[date_str]
-                output_raster = out_dir / f'weighted_ens_openet_{date_str}.tif'
+                output_raster = out_dir / f'weighted_{model}_openet_{date_str}.tif'
                 tsum[date] = multiply_geotiffs(file1, file2, output_raster)
     return tsum
 
