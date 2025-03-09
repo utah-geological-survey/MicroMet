@@ -11,6 +11,8 @@ import numpy as np
 import pathlib
 import pyproj
 import rasterio
+
+from rasterio.warp import calculate_default_transform, reproject, Resampling
 import logging
 import multiprocessing as mp
 import datetime
@@ -19,10 +21,19 @@ from fluxdataqaqc import Data
 from matplotlib.colors import LogNorm
 from numpy import ma
 from scipy import signal as sg
+
 from scipy.ndimage import gaussian_filter
+
+import os
+import glob
+import re
 
 import requests
 from pathlib import Path
+
+import rasterio.features
+from shapely.geometry import shape
+import geopandas as gpd
 
 import xarray
 import refet
@@ -31,7 +42,7 @@ import refet
 # Configure logging
 ###############################################################################
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
+logger.setLevel(logging.CRITICAL)
 
 # You can send logs to stdout, a file, or elsewhere. Here we just use StreamHandler:
 stream_handler = logging.StreamHandler()
@@ -48,7 +59,7 @@ log_file_path = "../logs/volk.log"
 
 # Create a FileHandler and set the level
 file_handler = logging.FileHandler(log_file_path)
-file_handler.setLevel(logging.WARNING)
+file_handler.setLevel(logging.CRITICAL)
 
 # Create a Formatter
 formatter = logging.Formatter(
@@ -64,9 +75,9 @@ logger.addHandler(file_handler)
 ###############################################################################
 
 
-def _load_configs(station,
-                  config_path='../../station_config/',
-                  secrets_path="../../secrets/config.ini"):
+def load_configs(station,
+                 config_path='../../station_config/',
+                 secrets_path="../../secrets/config.ini"):
     """
     Load station metadata and secrets from configuration files.
 
@@ -110,7 +121,7 @@ def _load_configs(station,
     }
 
 
-def _fetch_and_preprocess_data(url, station, startdate):
+def fetch_and_preprocess_data(url, station, startdate):
     """
     Retrieve flux data and preprocess it.
 
@@ -146,6 +157,184 @@ def _fetch_and_preprocess_data(url, station, startdate):
         return pd.DataFrame()
 
 
+def multiply_directories_rast(dir1=None, dir2=None, out_dir=None):
+    """
+    Multiply matching GeoTIFF rasters from two directories based on date patterns in their filenames.
+
+    The function looks for GeoTIFF files in `dir1` (filenames containing a date pattern
+    and ending with "_weighted.tif") and in `dir2` (filenames starting with "ensemble_et_").
+    It extracts the date (in the "YYYY_MM_DD" format) from the filenames of both directories.
+    For every matching date, the corresponding rasters are multiplied using the helper function
+    `multiply_geotiffs`. The results are saved as new rasters in the `out_dir` directory.
+
+    Parameters
+    ----------
+    dir1 : pathlib.Path or str
+        The directory containing the first set of GeoTIFF files (typically ending with "_weighted.tif").
+    dir2 : pathlib.Path or str
+        The directory containing the second set of GeoTIFF files (filenames typically start with "ensemble_et_").
+    out_dir : pathlib.Path or str
+        The directory where the resulting multiplied GeoTIFF files are saved. If it does not exist,
+        it is created.
+
+    Returns
+    -------
+    dict
+        A dictionary keyed by date (pandas.Timestamp) where each value is the result of
+        the `multiply_geotiffs` function for that date's rasters.
+
+    Notes
+    -----
+    - The function expects that the filename patterns in `dir1` and `dir2` include a date substring
+      in the format "YYYY_MM_DD".
+    - Any files not matching this pattern or without corresponding pairs in the other directory
+      are ignored.
+    - If any part of the file path does not exist, the function creates it.
+
+    Example
+    -------
+    >>> from pathlib import Path
+    >>> result = multiply_directories_rast(
+    ...     dir1=Path("./output/usutw/"),
+    ...     dir2=Path("G:/My Drive/OpenET Exports/"),
+    ...     out_dir=Path("./output/usutw_mult/")
+    ... )
+    >>> print(result)  # Dictionary with dates and results of multiplication
+    """
+
+    # Set the paths to your two directories
+    if dir1 is None:
+        dir1 = pathlib.Path("./output/usutw/")  # e.g., contains '...20210305.tif', etc.
+    if dir2 is None:
+        dir2 = pathlib.Path("G:/My Drive/OpenET Exports/")
+    if out_dir is None:
+        out_dir = pathlib.Path("./output/usutw_mult/")
+
+    # Check if it exists
+    if not out_dir.exists():
+        # Create the directory (including any necessary parent directories)
+        out_dir.mkdir(parents=True, exist_ok=True)
+        print(f"Directory {out_dir} created.")
+    else:
+        print(f"Directory {out_dir} already exists.")
+
+    # Regex pattern for an 8-digit date (adjust if your date format is different)
+    date_pattern = re.compile(r"\d{4}_\d{2}_\d{2}")
+
+    # 1) Build a dictionary of {date_string: full_path} for files in dir2
+    date_to_file_dir2 = {}
+    for filename in dir2.glob("ensemble_et_*.tif"):
+        match = date_pattern.search(filename.stem)
+        if match:
+            date_str = match.group(0)
+            date_to_file_dir2[date_str] = filename
+
+    tsum = {}
+
+    # 2) Iterate over the files in dir1, extract date, and check if we have a match in dir2
+    for filename in dir1.glob("*_weighted.tif"):
+        dt_str = filename.stem.split("_")[0].replace("-", "_")
+        match = date_pattern.search(dt_str)
+        if match:
+            date_str = match.group(0)
+            # Check if this date exists in dir2
+            if date_str in date_to_file_dir2:
+                date = pd.to_datetime(date_str, format="%Y_%m_%d")
+                file1 = filename
+                file2 = date_to_file_dir2[date_str]
+                output_raster = out_dir / f'weighted_ens_openet_{date_str}.tif'
+                tsum[date] = multiply_geotiffs(file1, file2, output_raster)
+    return tsum
+
+def reproject_raster_dir(input_folder, output_folder, target_epsg="EPSG:5070"):
+    """
+    Reproject all GeoTIFF files in a given directory to a specified coordinate reference system (CRS).
+
+    This function scans the input folder for any files ending in ".tif", then uses Rasterio to:
+      1. Open the source raster.
+      2. Calculate the default transform, width, and height for the specified target CRS.
+      3. Update the metadata of each file to reflect the new CRS.
+      4. Reproject the raster bands to the specified CRS.
+      5. Save the reprojected raster to the output folder using the same filename.
+
+    Parameters
+    ----------
+    input_folder : str or Path-like
+        Path to the folder containing the input GeoTIFF files.
+    output_folder : str or Path-like
+        Path to the folder where reprojected files will be stored.
+        If it does not exist, it will be created.
+    target_epsg : str, optional
+        The EPSG code of the target CRS. Defaults to "EPSG:5070".
+
+    Returns
+    -------
+    None
+        The function saves the reprojected files to `output_folder` and does not return anything.
+
+    Notes
+    -----
+    - Relies on the `rasterio` and `rasterio.warp` modules for reprojecting the raster data.
+    - Uses nearest-neighbor resampling (Resampling.nearest).
+    - The transform, width, and height are recalculated based on the source raster's bounding box
+      and the target CRS.
+
+    Example
+    -------
+    >>> reproject_raster_dir(
+    ...     input_folder="./input_rasters",
+    ...     output_folder="./output_rasters",
+    ...     target_epsg="EPSG:4326"
+    ... )
+    Reprojected ./input_rasters/file1.tif → ./output_rasters/file1.tif
+    Reprojected ./input_rasters/file2.tif → ./output_rasters/file2.tif
+    ...
+    """
+
+    if not os.path.exists(output_folder):
+        os.makedirs(output_folder)
+
+    # Loop through every .tif file in the input folder
+    for input_path in glob.glob(os.path.join(input_folder, "*.tif")):
+        with rasterio.open(input_path) as src:
+            # Calculate the transform, width, and height in the new CRS
+            transform, width, height = calculate_default_transform(
+                src.crs,
+                target_epsg,
+                src.width,
+                src.height,
+                *src.bounds
+            )
+
+            # Copy the metadata, then update with new CRS, transform, size
+            meta = src.meta.copy()
+            meta.update({
+                "crs": target_epsg,
+                "transform": transform,
+                "width": width,
+                "height": height
+            })
+
+            # Build output file path
+            filename = os.path.basename(input_path)
+            output_path = os.path.join(output_folder, filename)
+
+            # Reproject and save
+            with rasterio.open(output_path, "w", **meta) as dst:
+                for i in range(1, src.count + 1):
+                    reproject(
+                        source=rasterio.band(src, i),
+                        destination=rasterio.band(dst, i),
+                        src_transform=src.transform,
+                        src_crs=src.crs,
+                        dst_transform=transform,
+                        dst_crs=target_epsg,
+                        resampling=Resampling.nearest
+                    )
+
+        print(f"Reprojected {input_path} → {output_path}")
+
+
 def _compute_hourly_footprint(temp_df, station_x, station_y, zm, h_s, z0, dx, origin_d):
     """
     Compute hourly footprint climatology.
@@ -176,7 +365,7 @@ def _compute_hourly_footprint(temp_df, station_x, station_y, zm, h_s, z0, dx, or
     for hour in range(6, 19):  # From 7 AM to 8 PM
         temp_line = temp_df[temp_df.index.hour == hour]
         if temp_line.empty:
-            logging.warning(f"No data for {hour}:00, skipping.")
+            logging.info(f"No data for {hour}:00, skipping.")
             continue
 
         try:
@@ -203,7 +392,7 @@ def _compute_hourly_footprint(temp_df, station_x, station_y, zm, h_s, z0, dx, or
 
     return footprints
 
-def _write_footprint_to_raster(footprints, output_path, epsg=5070):
+def write_footprint_to_raster(footprints, output_path, epsg=5070):
     """
     Write computed footprint climatology to a GeoTIFF raster file.
 
@@ -215,12 +404,13 @@ def _write_footprint_to_raster(footprints, output_path, epsg=5070):
         Path to the output raster file.
     """
     if not footprints:
-        logging.warning(f"No footprints to write for {output_path}. Skipping.")
+        logging.info(f"No footprints to write for {output_path}. Skipping.")
         return
 
     try:
         first_footprint = footprints[0][1]
-        transform = find_transform(footprints[0][2], footprints[0][3])
+        #switched x and y to get correct footprint
+        transform = find_transform(footprints[0][3], footprints[0][2])
         n_bands = len(footprints)
 
         with rasterio.open(
@@ -247,7 +437,6 @@ def _write_footprint_to_raster(footprints, output_path, epsg=5070):
 def weighted_rasters(
     stationid='US-UTW',
     start_hr=6,
-    end_hr=18,
     normed_NLDAS_stats_path='nldas_all_normed.parquet',
     out_dir=None
 ):
@@ -325,7 +514,7 @@ def weighted_rasters(
 
         # Parse the date from the file name
         try:
-            date = datetime.datetime.strptime(out_f.stem, '%Y-%m-%d')
+            date = datetime.datetime.strptime(out_f.stem, '%Y_%m_%d')
         except ValueError:
             logging.warning(f"Skipping {out_f.name} because its filename is not in 'YYYY-MM-DD' format.")
             continue
@@ -353,7 +542,7 @@ def weighted_rasters(
                 try:
                     norm_eto = nldas_df.loc[dtindex, 'daily_ETo_normed']
                 except KeyError:
-                    logging.warning(f"No NLDAS record for {dtindex}; using 0 as fallback.")
+                    logging.info(f"No NLDAS record for {dtindex}; using 0 as fallback.")
                     norm_eto = 0.0
 
                 arr = src.read(band_idx)
@@ -396,7 +585,10 @@ def weighted_rasters(
                     f"Final footprint sum check failed for {date.date()}: sum={footprint_sum:.3f}"
                 )
 
-def clip_to_utah_merge(file_dir="./NLDAS_data/", years=None):
+def clip_to_utah_merge(file_dir="./NLDAS_data/",
+                       years=None,
+                       output_dir="./"):
+
     """
     Clip NLDAS NetCDF files to Utah boundaries and merge them by year.
 
@@ -412,6 +604,8 @@ def clip_to_utah_merge(file_dir="./NLDAS_data/", years=None):
         Directory path containing NLDAS NetCDF files (default: "./NLDAS_data/").
     years : list of int, optional
         List of years for which files will be processed (default: [2022, 2023, 2024]).
+    output_dir : str, optional
+        Ouput directory path (default: "./").
 
     Notes
     -----
@@ -433,6 +627,10 @@ def clip_to_utah_merge(file_dir="./NLDAS_data/", years=None):
     Example
     -------
     >>> clip_to_utah_merge(file_dir="./NLDAS_data/", years=[2021, 2022])
+
+    Args:
+        output_dir:
+        output_dir:
     """
     # Define Utah's latitude and longitude boundaries
     utah_lat_min, utah_lat_max = 37.0, 42.0
@@ -447,7 +645,13 @@ def clip_to_utah_merge(file_dir="./NLDAS_data/", years=None):
     if isinstance(years, list):
         pass
     else:
-        years = [2022, 2023, 2024]
+        years = [2021, 2022, 2023, 2024]
+
+    if isinstance(output_dir, Path):
+        output_dir = output_dir
+    else:
+        # List of uploaded NetCDF files
+        output_dir = pathlib.Path(output_dir)
 
     for year in years:
         print(year)
@@ -466,14 +670,14 @@ def clip_to_utah_merge(file_dir="./NLDAS_data/", years=None):
         ds_merged = xarray.concat(utah_datasets, dim="time")
 
         # Save as NetCDF using a compatible format (default for xarray in this environment)
-        netcdf_output_path = f"{year}_utah_merged.nc"
+        netcdf_output_path = output_dir / f"{year}_utah_merged.nc"
         ds_merged.to_netcdf(netcdf_output_path)
 
         # Convert to Pandas DataFrame for Parquet format
         df_parquet = ds_merged.to_dataframe().reset_index()
 
         # Save as Parquet
-        parquet_output_path = f"{year}_utah_merged.parquet"
+        parquet_output_path = output_dir / f"{year}_utah_merged.parquet"
         df_parquet.to_parquet(parquet_output_path, engine="pyarrow")
 
         # Provide download links
@@ -630,7 +834,7 @@ def calc_hourly_ffp_xr(input_data_dir=None, years=None, output_dir=None, ):
         years = years
 
     if input_data_dir is None:
-        input_data_dir = Path("./output/")
+        input_data_dir = Path(".")
     elif isinstance(input_data_dir, Path):
         input_data_dir = input_data_dir
     else:
@@ -730,8 +934,9 @@ def calc_hourly_ffp_xr(input_data_dir=None, years=None, output_dir=None, ):
         ds.to_netcdf(output_dir / f"{year}_with_eto.nc")
 
 
-def calc_hourly_ffp(station, startdate='2022-01-01', config_path=None, secrets_path='../../secrets/config.ini',
-             epsg=5070, h_c=0.2, zm_s=2.0, dx=3.0, h_s=2000.0, origin_d=200.0):
+def calc_hourly_ffp(station, startdate='2022-01-01', out_dir=None,
+                    config_path=None, secrets_path='../../secrets/config.ini',
+                    epsg=5070, h_c=0.2, zm_s=2.0, dx=3.0, h_s=2000.0, origin_d=200.0):
     """
     Calculate the footprint climatology for an eddy covariance flux station.
 
@@ -745,6 +950,7 @@ def calc_hourly_ffp(station, startdate='2022-01-01', config_path=None, secrets_p
         Station identifier used to retrieve configuration and observational data.
     startdate : str, optional (default: '2022-01-01')
         The start date for querying flux and meteorological data.
+    out_path : str, optional (default=None)
     config_path : str, optional
         Path to the station configuration file containing metadata.
     secrets_path : str, optional
@@ -816,12 +1022,12 @@ def calc_hourly_ffp(station, startdate='2022-01-01', config_path=None, secrets_p
     - Errors during hourly footprint computations are handled gracefully, skipping affected hours.
     """
     if config_path is None:
-        config_path = f'../../station_config/{station}.ini'
+        config_path = f'../station_config/{station}.ini'
 
-    metadata = _load_configs(station, config_path, secrets_path)
-    df = _fetch_and_preprocess_data(metadata["url"], station, startdate)
+    metadata = load_configs(station, config_path, secrets_path)
+    df = fetch_and_preprocess_data(metadata["url"], station, startdate)
     if df.empty:
-        logging.error(f"No valid data found for station {station}. Skipping.")
+        logging.info(f"No valid data found for station {station}. Skipping.")
         return
 
     transformer = pyproj.Transformer.from_crs("EPSG:4326", f"EPSG:{epsg}")
@@ -831,22 +1037,94 @@ def calc_hourly_ffp(station, startdate='2022-01-01', config_path=None, secrets_p
     zm = zm_s - d
     z0 = h_c * 0.123
 
-    out_dir = pathlib.Path('.')
+    if out_dir is None:
+        out_dir = pathlib.Path('./output')
+    elif isinstance(out_dir, Path):
+        out_dir = out_dir
+    else:
+        out_dir = pathlib.Path(out_dir)
 
     for date in df.index.date:
         temp_df = df[df.index.date == date].between_time("06:00", "20:00")
         if len(temp_df) < 5:
-            logging.warning(f"Less than 5 hours of data on {date}, skipping.")
+            logging.info(f"Less than 5 hours of data on {date}, skipping.")
             continue
 
-        final_outf = out_dir / f'{date}_weighted.tif'
+        final_outf = out_dir / f'{date:%Y_%m_%d}.tif'
         if final_outf.is_file():
-            logging.info(f"Final weighted footprint already exists: {final_outf}. Skipping.")
+            logging.info(f"Final footprint already exists: {final_outf}. Skipping.")
             continue
 
         footprints = _compute_hourly_footprint(temp_df, station_x, station_y, zm, h_s, z0, dx, origin_d)
         if footprints:
-            _write_footprint_to_raster(footprints, final_outf, epsg=epsg)
+            write_footprint_to_raster(footprints, final_outf, epsg=epsg)
+
+def multiply_geotiffs(input_a, input_b, output_path):
+    """
+    Multiply two GeoTIFFs (A * B) after aligning them to the same
+    extent, resolution, and projection. The output is saved as a new GeoTIFF.
+    """
+
+    # --- Open the first raster (this will be our "reference" grid) ---
+    with rasterio.open(input_a) as src_a:
+        profile_a = src_a.profile.copy()
+        # Read the full data array for A
+        data_a = src_a.read(1, masked=True)  # returns a MaskedArray if there's nodata
+
+        # We'll store the relevant spatial info to guide reprojecting raster B
+        ref_crs = src_a.crs
+        ref_transform = src_a.transform
+        ref_width = src_a.width
+        ref_height = src_a.height
+
+        # --- Open the second raster ---
+        with rasterio.open(input_b) as src_b:
+            # 1) We need both rasters in the same CRS. If different, we'll reproject B.
+            # 2) We also want B to match A's resolution and extent exactly.
+
+            # Create an empty array to hold the reprojected data from B
+            data_b_aligned = np.zeros((ref_height, ref_width), dtype=src_a.dtypes[0])
+
+            # Reproject (and resample) B to match A's grid
+            reproject(
+                source=rasterio.band(src_b, 1),
+                destination=data_b_aligned,
+                src_transform=src_b.transform,
+                src_crs=src_b.crs,
+                dst_transform=ref_transform,
+                dst_crs=ref_crs,
+                resampling=Resampling.bilinear
+            )
+
+    # --- Perform the multiplication (masked arrays handle NoData gracefully) ---
+    # Convert data_b_aligned to a masked array if you want to respect NoData from A
+    data_b_masked = np.ma.array(data_b_aligned, mask=data_a.mask)
+    data_mult = data_a * data_b_masked
+
+    # --- Update the profile for the output ---
+    # We'll keep the same data type as A. If needed, you can change this (e.g., float32).
+    profile_out = profile_a.copy()
+    profile_out.update(dtype=str(data_mult.dtype), count=1, nodata=None)
+
+    # --- Write the result ---
+    with rasterio.open(output_path, 'w', **profile_out) as dst:
+        dst.write(data_mult.filled(0).astype(profile_out['dtype']), 1)  # fill masked with NaN or a NoData value
+
+    print(f"Output saved to: {output_path}")
+    with rasterio.open(output_path) as src:
+        # Read the first band into a NumPy array
+        band_data = src.read(1)
+
+        # If you have "NoData" values and you'd like to exclude them, you can
+        # read the band as a masked array:
+        band_data = src.read(1, masked=True)
+        print(band_data)
+        # Then compute the sum of all values
+        total_sum = np.sum(band_data)
+
+        print("Sum of raster values:", total_sum)
+    return total_sum
+
 
 
 
@@ -2029,7 +2307,7 @@ def extract_nldas_xr_to_df(years,
         for file in config_path.glob('US*.ini'):
             name = file.stem
             print(name)
-            config = _load_configs(name, config_path=config_path, secrets_path=secrets_path)
+            config = load_configs(name, config_path=config_path, secrets_path=secrets_path)
 
             # Define the target latitude, longitude, and elevation (adjust as needed)
             target_lat = pd.to_numeric(config["latitude"])
@@ -2182,6 +2460,59 @@ def calc_nldas_refet(date, hour, nldas_out_dir, latitude, longitude, elevation, 
     return nldas_df
 
 
+def outline_valid_cells(raster_path, out_file=None):
+    """
+    Outline the extent of valid cells in a raster.
+
+    :param raster_path: Path to the input raster (e.g. 'example.tif').
+    :param out_file: Optional path to save the resulting polygons (e.g. 'valid_extent.geojson').
+    :return: GeoDataFrame of the valid-cell polygon(s).
+    """
+    # 1. Open the raster
+    with rasterio.open(raster_path) as src:
+        data = src.read(1)  # read the first band
+        transform = src.transform
+        crs = src.crs
+        nodata = src.nodata
+
+    # 2. Build a "valid data" mask
+    #    - If nodata is defined, use that
+    #    - Otherwise, mask out NaNs
+    if nodata is not None:
+        valid_mask = (data != nodata)
+    else:
+        # If no nodata is declared, fall back to ignoring NaNs
+        valid_mask = ~np.isnan(data)
+
+    # Convert to 8-bit integer (1 for valid, 0 for invalid)
+    valid_mask = valid_mask.astype(np.uint8)
+
+    # 3. Polygonize the valid mask using rasterio.features.shapes
+    shapes_and_vals = rasterio.features.shapes(valid_mask, transform=transform)
+
+    polygons = []
+    for geom, val in shapes_and_vals:
+        # val == 1 means it's a valid area
+        if val == 1:
+            polygons.append(shape(geom))
+
+    # 4. Create a GeoDataFrame
+    gdf = gpd.GeoDataFrame(geometry=polygons, crs=crs)
+
+    # 5. (Optional) dissolve all polygons into one geometry if desired
+    #    (useful if you only want a single boundary)
+    if not gdf.empty:
+        unioned_geom = gdf.geometry.union_all()
+        gdf = gpd.GeoDataFrame(geometry=[unioned_geom], crs=gdf.crs)
+
+    # 6. (Optional) save to file
+    if out_file:
+        gdf.to_file(out_file, driver="GeoJSON")
+        print(f"Saved valid extent polygons to '{out_file}'.")
+
+    return gdf
+
+
 class ffp_climatology_new:
     """
     Derive a flux footprint estimate based on the simple parameterisation FFP
@@ -2330,8 +2661,12 @@ class ffp_climatology_new:
 
         if self.verbosity < 2:
             self.logger.setLevel(logging.INFO)
-        elif self.verbosity < 3:
+        elif self.verbosity == 3:
             self.logger.setLevel(logging.WARNING)
+        elif self.verbosity == 4:
+            self.logger.setLevel(logging.ERROR)
+        elif self.verbosity == 5:
+            self.logger.setLevel(logging.CRITICAL)
         else:
             self.logger.setLevel(logging.DEBUG)
 
