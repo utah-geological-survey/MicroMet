@@ -285,6 +285,7 @@ class AmerifluxDataProcessor:
             ],
         }
 
+<<<<<<< HEAD
         # Simplify derived headers
         self.headers["bflat"] = [
             h
@@ -350,6 +351,22 @@ class AmerifluxDataProcessor:
         except Exception:
             return 0
 =======
+=======
+
+    @staticmethod
+    def check_header(csv_file):
+        """
+        Check if the given CSV file has a header row.
+
+        :param csv_file: Path to the CSV file.
+        :type csv_file: str
+        :return:
+            1 if the header contains "TIMESTAMP_START",
+            2 if the header contains "TOA5",
+            0 otherwise.
+        :rtype: int
+        """
+>>>>>>> 9aee40b (Add new log files, merged datasets, and GeoJSON files; remove unused bytecode files)
         with open(csv_file, 'r', newline='', encoding='utf-8') as file:
             reader = csv.reader(file)
             try:
@@ -363,6 +380,9 @@ class AmerifluxDataProcessor:
                 return 2
             else:
                 return 0
+<<<<<<< HEAD
+>>>>>>> 9aee40b (Add new log files, merged datasets, and GeoJSON files; remove unused bytecode files)
+=======
 >>>>>>> 9aee40b (Add new log files, merged datasets, and GeoJSON files; remove unused bytecode files)
 
     def dataframe_from_file(self, file: Union[str, Path]) -> Optional[pd.DataFrame]:
@@ -376,8 +396,11 @@ class AmerifluxDataProcessor:
         - pd.DataFrame or None: DataFrame with proper headers, or None if unsupported format or errors occur.
         """
 <<<<<<< HEAD
+<<<<<<< HEAD
         header_type = self.check_header(file)
 
+=======
+>>>>>>> 9aee40b (Add new log files, merged datasets, and GeoJSON files; remove unused bytecode files)
         try:
             if header_type == 1:
                 return pd.read_csv(file, na_values=self.NA_VALUES)
@@ -401,6 +424,7 @@ class AmerifluxDataProcessor:
                 df.drop(columns=["TIMESTAMP"],
                         errors='ignore',
                         inplace=True)
+<<<<<<< HEAD
 >>>>>>> 9aee40b (Add new log files, merged datasets, and GeoJSON files; remove unused bytecode files)
                 return df
 
@@ -430,6 +454,18 @@ class AmerifluxDataProcessor:
                 header = self.header_dict.get(col_count)
 
                 if header:
+=======
+                return df
+
+            else:
+                # Infer headers based on column count
+                first_line = pd.read_csv(file, header=None, nrows=1)
+                col_count = first_line.shape[1]
+
+                header = self.header_dict.get(col_count)
+
+                if header:
+>>>>>>> 9aee40b (Add new log files, merged datasets, and GeoJSON files; remove unused bytecode files)
                     return pd.read_csv(file,
                                        names=header,
                                        na_values=self.na_values)
@@ -439,6 +475,12 @@ class AmerifluxDataProcessor:
 
         except pd.errors.EmptyDataError:
             print(f"No data found in file: {file}")
+<<<<<<< HEAD
+=======
+            return None
+        except Exception as e:
+            print(f"Error reading file {file}: {e}")
+>>>>>>> 9aee40b (Add new log files, merged datasets, and GeoJSON files; remove unused bytecode files)
             return None
         except Exception as e:
             print(f"Error reading file {file}: {e}")
@@ -538,6 +580,7 @@ class Reformatter(object):
     """
 
 <<<<<<< HEAD
+<<<<<<< HEAD
     def __init__(
         self,
         et_data,
@@ -635,6 +678,46 @@ class Reformatter(object):
             pathlib.Path("G:/Shared drives/.../extreme_values.csv")
         ]
 
+=======
+    def __init__(self,
+                 et_data,
+                 config_path='reformatter_vars.yml',
+                 drop_soil=True,
+                 data_path=None,
+                 data_type="eddy",
+                 spike_threshold=4.5,
+                 outlier_remove=True,
+                 ):
+        self.config = self._load_config(config_path)
+
+        self.data_path = data_path
+        self.spike_threshold = spike_threshold
+        self.COL_NAME_MATCH = self.config['col_name_match']
+        self.MET_RENAMES = self.config['met_renames']
+        self.MET_VARS = self.config['met_vars']
+        self.DESPIKEY = self.config['despikey']
+        self.DROP_COLS = self.config['drop_cols']
+        self.OTHER_VARS = self.config['othervar']
+        self.varlimits = None
+        self.load_variable_limits()
+        self.et_data = self.prepare_et_data(et_data, data_type, drop_soil)
+
+    @staticmethod
+    def _load_config(config_path):
+        path = pathlib.Path(config_path)
+        if not path.exists():
+            raise FileNotFoundError(f"Config file not found at {path.resolve()}")
+        with open(path, 'r') as file:
+            return yaml.safe_load(file)
+
+    def load_variable_limits(self):
+        default_paths = [
+            pathlib.Path("../data/extreme_values.csv"),
+            pathlib.Path("data/extreme_values.csv"),
+            pathlib.Path("G:/Shared drives/.../extreme_values.csv")
+        ]
+
+>>>>>>> 9aee40b (Add new log files, merged datasets, and GeoJSON files; remove unused bytecode files)
         paths_to_try = [pathlib.Path(self.data_path)] if self.data_path else default_paths
         for path in paths_to_try:
             if path.exists():
@@ -713,6 +796,7 @@ class Reformatter(object):
         )
 
 <<<<<<< HEAD
+<<<<<<< HEAD
     def clean_columns(self):
         """Cleans and preprocesses columns, handling invalid values and despiking."""
         for col in self.et_data.columns:
@@ -778,6 +862,8 @@ class Reformatter(object):
 
 =======
 >>>>>>> 9aee40b (Add new log files, merged datasets, and GeoJSON files; remove unused bytecode files)
+=======
+>>>>>>> 9aee40b (Add new log files, merged datasets, and GeoJSON files; remove unused bytecode files)
         logger.debug("Corrected Datetimes:")
         logger.debug(f"{self.et_data.head(5)}")
         logger.debug(f"{self.et_data.tail(5)}")
@@ -801,7 +887,11 @@ class Reformatter(object):
 
         if "ET_SSITC_TEST" in self.et_data.columns:
 <<<<<<< HEAD
+<<<<<<< HEAD
             logger.debug(f"SSITC Values: {self.et_data['ET_SSITC_TEST'].unique()}")
+=======
+            logger.info(f"SSITC Values: {self.et_data['ET_SSITC_TEST'].unique()}")
+>>>>>>> 9aee40b (Add new log files, merged datasets, and GeoJSON files; remove unused bytecode files)
 =======
             logger.info(f"SSITC Values: {self.et_data['ET_SSITC_TEST'].unique()}")
 >>>>>>> 9aee40b (Add new log files, merged datasets, and GeoJSON files; remove unused bytecode files)
@@ -830,6 +920,9 @@ class Reformatter(object):
 =======
             logger.info(f"Null Value Count in ET: {count_neg_9999}")
             logger.info(f"Length of ET: {len(self.et_data['ET'])}")
+<<<<<<< HEAD
+>>>>>>> 9aee40b (Add new log files, merged datasets, and GeoJSON files; remove unused bytecode files)
+=======
 >>>>>>> 9aee40b (Add new log files, merged datasets, and GeoJSON files; remove unused bytecode files)
         self.col_order()
 
@@ -979,6 +1072,7 @@ class Reformatter(object):
         self.et_data = self.et_data.drop(old_column, axis=1)
 
 <<<<<<< HEAD
+<<<<<<< HEAD
     def rename_columns(self, data_type="eddy"):
         """Renames columns based on the dataset type and configuration mappings."""
 
@@ -996,6 +1090,17 @@ class Reformatter(object):
                 else:
                     logger.debug(f"Renaming column: {old_col} to {new_col}")
                     self.et_data = self.et_data.rename(columns={old_col: new_col})
+=======
+    def rename_columns(self, data_type='eddy'):
+        mappings = self.COL_NAME_MATCH if data_type == 'eddy' else self.MET_RENAMES
+        for old_col, new_col in mappings.items():
+            if old_col in self.et_data.columns:
+                if new_col in self.et_data.columns:
+                    self.et_data[new_col] = self.et_data[[old_col, new_col]].max(axis=1)
+                else:
+                    self.et_data[new_col] = self.et_data[old_col]
+                self.et_data.drop(old_col, axis=1, inplace=True)
+>>>>>>> 9aee40b (Add new log files, merged datasets, and GeoJSON files; remove unused bytecode files)
 =======
     def rename_columns(self, data_type='eddy'):
         mappings = self.COL_NAME_MATCH if data_type == 'eddy' else self.MET_RENAMES
