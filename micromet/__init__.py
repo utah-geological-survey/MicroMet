@@ -8,9 +8,14 @@ from .meteolib import *
 from .footprint import *
 from .outlier_removal import *
 from .station_data_pull import *
+<<<<<<< HEAD
 from .soil_heat import *
 
 # from .volk import *
 from .ffp import *
 
+=======
+#from .volk import *
+from .ffp import *
+>>>>>>> 9aee40b (Add new log files, merged datasets, and GeoJSON files; remove unused bytecode files)
 __version__ = "0.5.0"

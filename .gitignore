@@ -38,3 +38,8 @@ micromet/__pycache__/tools.cpython-312.pyc
 /micromet/.ipynb_checkpoints/
 *.pyc
 /Notebooks/Footprints/output/
+Notebooks/Weighted_Daily_Areas.geojson
+station_config/output/US-UTW_daily_data.csv
+station_config/output/US-UTW_monthly_data.csv
+station_config/output/US-UTW_daily_data.csv
+station_config/output/US-UTW_monthly_data.csv

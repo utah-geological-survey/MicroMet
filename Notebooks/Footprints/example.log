@@ -1,0 +1,7 @@
+2025-03-30 19:25:39,695 - ERROR - Failed to fetch data for station US-UTW: 401 Client Error: Unauthorized for url: https://ugs-koop-umfdxaxiyq-wm.a.run.app/amfluxeddy?stationid=eq.US-UTW&datetime_start=gte.2022-01-01
+2025-03-30 19:26:17,134 - ERROR - Failed to fetch data for station US-UTM: 401 Client Error: Unauthorized for url: https://ugs-koop-umfdxaxiyq-wm.a.run.app/amfluxeddy?stationid=eq.US-UTM&datetime_start=gte.2022-01-01
+2025-03-30 19:55:33,236 - ERROR - Failed to fetch data for station US-UTM: 401 Client Error: Unauthorized for url: https://ugs-koop-umfdxaxiyq-wm.a.run.app/amfluxeddy?stationid=eq.US-UTM&datetime_start=gte.2022-01-01
+2025-03-30 19:56:47,643 - ERROR - Failed to fetch data for station US-UTM: 401 Client Error: Unauthorized for url: https://ugs-koop-umfdxaxiyq-wm.a.run.app/amfluxeddy?stationid=eq.US-UTM&datetime_start=gte.2022-01-01
+2025-03-30 20:03:13,448 - ERROR - Failed to fetch data for station US-UTM: 401 Client Error: Unauthorized for url: https://ugs-koop-umfdxaxiyq-wm.a.run.app/amfluxeddy?stationid=eq.US-UTM&datetime_start=gte.2022-01-01
+2025-03-30 20:08:35,977 - ERROR - Failed to fetch data for station US-UTM: 401 Client Error: Unauthorized for url: https://ugs-koop-umfdxaxiyq-wm.a.run.app/amfluxeddy?stationid=eq.US-UTM&datetime_start=gte.2022-01-01
+2025-03-30 20:12:36,294 - ERROR - Failed to fetch data for station US-UTW: 401 Client Error: Unauthorized for url: https://ugs-koop-umfdxaxiyq-wm.a.run.app/amfluxeddy?stationid=eq.US-UTW&datetime_start=gte.2022-01-01
