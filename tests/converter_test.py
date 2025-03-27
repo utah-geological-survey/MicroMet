@@ -5,7 +5,7 @@ from datetime import datetime
 from pathlib import Path
 import tempfile
 import os
-
+from unittest.mock import mock_open, patch
 from micromet.converter import Reformatter, AmerifluxDataProcessor
 
 
@@ -33,11 +33,81 @@ def sample_ec_data():
 
 
 @pytest.fixture
+def processor():
+    return AmerifluxDataProcessor()
+
+
+@pytest.fixture
 def temp_data_file(sample_ec_data):
     """Create a temporary CSV file with sample data"""
     with tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False) as tf:
         sample_ec_data.to_csv(tf.name, index=False)
         return tf.name
+
+
+def test_check_header_timestamp_start(processor):
+    mock_csv = "TIMESTAMP_START,DATA\n20210101,100\n"
+    with patch("builtins.open", mock_open(read_data=mock_csv)):
+        assert processor.check_header("fake_file.csv") == 1
+
+
+def test_check_header_toa5(processor):
+    mock_csv = "TOA5, DATA, MORE\n20210101,100\n"
+    with patch("builtins.open", mock_open(read_data=mock_csv)):
+        assert processor.check_header("fake_file.csv") == 2
+
+
+def test_check_header_unknown(processor):
+    mock_csv = "UNKNOWN_HEADER,DATA\n20210101,100\n"
+    with patch("builtins.open", mock_open(read_data=mock_csv)):
+        assert processor.check_header("fake_file.csv") == 0
+
+
+def test_dataframe_from_file_timestamp(processor, tmp_path):
+    csv_path = tmp_path / "test.csv"
+    csv_path.write_text("TIMESTAMP_START,CO2\n20210101,400\n")
+
+    df = processor.dataframe_from_file(csv_path)
+    assert isinstance(df, pd.DataFrame)
+    assert list(df.columns) == ["TIMESTAMP_START", "CO2"]
+
+
+def test_dataframe_from_file_toa5(processor, tmp_path):
+    csv_path = tmp_path / "test.csv"
+    csv_path.write_text("TOA5,IGNORE\nLine2\nLine3\nTIMESTAMP,CO2\n20210101,400\n")
+
+    df = processor.dataframe_from_file(csv_path)
+    assert isinstance(df, pd.DataFrame)
+    assert "TIMESTAMP" not in df.columns
+
+
+def test_dataframe_from_file_unknown(processor, tmp_path):
+    csv_path = tmp_path / "test.csv"
+    csv_path.write_text("100,200\n300,400\n")
+
+    df = processor.dataframe_from_file(csv_path)
+    assert df is None
+
+
+def test_raw_file_compile_no_files(processor, tmp_path):
+    compiled_df = processor.raw_file_compile(tmp_path, "station")
+    assert compiled_df is None
+
+
+def test_raw_file_compile_with_files(processor, tmp_path):
+    station_dir = tmp_path / "station"
+    station_dir.mkdir()
+    file1 = station_dir / "1_Flux_AmeriFluxFormat_1.dat"
+    file2 = station_dir / "1_Flux_AmeriFluxFormat_2.dat"
+    file1.write_text("TIMESTAMP_START,CO2\n20210101,400\n")
+    file2.write_text("TIMESTAMP_START,CO2\n20210102,420\n")
+
+    compiled_df = processor.raw_file_compile(tmp_path, "station")
+    assert isinstance(compiled_df, pd.DataFrame)
+    assert len(compiled_df) == 2
+    assert "file_no" in compiled_df.columns
+    assert compiled_df.iloc[0]["CO2"] == 400
+    assert compiled_df.iloc[1]["CO2"] == 420
 
 
 def test_dataframe_from_file(temp_data_file):
@@ -54,15 +124,6 @@ def test_dataframe_from_file(temp_data_file):
     am = AmerifluxDataProcessor()
     result = am.dataframe_from_file("nonexistent_file.csv")
     assert result is None
-
-
-def test_reformatter_initialization(sample_ec_data):
-    """Test Reformatter class initialization"""
-    reformatter = Reformatter(sample_ec_data)
-
-    assert reformatter.et_data is not None
-    assert isinstance(reformatter.et_data, pd.DataFrame)
-    assert hasattr(reformatter, "varlimits")
 
 
 def test_datefixer(sample_ec_data):
@@ -114,7 +175,7 @@ def test_name_changer(sample_ec_data):
     test_df["TA_2_1_1"] = test_df["TA_1_1_1"]
 
     reformatter.et_data = test_df
-    reformatter.name_changer()
+    reformatter.rename_columns(data_type="eddy")
 
     assert "TA_1_2_1" in reformatter.et_data.columns
     assert "TA_2_1_1" not in reformatter.et_data.columns
@@ -201,7 +262,7 @@ def test_data_preprocessing(sample_ec_data):
     reformatter = Reformatter(sample_ec_data)
 
     # Test despiking
-    for field in reformatter.despikey:
+    for field in reformatter.DESPIKEY:
         if field in sample_ec_data.columns:
             # Add artificial spikes
             sample_ec_data[field].iloc[10:15] = (

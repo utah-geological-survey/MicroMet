@@ -2,11 +2,14 @@
 from pathlib import Path
 from typing import Union, List, Dict, Optional
 
+import yaml
+
 import datetime
 import pathlib
 import os
 import numpy as np
 import pandas as pd
+import csv
 
 from .outlier_removal import replace_flat_values
 
@@ -15,399 +18,394 @@ import logging
 # Set up a logger for this module.
 # In production, consider configuring logging at application start-up instead.
 logger = logging.getLogger(__name__)
-
-os.makedirs("../logs", exist_ok=True)
-# Ensure the file is created if it doesn't exist
-log_filename = "../logs/my_log_file.log"
-if not os.path.exists(log_filename):
-    open(log_filename, "w").close()  # This just creates an empty file
-
 logging.basicConfig(
-    filename=log_filename,
-    level=logging.INFO,
-    filemode="w",
+    filename="example.log",
+    encoding="utf-8",
+    level=logging.WARNING,
     format="%(asctime)s - %(levelname)s - %(message)s",
 )
 
 
 class AmerifluxDataProcessor:
+    NA_VALUES = {"-9999", "NAN", "NaN", "nan", np.nan, -9999.0}
+
     def __init__(self):
-        self.na_values = ["-9999", "NAN", "NaN", "nan", np.nan, -9999.0]
+        self.headers = {
+            "default": [
+                "TIMESTAMP_START",
+                "TIMESTAMP_END",
+                "CO2",
+                "CO2_SIGMA",
+                "H2O",
+                "H2O_SIGMA",
+                "FC",
+                "FC_SSITC_TEST",
+                "LE",
+                "LE_SSITC_TEST",
+                "ET",
+                "ET_SSITC_TEST",
+                "H",
+                "H_SSITC_TEST",
+                "G",
+                "SG",
+                "FETCH_MAX",
+                "FETCH_90",
+                "FETCH_55",
+                "FETCH_40",
+                "WD",
+                "WS",
+                "WS_MAX",
+                "USTAR",
+                "ZL",
+                "TAU",
+                "TAU_SSITC_TEST",
+                "MO_LENGTH",
+                "U",
+                "U_SIGMA",
+                "V",
+                "V_SIGMA",
+                "W",
+                "W_SIGMA",
+                "PA",
+                "TA_1_1_1",
+                "RH_1_1_1",
+                "T_DP_1_1_1",
+                "TA_1_1_2",
+                "RH_1_1_2",
+                "T_DP_1_1_2",
+                "TA_1_1_3",
+                "RH_1_1_3",
+                "T_DP_1_1_3",
+                "TA_1_1_4",
+                "VPD",
+                "T_SONIC",
+                "T_SONIC_SIGMA",
+                "PBLH",
+                "TS_1_1_1",
+                "TS_1_1_2",
+                "SWC_1_1_1",
+                "SWC_1_1_2",
+                "ALB",
+                "NETRAD",
+                "SW_IN",
+                "SW_OUT",
+                "LW_IN",
+                "LW_OUT",
+                "P",
+            ],
+            "math_soils": [
+                "VWC_5cm_N_Avg",
+                "VWC_5cm_S_Avg",
+                "Ka_5cm_N_Avg",
+                "T_5cm_N_Avg",
+                "BulkEC_5cm_N_Avg",
+                "VWC_10cm_N_Avg",
+                "Ka_10cm_N_Avg",
+                "T_10cm_N_Avg",
+                "BulkEC_10cm_N_Avg",
+                "VWC_20cm_N_Avg",
+                "Ka_20cm_N_Avg",
+                "T_20cm_N_Avg",
+                "BulkEC_20cm_N_Avg",
+                "VWC_30cm_N_Avg",
+                "Ka_30cm_N_Avg",
+                "T_30cm_N_Avg",
+                "BulkEC_30cm_N_Avg",
+                "VWC_40cm_N_Avg",
+                "Ka_40cm_N_Avg",
+                "T_40cm_N_Avg",
+                "BulkEC_40cm_N_Avg",
+                "VWC_50cm_N_Avg",
+                "Ka_50cm_N_Avg",
+                "T_50cm_N_Avg",
+                "BulkEC_50cm_N_Avg",
+                "VWC_60cm_N_Avg",
+                "Ka_60cm_N_Avg",
+                "T_60cm_N_Avg",
+                "BulkEC_60cm_N_Avg",
+                "VWC_75cm_N_Avg",
+                "Ka_75cm_N_Avg",
+                "T_75cm_N_Avg",
+                "BulkEC_75cm_N_Avg",
+                "VWC_100cm_N_Avg",
+                "Ka_100cm_N_Avg",
+                "T_100cm_N_Avg",
+                "BulkEC_100cm_N_Avg",
+                "Ka_5cm_S_Avg",
+                "T_5cm_S_Avg",
+                "BulkEC_5cm_S_Avg",
+                "VWC_10cm_S_Avg",
+                "Ka_10cm_S_Avg",
+                "T_10cm_S_Avg",
+                "BulkEC_10cm_S_Avg",
+                "VWC_20cm_S_Avg",
+                "Ka_20cm_S_Avg",
+                "T_20cm_S_Avg",
+                "BulkEC_20cm_S_Avg",
+                "VWC_30cm_S_Avg",
+                "Ka_30cm_S_Avg",
+                "T_30cm_S_Avg",
+                "BulkEC_30cm_S_Avg",
+                "VWC_40cm_S_Avg",
+                "Ka_40cm_S_Avg",
+                "T_40cm_S_Avg",
+                "BulkEC_40cm_S_Avg",
+                "VWC_50cm_S_Avg",
+                "Ka_50cm_S_Avg",
+                "T_50cm_S_Avg",
+                "BulkEC_50cm_S_Avg",
+                "VWC_60cm_S_Avg",
+                "Ka_60cm_S_Avg",
+                "T_60cm_S_Avg",
+                "BulkEC_60cm_S_Avg",
+                "VWC_75cm_S_Avg",
+                "Ka_75cm_S_Avg",
+                "T_75cm_S_Avg",
+                "BulkEC_75cm_S_Avg",
+                "VWC_100cm_S_Avg",
+                "Ka_100cm_S_Avg",
+                "T_100cm_S_Avg",
+            ],
+            "well_soils": [
+                "SWC_3_1_1",
+                "SWC_4_1_1",
+                "K_3_1_1",
+                "TS_3_1_1",
+                "EC_3_1_1",
+                "SWC_3_2_1",
+                "K_3_2_1",
+                "TS_3_2_1",
+                "EC_3_2_1",
+                "SWC_3_3_1",
+                "K_3_3_1",
+                "TS_3_3_1",
+                "EC_3_3_1",
+                "SWC_3_4_1",
+                "K_3_4_1",
+                "TS_3_4_1",
+                "EC_3_4_1",
+                "SWC_3_5_1",
+                "K_3_5_1",
+                "TS_3_5_1",
+                "EC_3_5_1",
+                "SWC_3_6_1",
+                "K_3_6_1",
+                "TS_3_6_1",
+                "EC_3_6_1",
+                "SWC_3_7_1",
+                "K_3_7_1",
+                "TS_3_7_1",
+                "EC_3_7_1",
+                "SWC_3_8_1",
+                "K_3_8_1",
+                "TS_3_8_1",
+                "EC_3_8_1",
+                "SWC_3_9_1",
+                "K_3_9_1",
+                "TS_3_9_1",
+                "EC_3_9_1",
+            ],
+            "math_soils_v2": [
+                "SWC_3_1_1",
+                "SWC_4_1_1",
+                "K_3_1_1",
+                "TS_3_1_1",
+                "EC_3_1_1",
+                "SWC_3_2_1",
+                "K_3_2_1",
+                "TS_3_2_1",
+                "EC_3_2_1",
+                "SWC_3_3_1",
+                "K_3_3_1",
+                "TS_3_3_1",
+                "EC_3_3_1",
+                "SWC_3_4_1",
+                "K_3_4_1",
+                "TS_3_4_1",
+                "EC_3_4_1",
+                "SWC_3_5_1",
+                "K_3_5_1",
+                "TS_3_5_1",
+                "EC_3_5_1",
+                "SWC_3_6_1",
+                "K_3_6_1",
+                "TS_3_6_1",
+                "EC_3_6_1",
+                "SWC_3_7_1",
+                "K_3_7_1",
+                "TS_3_7_1",
+                "EC_3_7_1",
+                "SWC_3_8_1",
+                "K_3_8_1",
+                "TS_3_8_1",
+                "EC_3_8_1",
+                "SWC_3_9_1",
+                "K_3_9_1",
+                "TS_3_9_1",
+                "EC_3_9_1",
+                "K_4_1_1",
+                "TS_4_1_1",
+                "EC_4_1_1",
+                "SWC_4_2_1",
+                "K_4_2_1",
+                "TS_4_2_1",
+                "EC_4_2_1",
+                "SWC_4_3_1",
+                "K_4_3_1",
+                "TS_4_3_1",
+                "EC_4_3_1",
+                "SWC_4_4_1",
+                "K_4_4_1",
+                "TS_4_4_1",
+                "EC_4_4_1",
+                "SWC_4_5_1",
+                "K_4_5_1",
+                "TS_4_5_1",
+                "EC_4_5_1",
+                "SWC_4_6_1",
+                "K_4_6_1",
+                "TS_4_6_1",
+                "EC_4_6_1",
+                "SWC_4_7_1",
+                "K_4_7_1",
+                "TS_4_7_1",
+                "EC_4_7_1",
+                "SWC_4_8_1",
+                "K_4_8_1",
+                "TS_4_8_1",
+                "EC_4_8_1",
+                "EC_4_9_1",
+                "SWC_4_9_1",
+                "K_4_9_1",
+                "TS_4_9_1",
+                "TS_1_1_1",
+                "TS_2_1_1",
+                "SWC_1_1_1",
+                "SWC_2_1_1",
+            ],
+        }
 
-        self.default = [
-            "TIMESTAMP_START",
-            "TIMESTAMP_END",
-            "CO2",
-            "CO2_SIGMA",
-            "H2O",
-            "H2O_SIGMA",
-            "FC",
-            "FC_SSITC_TEST",
-            "LE",
-            "LE_SSITC_TEST",
-            "ET",
-            "ET_SSITC_TEST",
-            "H",
-            "H_SSITC_TEST",
-            "G",
-            "SG",
-            "FETCH_MAX",
-            "FETCH_90",
-            "FETCH_55",
-            "FETCH_40",
-            "WD",
-            "WS",
-            "WS_MAX",
-            "USTAR",
-            "ZL",
-            "TAU",
-            "TAU_SSITC_TEST",
-            "MO_LENGTH",
-            "U",
-            "U_SIGMA",
-            "V",
-            "V_SIGMA",
-            "W",
-            "W_SIGMA",
-            "PA",
-            "TA_1_1_1",
-            "RH_1_1_1",
-            "T_DP_1_1_1",
-            "TA_1_1_2",
-            "RH_1_1_2",
-            "T_DP_1_1_2",
-            "TA_1_1_3",
-            "RH_1_1_3",
-            "T_DP_1_1_3",
-            "TA_1_1_4",
-            "VPD",
-            "T_SONIC",
-            "T_SONIC_SIGMA",
-            "PBLH",
-            "TS_1_1_1",
-            "TS_1_1_2",
-            "SWC_1_1_1",
-            "SWC_1_1_2",
-            "ALB",
-            "NETRAD",
-            "SW_IN",
-            "SW_OUT",
-            "LW_IN",
-            "LW_OUT",
-            "P",
+        # Simplify derived headers
+        self.headers["bflat"] = [
+            h
+            for h in self.headers["default"]
+            if h not in {"TA_1_1_4", "TS_1_1_2", "SWC_1_1_2"}
+        ]
+        self.headers["wellington"] = [
+            h for h in self.headers["default"] if h != "TS_1_1_1"
         ]
 
-        self.math_soils = [
-            "VWC_5cm_N_Avg",
-            "VWC_5cm_S_Avg",
-            "Ka_5cm_N_Avg",
-            "T_5cm_N_Avg",
-            "BulkEC_5cm_N_Avg",
-            "VWC_10cm_N_Avg",
-            "Ka_10cm_N_Avg",
-            "T_10cm_N_Avg",
-            "BulkEC_10cm_N_Avg",
-            "VWC_20cm_N_Avg",
-            "Ka_20cm_N_Avg",
-            "T_20cm_N_Avg",
-            "BulkEC_20cm_N_Avg",
-            "VWC_30cm_N_Avg",
-            "Ka_30cm_N_Avg",
-            "T_30cm_N_Avg",
-            "BulkEC_30cm_N_Avg",
-            "VWC_40cm_N_Avg",
-            "Ka_40cm_N_Avg",
-            "T_40cm_N_Avg",
-            "BulkEC_40cm_N_Avg",
-            "VWC_50cm_N_Avg",
-            "Ka_50cm_N_Avg",
-            "T_50cm_N_Avg",
-            "BulkEC_50cm_N_Avg",
-            "VWC_60cm_N_Avg",
-            "Ka_60cm_N_Avg",
-            "T_60cm_N_Avg",
-            "BulkEC_60cm_N_Avg",
-            "VWC_75cm_N_Avg",
-            "Ka_75cm_N_Avg",
-            "T_75cm_N_Avg",
-            "BulkEC_75cm_N_Avg",
-            "VWC_100cm_N_Avg",
-            "Ka_100cm_N_Avg",
-            "T_100cm_N_Avg",
-            "BulkEC_100cm_N_Avg",
-            "Ka_5cm_S_Avg",
-            "T_5cm_S_Avg",
-            "BulkEC_5cm_S_Avg",
-            "VWC_10cm_S_Avg",
-            "Ka_10cm_S_Avg",
-            "T_10cm_S_Avg",
-            "BulkEC_10cm_S_Avg",
-            "VWC_20cm_S_Avg",
-            "Ka_20cm_S_Avg",
-            "T_20cm_S_Avg",
-            "BulkEC_20cm_S_Avg",
-            "VWC_30cm_S_Avg",
-            "Ka_30cm_S_Avg",
-            "T_30cm_S_Avg",
-            "BulkEC_30cm_S_Avg",
-            "VWC_40cm_S_Avg",
-            "Ka_40cm_S_Avg",
-            "T_40cm_S_Avg",
-            "BulkEC_40cm_S_Avg",
-            "VWC_50cm_S_Avg",
-            "Ka_50cm_S_Avg",
-            "T_50cm_S_Avg",
-            "BulkEC_50cm_S_Avg",
-            "VWC_60cm_S_Avg",
-            "Ka_60cm_S_Avg",
-            "T_60cm_S_Avg",
-            "BulkEC_60cm_S_Avg",
-            "VWC_75cm_S_Avg",
-            "Ka_75cm_S_Avg",
-            "T_75cm_S_Avg",
-            "BulkEC_75cm_S_Avg",
-            "VWC_100cm_S_Avg",
-            "Ka_100cm_S_Avg",
-            "T_100cm_S_Avg",
-        ]
-
-        self.well_soils = [
-            "SWC_3_1_1",
-            "SWC_4_1_1",
-            "K_3_1_1",
-            "TS_3_1_1",
-            "EC_3_1_1",
-            "SWC_3_2_1",
-            "K_3_2_1",
-            "TS_3_2_1",
-            "EC_3_2_1",
-            "SWC_3_3_1",
-            "K_3_3_1",
-            "TS_3_3_1",
-            "EC_3_3_1",
-            "SWC_3_4_1",
-            "K_3_4_1",
-            "TS_3_4_1",
-            "EC_3_4_1",
-            "SWC_3_5_1",
-            "K_3_5_1",
-            "TS_3_5_1",
-            "EC_3_5_1",
-            "SWC_3_6_1",
-            "K_3_6_1",
-            "TS_3_6_1",
-            "EC_3_6_1",
-            "SWC_3_7_1",
-            "K_3_7_1",
-            "TS_3_7_1",
-            "EC_3_7_1",
-            "SWC_3_8_1",
-            "K_3_8_1",
-            "TS_3_8_1",
-            "EC_3_8_1",
-            "SWC_3_9_1",
-            "K_3_9_1",
-            "TS_3_9_1",
-            "EC_3_9_1",
-        ]
-
-        self.math_soils_v2 = [
-            "SWC_3_1_1",
-            "SWC_4_1_1",
-            "K_3_1_1",
-            "TS_3_1_1",
-            "EC_3_1_1",
-            "SWC_3_2_1",
-            "K_3_2_1",
-            "TS_3_2_1",
-            "EC_3_2_1",
-            "SWC_3_3_1",
-            "K_3_3_1",
-            "TS_3_3_1",
-            "EC_3_3_1",
-            "SWC_3_4_1",
-            "K_3_4_1",
-            "TS_3_4_1",
-            "EC_3_4_1",
-            "SWC_3_5_1",
-            "K_3_5_1",
-            "TS_3_5_1",
-            "EC_3_5_1",
-            "SWC_3_6_1",
-            "K_3_6_1",
-            "TS_3_6_1",
-            "EC_3_6_1",
-            "SWC_3_7_1",
-            "K_3_7_1",
-            "TS_3_7_1",
-            "EC_3_7_1",
-            "SWC_3_8_1",
-            "K_3_8_1",
-            "TS_3_8_1",
-            "EC_3_8_1",
-            "SWC_3_9_1",
-            "K_3_9_1",
-            "TS_3_9_1",
-            "EC_3_9_1",
-            "K_4_1_1",
-            "TS_4_1_1",
-            "EC_4_1_1",
-            "SWC_4_2_1",
-            "K_4_2_1",
-            "TS_4_2_1",
-            "EC_4_2_1",
-            "SWC_4_3_1",
-            "K_4_3_1",
-            "TS_4_3_1",
-            "EC_4_3_1",
-            "SWC_4_4_1",
-            "K_4_4_1",
-            "TS_4_4_1",
-            "EC_4_4_1",
-            "SWC_4_5_1",
-            "K_4_5_1",
-            "TS_4_5_1",
-            "EC_4_5_1",
-            "SWC_4_6_1",
-            "K_4_6_1",
-            "TS_4_6_1",
-            "EC_4_6_1",
-            "SWC_4_7_1",
-            "K_4_7_1",
-            "TS_4_7_1",
-            "EC_4_7_1",
-            "SWC_4_8_1",
-            "K_4_8_1",
-            "TS_4_8_1",
-            "EC_4_8_1",
-            "EC_4_9_1",
-            "SWC_4_9_1",
-            "K_4_9_1",
-            "TS_4_9_1",
-            "TS_1_1_1",
-            "TS_2_1_1",
-            "SWC_1_1_1",
-            "SWC_2_1_1",
-        ]
-
-        self.bflat = list(
-            filter(
-                lambda item: item not in ("TA_1_1_4", "TS_1_1_2", "SWC_1_1_2"),
-                self.default,
-            )
-        )
-        self.wellington = list(
-            filter(lambda item: item not in "TS_1_1_1", self.default)
-        )
-        self.big_math = (
-            self.wellington[:-10]
-            + self.math_soils
-            + self.wellington[-10:]
+        self.headers["big_math"] = (
+            self.headers["wellington"][:-10]
+            + self.headers["math_soils"]
+            + self.headers["wellington"][-10:]
             + ["T_CANOPY"]
         )
-        self.big_math_v2 = (
-            self.wellington[:-10]
-            + self.math_soils_v2
-            + self.wellington[-7:]
+        self.headers["big_math_v2"] = (
+            self.headers["wellington"][:-10]
+            + self.headers["math_soils_v2"]
+            + self.headers["wellington"][-7:]
             + ["T_CANOPY"]
         )
-        self.big_math_v2_filt = list(
-            filter(lambda item: item not in "TA_1_1_4", self.big_math_v2)
-        )
+        self.headers["big_math_v2_filt"] = [
+            h for h in self.headers["big_math_v2"] if h not in {"TA_1_1_4"}
+        ]
 
-        self.big_well = (
-            list(filter(lambda item: item not in "TA_1_1_4", self.default))
-            + self.well_soils
-        )
+        self.headers["big_well"] = [
+            h for h in self.headers["default"] if h not in {"TA_1_1_4"}
+        ] + self.headers["well_soils"]
+
         self.header_dict = {
-            60: self.default,
-            57: self.bflat,
-            59: self.wellington,
-            96: self.big_well,
-            131: self.big_math,
-            132: self.big_math_v2_filt,
+            60: self.headers["default"],
+            61: self.headers["bflat"],
+            62: self.headers["wellington"],
+            96: self.headers["big_well"],
+            131: self.headers["big_math"],
+            132: self.headers["big_math_v2_filt"],
         }
 
     @staticmethod
-    def check_header(csv_file):
+    def check_header(csv_file: Union[str, Path]) -> int:
         """
-        Check if the given CSV file has a header row with the column name "TIMESTAMP_START".
+        Check if the given CSV file has a header row.
 
-        :param csv_file: The path to the CSV file.
+        :param csv_file: Path to the CSV file.
         :type csv_file: str
-        :return: True if the CSV file has a header row with column name "TIMESTAMP_START", False otherwise.
-        :rtype: bool
+        :return:
+            1 if the header contains "TIMESTAMP_START",
+            2 if the header contains "TOA5",
+            0 otherwise.
+        :rtype: int
         """
-        # Reads the first row just once to determine header type
-        first_line = pd.read_csv(csv_file, header=None, nrows=1)
-        values = first_line.iloc[0].values
-        # If the first row contains "TIMESTAMP_START", assume it's a header row.
-        if "TIMESTAMP_START" in values:
-            return 1
-        elif "TOA5" in values:
-            return 2
-        else:
+        try:
+            with open(csv_file, "r", newline="", encoding="utf-8") as file:
+                first_row = next(csv.reader(file), [])
+                if "TIMESTAMP_START" in first_row:
+                    return 1
+                if "TOA5" in first_row:
+                    return 2
+                return 0
+        except Exception:
             return 0
 
     def dataframe_from_file(self, file: Union[str, Path]) -> Optional[pd.DataFrame]:
         """
-        Reads a CSV file and returns a pandas DataFrame with the appropriate headers.
-        The header format is deduced from the first line of the file.
+        Reads a CSV file and returns a DataFrame with appropriate headers based on the file format.
 
         Parameters:
-        - file (str or Path): Path to the CSV file to read.
-        - na_vals (list): A list of strings to interpret as NaN values.
-        - header_dict (dict): A dictionary mapping column counts to a list of column names.
-          Example: {60: default_header_list, 57: bflat_list, ... }
+        - file (str or Path): Path to the CSV file.
 
         Returns:
-        - pd.DataFrame or None: The DataFrame with assigned headers or None if an error occurs.
+        - pd.DataFrame or None: DataFrame with proper headers, or None if unsupported format or errors occur.
         """
+        header_type = self.check_header(file)
 
         try:
-            header_type = self.check_header(file)
             if header_type == 1:
-                return pd.read_csv(file, na_values=self.na_values)
+                return pd.read_csv(file, na_values=self.NA_VALUES)
             elif header_type == 2:
-                # Skip known metadata lines
-                df = pd.read_csv(file, na_values=self.na_values, skiprows=[0, 2, 3])
-                if "TIMESTAMP" in df.columns:
-                    df.drop("TIMESTAMP", axis=1, inplace=True)
+                df = pd.read_csv(file, na_values=self.NA_VALUES, skiprows=[0, 2, 3])
+                df.drop(columns=["TIMESTAMP"], errors="ignore", inplace=True)
                 return df
             else:
-                # No known header, infer from column count
-                first_line = pd.read_csv(
-                    file, header=None, nrows=1, na_values=self.na_values
-                )
-                col_count = len(first_line.columns)
+                col_count = pd.read_csv(file, header=None, nrows=1).shape[1]
                 header = self.header_dict.get(col_count)
-                if header is not None:
-                    return pd.read_csv(file, na_values=self.na_values, names=header)
-                else:
-                    # Handle unknown headers gracefully
-                    print(f"Unknown header format for file: {file}")
-                    return None
 
+                if header:
+                    return pd.read_csv(file, names=header, na_values=self.NA_VALUES)
+
+                logger.warning(
+                    f"Unknown header format ({col_count} columns) in file: {file}"
+                )
+                return None
+
+        except pd.errors.EmptyDataError:
+            logger.warning(f"No data found in file: {file}")
         except Exception as e:
-            print(f"Encountered an error with file {file}: {str(e)}")
-            return None
+            logger.error(f"Error reading file {file}: {e}")
+        return None
 
     def _is_int(self, element: any) -> bool:
-        # If you expect None to be passed:
-        if element is None:
-            return False
+        """
+        Check if the provided element can be cast as an integer.
+
+        Parameters:
+        - element (any): The value to check.
+
+        Returns:
+        - bool: True if the element can be cast to an integer, False otherwise.
+        """
         try:
-            int(element)
-            return True
-        except ValueError:
+            return element is not None and float(element).is_integer()
+        except (ValueError, TypeError):
             return False
 
     def raw_file_compile(
         self,
         raw_fold: Path,
-        station_folder_name: Path,
+        station_folder_name: Union[str, Path],
         search_str="*Flux_AmeriFluxFormat*.dat",
-    ):
+    ) -> Optional[pd.DataFrame]:
         """
         Compiles raw AmeriFlux datalogger files into a single dataframe.
 
@@ -418,190 +416,142 @@ class AmerifluxDataProcessor:
         :return: Dataframe containing compiled AmeriFlux data, or None if no valid files found
         :rtype: pandas.DataFrame or None
         """
-        amflux = {}
+        compiled_data = []
         station_folder = raw_fold / station_folder_name
 
-        logger.info(f"{station_folder}")
+        logger.info(f"Compiling data from {station_folder}")
 
-        # iterate through specified folder of raw datalogger files (.dat); Match to AmeriFlux datalogger files
         for file in station_folder.rglob(search_str):
-            logger.info(f"{file}")
-            # get the base number of the raw ameriflux file
-            baseno = file.name.split(".")[0]
+            logger.info(f"Processing file: {file}")
+            basename = file.stem
 
             try:
-                file_number = int(baseno.split("_")[-1])
-                datalogger_number = int(baseno.split("_")[0])
-            except:
-                file_number = 9999
-                datalogger_number = 9999
-            if file_number >= 0:
-                df = self.dataframe_from_file(file)
-                if df is not None:
-                    # print(file)
-                    df["file_no"] = file_number
-                    df["datalogger_no"] = datalogger_number
-                    amflux[baseno] = df
-            else:
-                logger.info("Error: File number is too high")
-        if amflux:
-            # concat dataframes that were successfully read in
-            et_data = pd.concat(amflux, axis=0).reset_index()
-            et_data = et_data.drop(columns=["level_0", "level_1"])
+                file_number = int(basename.split("_")[-1])
+                datalogger_number = int(basename.split("_")[0])
+            except ValueError:
+                file_number = datalogger_number = 9999
 
+            df = self.dataframe_from_file(file)
+            if df is not None:
+                df["file_no"] = file_number
+                df["datalogger_no"] = datalogger_number
+                compiled_data.append(df)
+
+        if compiled_data:
+            return pd.concat(compiled_data, ignore_index=True)
         else:
-            et_data = None
-        return et_data
+            logger.warning(f"No valid files found in {station_folder}")
+            return None
 
 
 class Reformatter(object):
     """
-    Class for reformatting raw Utah Flux Network data into the acceptable Ameriflux format.
+    A class for reformatting raw Utah Flux Network data into the AmeriFlux-compatible format.
+
+    Attributes:
+        et_data (pd.DataFrame): Processed data after initialization and preparation.
+        config (dict): Configuration loaded from YAML file.
+        varlimits (pd.DataFrame): Limits for variables loaded from CSV.
 
     Methods:
-        __init__ : Initialize the Reformatter object.
-        datefixer : Fixes the date and time format in the given data.
-        update_dataframe_column : Replaces an old column with a new one in the DataFrame.
-        name_changer : Changes column names in the DataFrame based on a dictionary of column name mappings.
-        scale_and_convert : Scales and converts values in a column to float type.
-        ssitc_scale : Scales the values in the SSITC columns of the DataFrame.
+        __init__: Initializes Reformatter with data and configuration.
+        load_variable_limits: Loads variable limits from file.
+        clean_columns: Cleans and processes DataFrame columns, handling missing and invalid values.
+        prepare_et_data: Prepares and preprocesses the ET data.
+        remove_extra_soil_params: Removes unnecessary soil parameter columns.
+        drop_extras: Drops extra columns based on configuration.
+        col_order: Reorders columns prioritizing timestamps.
+        datefixer: Corrects date and time formats, removes duplicates, and resamples data.
+        update_dataframe_column: Updates DataFrame by replacing an old column with a new combined column.
+        rename_columns: Renames DataFrame columns based on configuration.
+        scale_and_convert: Scales and converts a column to float type.
+        ssitc_scale: Scales quality control SSITC columns to a 0-2 scale.
+        rating: Categorizes numeric values into ratings.
+        _extract_variable_name: Extracts the base variable name for processing.
+        replace_out_of_range_with_nan: Replaces out-of-range values with NaN.
+        extreme_limiter: Applies limits to all columns to remove extreme values.
+        despike: Removes data spikes based on a standard deviation threshold.
+        tau_fixer: Corrects sign of TAU variable.
+        fix_swc_percent: Converts soil water content to percentage format if necessary.
+        timestamp_reset: Resets timestamp columns based on DataFrame index.
+        despike_ewma_fb: Removes spikes using forward-backward EWMA smoothing.
     """
 
-    # Variables that are important, but do not have an int following the underscore
-    othervar = [
-        "SW_IN",
-        "SW_OUT",
-        "LW_IN",
-        "LW_OUT",
-        "T_SONIC",
-        "T_CANOPY",
-        "FETCH_MAX",
-        "FETCH_90",
-        "FETCH_55",
-        "FC_SSITC_TEST",
-        "ET_SSITC_TEST",
-        "LE_SSITC_TEST",
-        "H_SSITC_TEST",
-        "TAU_SSITC_TEST",
-        "CO2_SIGMA",
-        "T_SONIC_SIGMA",
-        "H2O_SIGMA",
-        "WS_MAX",
-        "MO_LENGTH",
-        "U_SIGMA",
-        "V_SIGMA",
-        "W_SIGMA",
-    ]
+    def __init__(
+        self,
+        et_data,
+        config_path="./data/reformatter_vars.yml",
+        drop_soil=True,
+        data_path=None,
+        data_type="eddy",
+        spike_threshold=4.5,
+        outlier_remove=True,
+    ):
+        """
+        Initializes the Reformatter with ET data and configurations.
 
-    # dictionary to fix naming convention issues with EasyFluxDL;
-    # https://ameriflux.lbl.gov/wp-content/uploads/2015/10/AmeriFlux_DataVariables.pdf
-    col_name_match = {
-        "TA_1_1_2": "TA_1_2_1",
-        "RH_1_1_2": "RH_1_2_1",
-        "T_DP_1_1_2": "T_DP_1_2_1",
-        "TA_1_1_3": "TA_1_3_1",
-        "RH_1_1_3": "RH_1_3_1",
-        "T_DP_1_1_3": "T_DP_1_3_1",
-        "TA_2_1_1": "TA_1_2_1",
-        "RH_2_1_1": "RH_1_2_1",
-        "T_DP_2_1_1": "T_DP_1_2_1",
-        "TA_3_1_1": "TA_1_3_1",
-        "RH_3_1_1": "RH_1_3_1",
-        "TA_1_1_4": "TA_1_4_1",
-        "T_DP_3_1_1": "T_DP_1_3_1",
-        "PBLH": "PBLH_F",
-        "TS_1_1_2": "TS_2_1_1",
-        "SWC_1_1_2": "SWC_2_1_1",
-    }
+        Args:
+            et_data (pd.DataFrame): Raw data to process.
+            config_path (str): Path to the YAML configuration file.
+            drop_soil (bool): Whether to drop unnecessary soil parameters.
+            data_path (str): Optional path to the extreme values CSV file.
+            data_type (str): Type of dataset, either "eddy" or "met".
+            spike_threshold (float): Threshold for spike removal.
+            outlier_remove (bool): Whether to remove outliers.
+        """
+        self.config = self._load_config(config_path)
 
-    # Variables to despike
-    despikey = [
-        "CO2",
-        "H2O",
-        "FC",
-        "LE",
-        "ET",
-        "H",
-        "G",
-        "SG",
-        "FETCH_MAX",
-        "FETCH_90",
-        "FETCH_55",
-        "FETCH_40",
-        "WS",
-        "USTAR",
-        "TAU",
-        "MO_LENGTH",
-        "U",
-        "V",
-        "W",
-        "PA",
-        "TA_1_1_1",
-        "RH_1_1_1",
-        "T_DP_1_1_1",
-        "TA_1_2_1",
-        "RH_1_2_1",
-        "T_DP_1_2_1",
-        "TA_1_3_1",
-        "RH_1_3_1",
-        "T_DP_1_3_1",
-        "VPD",
-        "T_SONIC",
-        "PBLH",
-        "TS_1_1_1",
-        "TS_2_1_1",
-        "SWC_1_1_1",
-        "SWC_2_1_1",
-        "ALB",
-        "NETRAD",
-        "SW_IN",
-        "SW_OUT",
-        "LW_IN",
-        "LW_OUT",
-    ]
+        self.data_path = data_path
+        self.spike_threshold = spike_threshold
+        self.COL_NAME_MATCH = self.config["col_name_match"]
+        self.MET_RENAMES = self.config["met_renames"]
+        self.MET_VARS = self.config["met_vars"]
+        self.DESPIKEY = self.config["despikey"]
+        self.DROP_COLS = self.config["drop_cols"]
+        self.OTHER_VARS = self.config["othervar"]
+        self.MATH_SOILS_V2 = self.config["math_soils_v2"]
+        self.DESPIKEY = self.config["despikey"]
+        self.varlimits = None
+        self.load_variable_limits()
+        self.prepare_et_data(et_data, data_type, drop_soil)
 
-    drop_cols = ["RECORD", "datetime_end"]
+    @staticmethod
+    def _load_config(config_path):
 
-    def __init__(self, et_data, drop_soil=True, data_path=None, outlier_remove=True):
-        # read in variable limits
-        if data_path is None:
-            try:
-                data_path = pathlib.Path("../data/extreme_values.csv")
-                self.varlimits = pd.read_csv(data_path, index_col="Name")
-            except FileNotFoundError:
-                try:
-                    data_path = pathlib.Path("data/extreme_values.csv")
-                    self.varlimits = pd.read_csv(data_path, index_col="Name")
-                except FileNotFoundError:
-                    data_path = pathlib.Path(
-                        "G:/Shared drives/UGS_Flux/Data_Processing/Jupyter_Notebooks/Micromet/data/extreme_values.csv"
-                    )
-                    self.varlimits = pd.read_csv(data_path, index_col="Name")
-        else:
-            data_path = pathlib.Path(data_path)
-            self.varlimits = pd.read_csv(data_path, index_col="Name")
+        path = pathlib.Path(config_path)
+        if not path.exists():
+            raise FileNotFoundError(f"Config file not found at {path.resolve()}")
+        with open(path, "r") as file:
+            return yaml.safe_load(file)
 
-        logger.info("Starting Processing")
-        logger.info(f"Reading first line of file: {data_path}")
-        logger.debug(f"Variable limits: \n {self.varlimits.head(5)}")
-        logger.debug(f"Variable limits: \n {self.varlimits.tail(5)}")
-        logger.debug(f"ET Data: \n {et_data.head(5)}")
-        logger.debug(f"ET Data: \n {et_data.tail(5)}")
+    def load_variable_limits(self):
+        """Loads variable limits from predefined CSV paths."""
+        default_paths = [
+            pathlib.Path("../data/extreme_values.csv"),
+            pathlib.Path("data/extreme_values.csv"),
+            pathlib.Path("../../data/extreme_values.csv"),
+            pathlib.Path("../../../data/extreme_values.csv"),
+            pathlib.Path(
+                "G:/Shared drives/Data_Processing/Jupyter_Notebooks/Micromet/data/extreme_values.csv"
+            ),
+        ]
 
-        # fix datetimes
-        self.et_data = self.datefixer(et_data)
+        paths_to_try = (
+            [pathlib.Path(self.data_path)] if self.data_path else default_paths
+        )
+        for path in paths_to_try:
+            if path.exists():
+                self.varlimits = pd.read_csv(path, index_col="Name")
+                logger.debug(f"Loaded variable limits from {path}")
+                return
+        raise FileNotFoundError(
+            "Could not locate extreme_values.csv in provided paths."
+        )
 
-        logger.debug("Corrected Datetimes:")
-        logger.debug(f"{self.et_data.head(5)}")
-        logger.debug(f"{self.et_data.tail(5)}")
-
-        # change variable names
-        self.name_changer()
-
-        logger.debug(f"Changed Names: {self.et_data.columns}")
-        # despike variables and remove long, flat periods
+    def clean_columns(self):
+        """Cleans and preprocesses columns, handling invalid values and despiking."""
         for col in self.et_data.columns:
-            logger.debug(f"column: {col}")
+            logger.warning(f"column: {col}")
 
             if col in ["MO_LENGTH", "RECORD"]:
                 self.et_data[col] = pd.to_numeric(
@@ -617,16 +567,18 @@ class Reformatter(object):
                 )
             else:
                 self.et_data[col] = pd.to_numeric(self.et_data[col], errors="coerce")
+
             logger.debug(f"column {col} range: {np.max(self.et_data[col])}")
             logger.debug(f"column {col} range numeric: {np.max(self.et_data[col])}")
+
             self.et_data[col] = self.et_data[col].replace(-9999, np.nan)
 
             # remove values that are outside of possible ranges
             self.et_data = self.replace_out_of_range_with_nan(self.et_data, col, np.nan)
 
-            logger.debug(f"column range out of range: {np.max(self.et_data[col])}")
+            logger.warning(f"column range out of range: {np.max(self.et_data[col])}")
 
-            if col in self.despikey:
+            if col in self.DESPIKEY:
 
                 # despike
                 self.et_data[col] = self.despike(self.et_data[col])
@@ -639,6 +591,36 @@ class Reformatter(object):
                         self.et_data, col, replacement_value=np.nan, null_value=-9999
                     )
             logger.debug(f"column range despike: {np.max(self.et_data[col])}")
+
+    def prepare_et_data(self, et_data, data_type="eddy", drop_soil=True):
+        """
+        Prepares ET data by correcting timestamps, renaming columns, and cleaning data.
+
+        Args:
+            et_data (pd.DataFrame): Raw ET data.
+            data_type (str): Dataset type ("eddy" or "met").
+            drop_soil (bool): Whether to drop excess soil parameter columns.
+        """
+        logger.debug("Starting Processing")
+        logger.debug(f"Reading first line of file: {self.data_path}")
+        logger.debug(f"Variable limits: \n {self.varlimits.head(5)}")
+        logger.debug(f"Variable limits: \n {self.varlimits.tail(5)}")
+        logger.debug(f"ET Data: \n {et_data.head(5)}")
+        logger.debug(f"ET Data: \n {et_data.tail(5)}")
+
+        # fix datetimes
+        self.et_data = self.datefixer(et_data)
+
+        logger.debug("Corrected Datetimes:")
+        logger.debug(f"{self.et_data.head(5)}")
+        logger.debug(f"{self.et_data.tail(5)}")
+
+        # change variable names
+        self.rename_columns(data_type=data_type)
+
+        logger.debug(f"Changed Names: {self.et_data.columns}")
+        # despike variables and remove long, flat periods
+        self.clean_columns()
         logger.debug(f"Despiked: {self.et_data.head(5)}")
         logger.debug(f"Despiked: {self.et_data.tail(5)}")
         # switch tau sign
@@ -651,7 +633,7 @@ class Reformatter(object):
         self.ssitc_scale()
 
         if "ET_SSITC_TEST" in self.et_data.columns:
-            logger.info(f"SSITC Values: {self.et_data["ET_SSITC_TEST"].unique()}")
+            logger.debug(f"SSITC Values: {self.et_data['ET_SSITC_TEST'].unique()}")
 
         self.drop_extras()
 
@@ -662,7 +644,6 @@ class Reformatter(object):
             self.et_data = self.remove_extra_soil_params(self.et_data)
 
         self.et_data = self.et_data.fillna(value=int(-9999))
-        logger.debug(f"column range fillna: {np.max(self.et_data[col])}")
         logger.debug(f"Fillna: {self.et_data.head(5)}")
         logger.debug(f"Fillna: {self.et_data.tail(5)}")
 
@@ -672,8 +653,8 @@ class Reformatter(object):
 
         if "ET" in self.et_data.columns:
             count_neg_9999 = (self.et_data["ET"] == -9999).sum()
-            logger.info(f"Null Value Count in ET: {count_neg_9999}")
-            logger.info(f"Length of ET: {len(self.et_data["ET"])}")
+            logger.debug(f"Null Value Count in ET: {count_neg_9999}")
+            logger.debug(f"Length of ET: {len(self.et_data['ET'])}")
         self.col_order()
 
     def remove_extra_soil_params(self, df):
@@ -686,7 +667,7 @@ class Reformatter(object):
         :rtype: pandas.DataFrame
         """
         # get a list of columns and split them into parts (parameter number number number)
-        am = AmerifluxDataProcessor()
+        # am = AmerifluxDataProcessor()
         for col in df.columns:
             collist = col.split("_")
             main_var = collist[0]
@@ -697,18 +678,19 @@ class Reformatter(object):
                 if main_var in ["SWC", "TS", "EC", "K"] and (
                     depth_var >= 1 and int(collist[1]) >= 3
                 ):
-                    df.drop(col, axis=1, inplace=True)
+                    df = df.drop(col, axis=1)
             # drop cols from a specified list math_soils_v2
-            elif col in am.math_soils_v2[:-4]:
-                df.drop(col, axis=1, inplace=True)
+            elif col in self.MATH_SOILS_V2[:-4]:
+                df = df.drop(col, axis=1)
             elif main_var in ["VWC", "Ka"] or "cm_N" in col or "cm_S" in col:
-                df.drop(col, axis=1, inplace=True)
+                df = df.drop(col, axis=1)
         return df
 
     def drop_extras(self):
-        for col in self.drop_cols:
+        """Drops columns specified in the configuration."""
+        for col in self.DROP_COLS:
             if col in self.et_data.columns:
-                self.et_data.drop(col, axis=1, inplace=True)
+                self.et_data = self.et_data.drop(col, axis=1)
 
     def col_order(self):
         """Puts priority columns first"""
@@ -716,6 +698,9 @@ class Reformatter(object):
         for col in first_cols:
             ncol = self.et_data.pop(col)
             self.et_data.insert(0, col, ncol)
+        logger.debug(f"Column Order: {self.et_data.columns}")
+        logger.debug(f"Column Order: {self.et_data.head(5)}")
+        logger.debug(f"Column Order: {self.et_data.tail(5)}")
 
     def datefixer(self, et_data):
         """
@@ -753,9 +738,11 @@ class Reformatter(object):
         """
         # create datetime fields to conduct datetime operations on dataset
         et_data["datetime_start"] = pd.to_datetime(
-            et_data["TIMESTAMP_START"], format="%Y%m%d%H%M"
+            et_data["TIMESTAMP_START"],
+            format="%Y%m%d%H%M",
+            errors="coerce",
         )
-
+        et_data["datetime_start"] = et_data["datetime_start"].dropna()
         et_data = et_data.drop_duplicates(subset=["TIMESTAMP_START", "TIMESTAMP_END"])
         et_data = et_data.set_index(["datetime_start"]).sort_index()
 
@@ -806,25 +793,32 @@ class Reformatter(object):
 
     def update_dataframe_column(self, new_column, old_column):
         """
-        Given the old column name and the new column name, replace the old column with
-        the new one in the DataFrame self.et_data.
-        The new column will be a combination of the maximum values of the old column and itself.
+        Combines new and old columns, retaining maximum values, and removes the old column.
+
+        Args:
+            new_column (str): Name of the new column.
+            old_column (str): Name of the old column to replace.
         """
         self.et_data[new_column] = self.et_data[[old_column, new_column]].max(axis=1)
         self.et_data = self.et_data.drop(old_column, axis=1)
 
-    def name_changer(self):
-        """
-        Changes column names in the DataFrame based on the given dictionary of column name mappings.
-        :return: None
-        """
-        for old_column, new_column in self.col_name_match.items():
-            if old_column in self.et_data.columns:
-                if new_column in self.et_data.columns:
-                    self.update_dataframe_column(new_column, old_column)
+    def rename_columns(self, data_type="eddy"):
+        """Renames columns based on the dataset type and configuration mappings."""
+
+        if data_type == "eddy":
+            mappings = self.COL_NAME_MATCH
+        else:
+            mappings = self.MET_RENAMES
+
+        for old_col, new_col in mappings.items():
+            if old_col in self.et_data.columns:
+                if new_col in self.et_data.columns:
+                    logger.debug(f"Updating column: {old_col} to {new_col}")
+                    self.et_data[new_col] = self.et_data[[old_col, new_col]].max(axis=1)
+                    self.et_data = self.et_data.drop(old_col, axis=1)
                 else:
-                    self.et_data[new_column] = self.et_data[old_column]
-                    self.et_data = self.et_data.drop(old_column, axis=1)
+                    logger.debug(f"Renaming column: {old_col} to {new_col}")
+                    self.et_data = self.et_data.rename(columns={old_col: new_col})
 
     def scale_and_convert(self, column: pd.Series) -> pd.Series:
         """
@@ -885,9 +879,9 @@ class Reformatter(object):
         :return: The extracted variable name.
         :rtype: str
         """
-        if variable in self.othervar:
+        if variable in self.OTHER_VARS:
             varlimvar = variable
-        elif any(variable in x for x in self.othervar):
+        elif any(variable in x for x in self.OTHER_VARS):
             temp = variable.split("_")[:2]
             varlimvar = "_".join(temp)
         else:
@@ -937,7 +931,7 @@ class Reformatter(object):
             df = self.replace_out_of_range_with_nan(df, variable, replace_w)
         return df
 
-    def despike(self, arr, nstd: float = 4.5):
+    def despike(self, arr):
         """Removes spikes from an array of values based on a specified deviation from the mean.
 
         Args:
@@ -951,7 +945,7 @@ class Reformatter(object):
             * This method is fast but might be too agressive if the spikes are small relative to seasonal variability.
         """
 
-        stdd = np.nanstd(arr) * nstd
+        stdd = np.nanstd(arr) * self.spike_threshold
         avg = np.nanmean(arr)
         avgdiff = stdd - np.abs(arr - avg)
         y = np.where(avgdiff >= 0, arr, np.nan)
@@ -981,6 +975,7 @@ class Reformatter(object):
                 self.et_data.loc[self.et_data[col] > -9999, col] *= 100
 
     def timestamp_reset(self):
+        """Resets timestamp columns according to DataFrame index."""
         self.et_data["TIMESTAMP_START"] = self.et_data.index
         self.et_data["TIMESTAMP_END"] = self.et_data.index + pd.Timedelta(minutes=30)
 
@@ -1075,6 +1070,7 @@ bet_part = [
     "LW_OUT",
     "P",
 ]
+
 bet_header = main_header_part + bet_part
 
 met_headers = [
