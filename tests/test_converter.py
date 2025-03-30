@@ -1,3 +1,4 @@
+import sys
 import pytest
 import pandas as pd
 import numpy as np
@@ -6,6 +7,7 @@ from pathlib import Path
 import tempfile
 import os
 from unittest.mock import mock_open, patch
+
 from micromet.converter import Reformatter, AmerifluxDataProcessor
 
 

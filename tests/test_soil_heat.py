@@ -1,8 +1,9 @@
 import pytest
+import os
 import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
-from micromet import (  # Replace 'your_module' with the actual module name
+from micromet.soil_heat import (
     temperature_gradient,
     soil_heat_flux,
     volumetric_heat_capacity,
