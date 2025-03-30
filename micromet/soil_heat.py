@@ -44,26 +44,34 @@ def soil_heat_flux(T_upper, T_lower, depth_upper, depth_lower, k):
     return -k * temperature_gradient(T_upper, T_lower, depth_upper, depth_lower)
 
 
-def volumetric_heat_capacity(dry_density, moisture_content, organic_matter_content=0):
+def volumetric_heat_capacity(theta_v):
     """
-    Calculate the volumetric heat capacity of soil.
+    Estimate volumetric heat capacity Cv (J/(m³·°C)) from soil moisture.
 
     Parameters:
-    - dry_density: Dry density of the soil (Mg/m^3)
-    - moisture_content: Volumetric moisture content (m^3/m^3)
-    - organic_matter_content: Fraction of organic matter in soil
+    - theta_v: Volumetric water content (decimal fraction, e.g., 0.20 for 20%)
 
     Returns:
-    - Volumetric heat capacity (MJ m-3 K-1)
+    - Volumetric heat capacity (kJ/(m³·°C))
     """
-    # Heat capacity of dry soil is approximated, can be refined based on soil type
-    heat_capacity_dry_soil = 0.84  # MJ m-3 K-1 (approximate)
-    heat_capacity_organic_matter = 2.5  #  MJ m-3 K-1
-    return (
-        (dry_density * heat_capacity_dry_soil)
-        + (moisture_content * WATER_HEAT_CAPACITY)
-        + (organic_matter_content * heat_capacity_organic_matter)
-    )
+    C_soil = 1942  # dry soil heat capacity kJ/(m³·°C)
+    C_water = 4186  # water heat capacity kJ/(m³·°C)
+    return (1 - theta_v) * C_soil + theta_v * C_water
+
+
+def thermal_conductivity(alpha, theta_v):
+    """
+    Calculate thermal conductivity (k) from diffusivity and moisture.
+
+    Parameters:
+    - alpha: Thermal diffusivity (m²/s)
+    - theta_v: Volumetric water content (decimal fraction)
+
+    Returns:
+    - Thermal conductivity k (W/(m·°C))
+    """
+    Cv = volumetric_heat_capacity(theta_v)
+    return alpha * Cv
 
 
 def diurnal_amplitude(series: pd.Series) -> pd.Series:
@@ -134,7 +142,96 @@ def sinusoid(t, A, omega, phase, offset):
     return A * np.sin(omega * t + phase) + offset
 
 
-def calculate_thermal_diffusivity_for_pair(df, col1, col2, z1, z2, period):
+def thermal_diffusivity_amplitude(A1, A2, z1, z2, period=86400):
+    """
+    Estimate thermal diffusivity from amplitude damping.
+
+    Parameters:
+    - A1, A2: Amplitudes at shallow (z1) and deep (z2) depths
+    - z1, z2: Depths (m)
+    - period: Time period of wave (default = 86400 s for daily cycle)
+
+    Returns:
+    - Thermal diffusivity α (m²/s)
+
+    Citation:
+    H.J. Carslaw, and J.C. Jaeger, Conduction of heat in solids (2nd edition), Oxford University Press, NewYork, 510 p, 1959
+    """
+    alpha = (np.pi * (z2 - z1) ** 2) / (period * (np.log(A1 / A2)) ** 2)
+    return alpha
+
+
+def thermal_diffusivity_lag(delta_t, z1, z2, period=86400):
+    """
+    Estimate thermal diffusivity from phase lag.
+
+    Parameters:
+    - delta_t: Time lag between peaks at two depths (seconds)
+    - z1, z2: Depths (m)
+    - period: Time period of wave (default = 86400 s for daily cycle)
+
+    Returns:
+    - Thermal diffusivity α (m²/s)
+
+    Citation:
+    S.V. Nerpin, and A.F. Chudnovskii, Soil physics, (Moscow: Nauka) p 584, 1967 (in Russian)
+    """
+
+    alpha = (period / (4 * np.pi)) * (z2 - z1) ** 2 / (delta_t) ** 2
+    return alpha
+
+
+def thermal_diffusivity_logrithmic(
+    t1z1, t2z1, t3z1, t4z1, t1z2, t2z2, t3z2, t4z2, z1, z2, period=86400
+):
+    """
+    Estimate thermal diffusivity from Seemann's method.
+
+    Parameters:
+    - t11,t12,t13,t14: Temperatures at depth z1 at 4 different times
+    - t21,t22,t23,t24: Temperatures at depth z2 at 4 different times
+    - z1, z2: Depths (m)
+
+    Returns:
+    - Thermal diffusivity α (m²/s)
+
+    Citation:
+      A. N. Kolmogorov, On the question of determining the coefficient of thermal diffusivity of the soil, Izv.Acad. Sci. USSR. Geogr.Geophys., 2(14), 97–99, 1950 (in Russian).
+    """
+    alpha = (4 * np.pi * (z2 - z1) ** 2) / (
+        period
+        * np.log(
+            ((t1z1 - t3z1) ** 2 + (t2z1 - t4z1) ** 2)
+            / ((t1z2 - t3z2) ** 2 + (t2z2 - t4z2)) ** 2
+        )
+        ** 2
+    )
+    return alpha
+
+
+def calc_thermal_diffusivity_log_pair(df, depth1_col, depth2_col, z1, z2, period=86400):
+    """Calculates thermal diffusivity for a pair of depths using the logarithmic method."""
+    if len(df) < 4:
+        print(
+            f"Warning: Not enough time points for logarithmic method between {depth1_col} and {depth2_col}."
+        )
+        return None
+
+    t1z1 = df[depth1_col].iloc[0]
+    t2z1 = df[depth1_col].iloc[1]
+    t3z1 = df[depth1_col].iloc[2]
+    t4z1 = df[depth1_col].iloc[3]
+    t1z2 = df[depth2_col].iloc[0]
+    t2z2 = df[depth2_col].iloc[1]
+    t3z2 = df[depth2_col].iloc[2]
+    t4z2 = df[depth2_col].iloc[3]
+
+    return thermal_diffusivity_logrithmic(
+        t1z1, t2z1, t3z1, t4z1, t1z2, t2z2, t3z2, t4z2, z1, z2, period
+    )
+
+
+def calculate_thermal_diffusivity_for_pair(df, col1, col2, z1, z2, period=86400):
     """
     Calculates thermal diffusivity using the log-amplitude, amplitude, and phase methods.
 
@@ -149,52 +246,31 @@ def calculate_thermal_diffusivity_for_pair(df, col1, col2, z1, z2, period):
     Returns:
         dict: A dictionary containing thermal diffusivity calculated by each method.
     """
-    temp_data_depth1 = df[col1].values
-    temp_data_depth2 = df[col2].values
+    temp_data_depth1 = df[col1]
+    temp_data_depth2 = df[col2]
 
-    # Time vector in seconds
-    time_sec = np.arange(
-        0, len(temp_data_depth1) * 1800, 1800
-    )  # Assuming 30-min intervals
+    A1 = diurnal_amplitude(temp_data_depth1)
+    A2 = diurnal_amplitude(temp_data_depth2)
 
-    # Fit sine curves
-    popt_depth1 = fit_sinusoid(time_sec, temp_data_depth1)
-    popt_depth2 = fit_sinusoid(time_sec, temp_data_depth2)
+    phase = diurnal_peak_lag(temp_data_depth2, temp_data_depth1)
 
-    # Extract fitted parameters
-    A1, omega1, phase1, offset1 = popt_depth1
-    A2, omega2, phase2, offset2 = popt_depth2
-
-    # Log-amplitude method
-    alpha_log_amplitude = (
-        ((z2 - z1) / np.log(A1 / A2)) ** 2 / (2 * omega1)
-        if A1 != 0 and A2 != 0 and np.log(A1 / A2) != 0
-        else None
-    )
-
-    # Amplitude method
-    alpha_amplitude = (
-        ((z2 - z1) / (np.log(A1 / A2))) ** 2 / (2 * np.pi / period)
-        if A1 != 0 and A2 != 0 and np.log(A1 / A2) != 0
-        else None
-    )
-
-    # Phase method
-    alpha_phase = (
-        ((z2 - z1) / (phase2 - phase1)) ** 2 / (2 * np.pi / period)
-        if (phase2 - phase1) != 0
-        else None
+    alpha_amplitude = thermal_diffusivity_amplitude(A1, A2, z1, z2, period)
+    alpha_phase = thermal_diffusivity_lag(phase * 3600, z1, z2, period)
+    alpha_log_amplitude = calc_thermal_diffusivity_log_pair(
+        df, col1, col2, z1, z2, period
     )
 
     return {
-        "log_amplitude": alpha_log_amplitude,
-        "amplitude": alpha_amplitude,
-        "phase": alpha_phase,
+        "alpha_log": alpha_log_amplitude,
+        "alpha_amp": alpha_amplitude,
+        "alpha_lag": alpha_phase,
     }
 
 
 def calculate_thermal_properties_for_all_pairs(
-    df, depth_mapping, period=86400, dry_density=1.3, moisture_content=0.2
+    df,
+    depth_mapping,
+    period=86400,
 ):
     """
     Calculates thermal diffusivity, volumetric heat capacity, and soil heat flux for all depth pairs.
@@ -209,14 +285,17 @@ def calculate_thermal_properties_for_all_pairs(
     Returns:
         pd.DataFrame: A DataFrame containing the calculated thermal properties for each depth pair.
     """
-    results = []
-    depth_cols = list(depth_mapping.keys())
 
-    # Calculate volumetric heat capacity (assumed constant for all pairs here)
-    ch = volumetric_heat_capacity(dry_density, moisture_content)
+    depth_cols = list(depth_mapping.keys())
+    dfs = {}
 
     for i in range(len(depth_cols)):
         for j in range(i + 1, len(depth_cols)):
+            df1 = (
+                df.copy().dropna()
+            )  # Copy the DataFrame to avoid modifying the original data
+
+            res_z = {}
             col1 = depth_cols[i]
             col2 = depth_cols[j]
             z1 = depth_mapping[col1]
@@ -224,33 +303,40 @@ def calculate_thermal_properties_for_all_pairs(
 
             # Calculate thermal diffusivity
             alpha_results = calculate_thermal_diffusivity_for_pair(
-                df, col1, col2, z1, z2, period
+                df1, col1, col2, z1, z2, period
             )
 
-            # Calculate soil heat flux
-            # Using a simple approach: heat flux between the two depths
-            k = 0.5  # Approximation, can be improved with site-specific data
-            G = soil_heat_flux(
-                df[col1].mean(), df[col2].mean(), z1, z2, k
-            )  # Using mean temperatures for simplicity
-
-            results.append(
-                {
-                    "depth1_col": col1,
-                    "depth2_col": col2,
-                    "z1 (m)": z1,
-                    "z2 (m)": z2,
-                    "thermal_diffusivity_log_amp (m^2/s)": alpha_results[
-                        "log_amplitude"
-                    ],
-                    "thermal_diffusivity_amplitude (m^2/s)": alpha_results["amplitude"],
-                    "thermal_diffusivity_phase (m^2/s)": alpha_results["phase"],
-                    "volumetric_heat_capacity (MJ m-3 K-1)": ch,
-                    "soil_heat_flux (W/m^2)": G,
-                }
+            soil_moist_percent = (
+                df1[[col1.replace("ts", "swc"), col2.replace("ts", "swc")]].mean(axis=1)
+                / 100
             )
 
-    return pd.DataFrame(results)
+            col_list = []
+            for key, val in alpha_results.items():
+                if val is None:
+                    df1[f"k_{key}"] = np.nan
+
+                else:
+                    k = thermal_conductivity(val, soil_moist_percent)
+                    df1[f"G_{key}"] = soil_heat_flux(
+                        df1[col1],
+                        df1[col2],
+                        z1,
+                        z2,
+                        k,
+                    )  # Calculate soil heat flux using the thermal conductivity
+                    df1[f"k_{key}"] = k
+                    df1[f"{key}"] = val  # Store the thermal diffusivity value
+                    # Store the volumetric water content
+                    df1["theta_v"] = soil_moist_percent
+                    col_list.append(f"{key}")
+                    col_list.append(f"G_{key}")
+                    col_list.append(f"k_{key}")
+                    col_list.append("theta_v")
+
+            dfs[f"{z1}-{z2}"] = df1[col_list]
+
+    return pd.concat(dfs)
 
 
 if __name__ == "__main__":
