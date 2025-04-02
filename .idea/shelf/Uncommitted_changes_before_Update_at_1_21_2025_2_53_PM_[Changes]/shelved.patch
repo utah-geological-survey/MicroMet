@@ -1,0 +1,923 @@
+Index: micromet/tools.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>import matplotlib.pyplot as plt\r\nfrom scipy.signal import find_peaks\r\nimport pandas as pd\r\nimport numpy as np\r\nimport plotly.figure_factory as ff\r\nfrom datetime import datetime\r\nimport plotly.graph_objects as go\r\nfrom typing import Union, List, Dict\r\n\r\n\r\ndef find_irr_dates(\r\n    df, swc_col=\"SWC_1_1_1\", do_plot=False, dist=20, height=30, prom=0.6\r\n):\r\n    \"\"\"\r\n    Finds irrigation dates within a DataFrame.\r\n\r\n    :param df: A pandas DataFrame containing the data.\r\n    :param swc_col: String. The column name in 'df' containing the soil water content data. Should be in units of percent and not a decimal; Default is 'SWC_1_1_1'.\r\n    :param do_plot: Boolean. Whether to plot the irrigation dates on a graph. Default is False.\r\n    :param dist: Integer. The minimum number of time steps between peaks in 'swc_col'. Default is 20.\r\n    :param height: Integer. The minimum height (vertical distance) of the peaks in 'swc_col'. Default is 30(%).\r\n    :param prom: Float. The minimum prominence of the peaks in 'swc_col'. Default is 0.6.\r\n\r\n    :return: A tuple containing the irrigation dates and the corresponding soil water content values.\r\n    \"\"\"\r\n    df_irr_season = df[df.index.month.isin([4, 5, 6, 7, 8, 9, 10])]\r\n    peaks, _ = find_peaks(\r\n        df_irr_season[swc_col], distance=dist, height=height, prominence=(prom, None)\r\n    )\r\n    dates_of_irr = df_irr_season.iloc[peaks].index\r\n    swc_during_irr = df_irr_season[swc_col].iloc[peaks]\r\n    if do_plot:\r\n        plt.plot(df.index, df[swc_col])\r\n        plt.plot(dates_of_irr, swc_during_irr, \"x\")\r\n        plt.show()\r\n    return dates_of_irr, swc_during_irr\r\n\r\n\r\ndef find_gaps(df, columns, missing_value=-9999, min_gap_periods=1):\r\n    \"\"\"\r\n    Find gaps in time series data where values are either NaN or equal to missing_value\r\n    for longer than min_gap_periods.\r\n\r\n    Parameters:\r\n    -----------\r\n    df : pandas.DataFrame\r\n        DataFrame with a time series index of regular frequency\r\n    columns : str or list of str\r\n        Column(s) to check for gaps\r\n    missing_value : numeric, default -9999\r\n        Value to consider as missing data alongside NaN\r\n    min_gap_periods : int, default 1\r\n        Minimum number of consecutive missing periods to be considered a gap\r\n\r\n    Returns:\r\n    --------\r\n    pandas.DataFrame\r\n        DataFrame containing gap information with columns:\r\n        - gap_start: start datetime of gap\r\n        - gap_end: end datetime of gap\r\n        - duration_hours: duration of gap in hours\r\n        - missing_records: number of missing records in gap\r\n        - column: name of column where gap was found\r\n    \"\"\"\r\n    if isinstance(columns, str):\r\n        columns = [columns]\r\n\r\n    # Initialize list to store gap information\r\n    gaps = []\r\n\r\n    for col in columns:\r\n        # Create boolean mask for missing values\r\n        is_missing = df[col].isna() | (df[col] == missing_value)\r\n\r\n        # Get the frequency of the time series as a pandas timedelta\r\n        freq = pd.tseries.frequencies.to_offset(pd.infer_freq(df.index))\r\n\r\n        # Find runs of missing values\r\n        missing_runs = (is_missing != is_missing.shift()).cumsum()[is_missing]\r\n\r\n        if len(missing_runs) == 0:\r\n            continue\r\n\r\n        # Group consecutive missing values\r\n        for run_id in missing_runs.unique():\r\n            run_mask = missing_runs == run_id\r\n            run_indices = missing_runs[run_mask].index\r\n\r\n            # Only consider runs longer than min_gap_periods\r\n            if len(run_indices) > min_gap_periods:\r\n                gap_start = run_indices[0]\r\n                gap_end = run_indices[-1]\r\n\r\n                # Calculate duration in hours\r\n                duration_hours = (gap_end - gap_start).total_seconds() / 3600\r\n\r\n                gaps.append(\r\n                    {\r\n                        \"gap_start\": gap_start,\r\n                        \"gap_end\": gap_end,\r\n                        \"duration_hours\": duration_hours,\r\n                        \"missing_records\": len(run_indices),\r\n                        \"column\": col,\r\n                    }\r\n                )\r\n\r\n    if not gaps:\r\n        return pd.DataFrame(\r\n            columns=[\r\n                \"gap_start\",\r\n                \"gap_end\",\r\n                \"duration_hours\",\r\n                \"missing_records\",\r\n                \"column\",\r\n            ]\r\n        )\r\n\r\n    return pd.DataFrame(gaps).sort_values(\"gap_start\").reset_index(drop=True)\r\n\r\n\r\ndef plot_gaps(gaps_df, title=\"Time Series Data Gaps\"):\r\n    \"\"\"\r\n    Create a Gantt chart visualization of gaps in time series data.\r\n\r\n    Parameters:\r\n    -----------\r\n    gaps_df : pandas.DataFrame\r\n        DataFrame containing gap information as returned by find_gaps()\r\n    title : str, default \"Time Series Data Gaps\"\r\n        Title for the plot\r\n\r\n    Returns:\r\n    --------\r\n    plotly.graph_objects.Figure\r\n        Interactive Plotly figure showing gaps as a Gantt chart\r\n    \"\"\"\r\n    if len(gaps_df) == 0:\r\n        print(\"No gaps found to plot.\")\r\n        return None\r\n\r\n    # Create figure\r\n    fig = go.Figure()\r\n\r\n    # Get unique columns and assign colors\r\n    unique_columns = gaps_df[\"column\"].unique()\r\n    # Define a set of colors manually\r\n    colors = [\r\n        \"rgb(166,206,227)\",\r\n        \"rgb(31,120,180)\",\r\n        \"rgb(178,223,138)\",\r\n        \"rgb(51,160,44)\",\r\n        \"rgb(251,154,153)\",\r\n        \"rgb(227,26,28)\",\r\n        \"rgb(253,191,111)\",\r\n        \"rgb(255,127,0)\",\r\n        \"rgb(202,178,214)\",\r\n    ]\r\n    # Cycle through colors if more variables than colors\r\n    color_map = dict(\r\n        zip(\r\n            unique_columns,\r\n            [colors[i % len(colors)] for i in range(len(unique_columns))],\r\n        )\r\n    )\r\n\r\n    # Add gaps as horizontal bars\r\n    for idx, row in gaps_df.iterrows():\r\n        fig.add_trace(\r\n            go.Bar(\r\n                x=[row[\"duration_hours\"]],\r\n                y=[row[\"column\"]],\r\n                orientation=\"h\",\r\n                base=[(row[\"gap_start\"] - pd.Timestamp.min).total_seconds() / 3600],\r\n                marker_color=color_map[row[\"column\"]],\r\n                name=row[\"column\"],\r\n                showlegend=False,\r\n                hovertemplate=(\r\n                    f\"Column: {row['column']}<br>\"\r\n                    + f\"Start: {row['gap_start']}<br>\"\r\n                    + f\"End: {row['gap_end']}<br>\"\r\n                    + f\"Duration: {row['duration_hours']:.1f} hours<br>\"\r\n                    + f\"Missing Records: {row['missing_records']}\"\r\n                ),\r\n            )\r\n        )\r\n\r\n    # Update layout\r\n    fig.update_layout(\r\n        title=title,\r\n        xaxis_title=\"Time\",\r\n        yaxis_title=\"Variables\",\r\n        barmode=\"overlay\",\r\n        height=max(200, 100 * len(unique_columns)),\r\n        showlegend=False,\r\n        xaxis=dict(tickformat=\"%Y-%m-%d %H:%M\", type=\"date\"),\r\n    )\r\n\r\n    return fig\r\n\r\n\r\ndef detect_extreme_variations(\r\n    df: pd.DataFrame,\r\n    fields: Union[str, List[str]] = None,\r\n    frequency: str = \"D\",\r\n    variation_threshold: float = 3.0,\r\n    null_value: Union[float, int] = -9999,\r\n    min_periods: int = 2,\r\n) -> Dict[str, pd.DataFrame]:\r\n    \"\"\"\r\n    Detect extreme variations in specified fields of a datetime-indexed DataFrame.\r\n\r\n    Parameters:\r\n    -----------\r\n    df : pandas.DataFrame\r\n        Input DataFrame with datetime index\r\n    fields : str or list of str, optional\r\n        Column names to analyze. If None, analyzes all numeric columns\r\n    frequency : str, default 'D'\r\n        Frequency to analyze variations over ('D' for daily, 'H' for hourly, etc.)\r\n    variation_threshold : float, default 3.0\r\n        Number of standard deviations beyond which a variation is considered extreme\r\n    null_value : float or int, default -9999\r\n        Value to be treated as null\r\n    min_periods : int, default 2\r\n        Minimum number of valid observations required to calculate variation\r\n\r\n    Returns:\r\n    --------\r\n    dict\r\n        Dictionary containing:\r\n        - 'variations': DataFrame with calculated variations\r\n        - 'extreme_points': DataFrame with flagged extreme variations\r\n        - 'summary': DataFrame with summary statistics\r\n    \"\"\"\r\n    # Validate input DataFrame\r\n    if not isinstance(df.index, pd.DatetimeIndex):\r\n        raise ValueError(\"DataFrame must have a datetime index\")\r\n\r\n    # Create copy of DataFrame\r\n    df_copy = df.copy()\r\n\r\n    # Replace null values\r\n    df_copy = df_copy.replace(null_value, np.nan)\r\n\r\n    # Select fields to analyze\r\n    if fields is None:\r\n        fields = df_copy.select_dtypes(include=[np.number]).columns.tolist()\r\n    elif isinstance(fields, str):\r\n        fields = [fields]\r\n\r\n    # Initialize results\r\n    variations = pd.DataFrame(index=df_copy.index)\r\n    extreme_points = pd.DataFrame(index=df_copy.index)\r\n    summary_stats = []\r\n\r\n    # Calculate variations and detect extremes for each field\r\n    for field in fields:\r\n        # Group by frequency and calculate statistics\r\n        grouped = df_copy[field].groupby(pd.Grouper(freq=frequency))\r\n\r\n        # Calculate variation metrics\r\n        field_var = f\"{field}_variation\"\r\n        variations[field_var] = grouped.transform(\r\n            lambda x: (\r\n                np.abs(x - x.mean()) / x.std()\r\n                if len(x.dropna()) >= min_periods\r\n                else np.nan\r\n            )\r\n        )\r\n\r\n        # Flag extreme variations\r\n        extreme_points[f\"{field}_extreme\"] = variations[field_var] > variation_threshold\r\n\r\n        # Calculate summary statistics\r\n        field_summary = {\r\n            \"field\": field,\r\n            \"total_observations\": len(df_copy[field].dropna()),\r\n            \"extreme_variations\": extreme_points[f\"{field}_extreme\"].sum(),\r\n            \"mean_variation\": variations[field_var].mean(),\r\n            \"max_variation\": variations[field_var].max(),\r\n            \"std_variation\": variations[field_var].std(),\r\n        }\r\n        summary_stats.append(field_summary)\r\n\r\n    # Create summary DataFrame\r\n    summary_df = pd.DataFrame(summary_stats)\r\n\r\n    return {\r\n        \"variations\": variations,\r\n        \"extreme_points\": extreme_points,\r\n        \"summary\": summary_df,\r\n    }\r\n\r\n\r\ndef clean_extreme_variations(\r\n    df: pd.DataFrame,\r\n    fields: Union[str, List[str]] = None,\r\n    frequency: str = \"D\",\r\n    variation_threshold: float = 3.0,\r\n    null_value: Union[float, int] = -9999,\r\n    min_periods: int = 2,\r\n    replacement_method: str = \"nan\",\r\n) -> Dict[str, Union[pd.DataFrame, pd.DataFrame]]:\r\n    \"\"\"\r\n    Clean extreme variations from specified fields in a DataFrame.\r\n\r\n    Parameters:\r\n    -----------\r\n    df : pandas.DataFrame\r\n        Input DataFrame with datetime index\r\n    fields : str or list of str, optional\r\n        Column names to clean. If None, processes all numeric columns\r\n    frequency : str, default 'D'\r\n        Frequency to analyze variations over ('D' for daily, 'H' for hourly, etc.)\r\n    variation_threshold : float, default 3.0\r\n        Number of standard deviations beyond which a variation is considered extreme\r\n    null_value : float or int, default -9999\r\n        Value to be treated as null\r\n    min_periods : int, default 2\r\n        Minimum number of valid observations required to calculate variation\r\n    replacement_method : str, default 'nan'\r\n        Method to handle extreme values:\r\n        - 'nan': Replace with NaN\r\n        - 'interpolate': Linear interpolation\r\n        - 'mean': Replace with frequency mean\r\n        - 'median': Replace with frequency median\r\n\r\n    Returns:\r\n    --------\r\n    dict\r\n        Dictionary containing:\r\n        - 'cleaned_data': DataFrame with cleaned data\r\n        - 'cleaning_summary': DataFrame summarizing the cleaning process\r\n        - 'removed_points': DataFrame containing the removed values\r\n    \"\"\"\r\n    # Validate replacement method\r\n    valid_methods = [\"nan\", \"interpolate\", \"mean\", \"median\"]\r\n    if replacement_method not in valid_methods:\r\n        raise ValueError(f\"replacement_method must be one of {valid_methods}\")\r\n\r\n    # Detect extreme variations\r\n    variation_results = detect_extreme_variations(\r\n        df=df,\r\n        fields=fields,\r\n        frequency=frequency,\r\n        variation_threshold=variation_threshold,\r\n        null_value=null_value,\r\n        min_periods=min_periods,\r\n    )\r\n\r\n    # Create copy of input DataFrame\r\n    cleaned_df = df.copy()\r\n\r\n    # Initialize summary statistics\r\n    cleaning_summary = []\r\n    removed_points = pd.DataFrame(index=df.index)\r\n\r\n    # Process each field\r\n    if fields is None:\r\n        fields = df.select_dtypes(include=[np.number]).columns.tolist()\r\n    elif isinstance(fields, str):\r\n        fields = [fields]\r\n\r\n    for field in fields:\r\n        # Get extreme points for this field\r\n        extreme_mask = variation_results[\"extreme_points\"][f\"{field}_extreme\"]\r\n\r\n        # Store removed values\r\n        removed_points[field] = np.where(extreme_mask, cleaned_df[field], np.nan)\r\n\r\n        # Apply replacement method\r\n        if replacement_method == \"nan\":\r\n            cleaned_df.loc[extreme_mask, field] = np.nan\r\n\r\n        elif replacement_method == \"interpolate\":\r\n            temp_series = cleaned_df[field].copy()\r\n            temp_series[extreme_mask] = np.nan\r\n            cleaned_df[field] = temp_series.interpolate(method=\"time\")\r\n\r\n        elif replacement_method in [\"mean\", \"median\"]:\r\n            grouped = cleaned_df[field].groupby(pd.Grouper(freq=frequency))\r\n            if replacement_method == \"mean\":\r\n                replacements = grouped.transform(\"mean\")\r\n            else:\r\n                replacements = grouped.transform(\"median\")\r\n            cleaned_df.loc[extreme_mask, field] = replacements[extreme_mask]\r\n\r\n        # Calculate cleaning summary\r\n        cleaning_stats = {\r\n            \"field\": field,\r\n            \"points_removed\": extreme_mask.sum(),\r\n            \"percent_removed\": (extreme_mask.sum() / len(df)) * 100,\r\n            \"replacement_method\": replacement_method,\r\n        }\r\n        cleaning_summary.append(cleaning_stats)\r\n\r\n    return {\r\n        \"cleaned_data\": cleaned_df,\r\n        \"cleaning_summary\": pd.DataFrame(cleaning_summary),\r\n        \"removed_points\": removed_points,\r\n    }\r\n\r\n\r\ndef polar_to_cartesian_dataframe(df, wd_column=\"WD\", dist_column=\"Dist\"):\r\n    \"\"\"\r\n    Convert polar coordinates from a DataFrame to Cartesian coordinates.\r\n\r\n    Parameters:\r\n        df (pd.DataFrame): Input DataFrame containing polar coordinates.\r\n        wd_column (str): Column name for degrees from north.\r\n        dist_column (str): Column name for distance from origin.\r\n\r\n    Returns:\r\n        pd.DataFrame: A DataFrame with added 'X' and 'Y' columns.\r\n    \"\"\"\r\n    # Create copies of the input columns to avoid modifying original data\r\n    wd = df[wd_column].copy()\r\n    dist = df[dist_column].copy()\r\n\r\n    # Identify invalid values (-9999 or NaN)\r\n    invalid_mask = (wd == -9999) | (dist == -9999) | wd.isna() | dist.isna()\r\n\r\n    # Convert degrees from north to standard polar angle (radians) where valid\r\n    theta_radians = np.radians(90 - wd)\r\n\r\n    # Calculate Cartesian coordinates, setting invalid values to NaN\r\n    df[f\"X_{dist_column}\"] = np.where(\r\n        invalid_mask, np.nan, dist * np.cos(theta_radians)\r\n    )\r\n    df[f\"Y_{dist_column}\"] = np.where(\r\n        invalid_mask, np.nan, dist * np.sin(theta_radians)\r\n    )\r\n\r\n    return df\r\n\r\n\r\n# Example usage:\r\nif __name__ == \"__main__\":\r\n    # Create sample data\r\n    dates = pd.date_range(start=\"2024-01-01\", end=\"2024-01-02\", freq=\"30min\")\r\n    df = pd.DataFrame(index=dates)\r\n\r\n    # Create multiple columns with gaps\r\n    df[\"temperature\"] = 20 + np.random.randn(len(dates))\r\n    df[\"humidity\"] = 60 + np.random.randn(len(dates))\r\n    df[\"pressure\"] = 1013 + np.random.randn(len(dates))\r\n\r\n    # Insert some gaps\r\n    df.loc[\"2024-01-01 10:00\":\"2024-01-01 12:00\", \"temperature\"] = -9999\r\n    df.loc[\"2024-01-01 15:00\":\"2024-01-01 16:00\", \"humidity\"] = np.nan\r\n    df.loc[\"2024-01-01 18:00\":\"2024-01-01 20:00\", \"pressure\"] = -9999\r\n\r\n    # Find gaps\r\n    gaps_df = find_gaps(df, [\"temperature\", \"humidity\", \"pressure\"], min_gap_periods=1)\r\n\r\n    # Create and show plot\r\n    fig = plot_gaps(gaps_df, \"Sample Data Gaps\")\r\n    fig.show()\r\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/micromet/tools.py b/micromet/tools.py
+--- a/micromet/tools.py	(revision 727b618fe07b58b9be28c91fc1c847f38664fc34)
++++ b/micromet/tools.py	(date 1737494020312)
+@@ -6,6 +6,7 @@
+ from datetime import datetime
+ import plotly.graph_objects as go
+ from typing import Union, List, Dict
++from shapely.geometry import MultiPoint
+ 
+ 
+ def find_irr_dates(
+@@ -434,6 +435,43 @@
+     return df
+ 
+ 
++def aggregate_to_daily_centroid(
++    df, date_column="Timestamp", x_column="X", y_column="Y"
++):
++    """
++    Aggregate half-hourly coordinate data to daily centroids.
++
++    Parameters:
++        df (pd.DataFrame): DataFrame containing timestamp and coordinates.
++        date_column (str): Column containing datetime values.
++        x_column (str): Column name for X coordinate.
++        y_column (str): Column name for Y coordinate.
++
++    Returns:
++        pd.DataFrame: Aggregated daily centroids.
++    """
++    # Ensure datetime format
++    df[date_column] = pd.to_datetime(df[date_column])
++
++    # Group by date (ignoring time component)
++    df["Date"] = df[date_column].dt.date
++
++    # Calculate centroid (mean of X and Y)
++    daily_centroids = (
++        df.groupby("Date").agg({x_column: "mean", y_column: "mean"}).reset_index()
++    )
++
++    return daily_centroids
++
++
++def daily_convex_hull(df):
++    df["Date"] = df["Timestamp"].dt.date
++    daily_hulls = df.groupby("Date").apply(
++        lambda g: MultiPoint(g[["X", "Y"]].values).convex_hull
++    )
++    return daily_hulls
++
++
+ # Example usage:
+ if __name__ == "__main__":
+     # Create sample data
+Index: .idea/workspace.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+><?xml version=\"1.0\" encoding=\"UTF-8\"?>\r\n<project version=\"4\">\r\n  <component name=\"AnalysisUIOptions\">\r\n    <option name=\"ANALYZE_INJECTED_CODE\" value=\"false\" />\r\n    <option name=\"SCOPE_TYPE\" value=\"3\" />\r\n  </component>\r\n  <component name=\"AutoImportSettings\">\r\n    <option name=\"autoReloadType\" value=\"SELECTIVE\" />\r\n  </component>\r\n  <component name=\"ChangeListManager\">\r\n    <list default=\"true\" id=\"a09e9df8-2720-44bb-8605-374b38d0d9d1\" name=\"Changes\" comment=\"Add shadow parameters to US-UTJ config and fix Jupyter notebook&#10;&#10;Updated the US-UTJ.ini configuration to include shadow_start and shadow_end parameters. Additionally, truncated the Jupyter notebook DL_test.ipynb to eliminate excessive overhead and improve usability. These changes enhance config flexibility and streamline the notebook structure.\">\r\n      <change beforePath=\"$PROJECT_DIR$/micromet/tools.py\" beforeDir=\"false\" afterPath=\"$PROJECT_DIR$/micromet/tools.py\" afterDir=\"false\" />\r\n    </list>\r\n    <option name=\"SHOW_DIALOG\" value=\"false\" />\r\n    <option name=\"HIGHLIGHT_CONFLICTS\" value=\"true\" />\r\n    <option name=\"HIGHLIGHT_NON_ACTIVE_CHANGELIST\" value=\"false\" />\r\n    <option name=\"LAST_RESOLUTION\" value=\"IGNORE\" />\r\n  </component>\r\n  <component name=\"FileTemplateManagerImpl\">\r\n    <option name=\"RECENT_TEMPLATES\">\r\n      <list>\r\n        <option value=\"Python Unit Test\" />\r\n        <option value=\"Python Script\" />\r\n        <option value=\"Jupyter Notebook\" />\r\n      </list>\r\n    </option>\r\n  </component>\r\n  <component name=\"Git.Settings\">\r\n    <option name=\"RECENT_GIT_ROOT_PATH\" value=\"$PROJECT_DIR$\" />\r\n  </component>\r\n  <component name=\"GitHubPullRequestSearchHistory\">{\r\n  &quot;lastFilter&quot;: {\r\n    &quot;state&quot;: &quot;OPEN&quot;,\r\n    &quot;assignee&quot;: &quot;inkenbrandt&quot;\r\n  }\r\n}</component>\r\n  <component name=\"GithubPullRequestsUISettings\">{\r\n  &quot;selectedUrlAndAccountId&quot;: {\r\n    &quot;url&quot;: &quot;https://github.com/utah-geological-survey/MicroMet.git&quot;,\r\n    &quot;accountId&quot;: &quot;d2db7b48-2b8c-4493-906f-bd8f290bcb95&quot;\r\n  }\r\n}</component>\r\n  <component name=\"MarkdownSettingsMigration\">\r\n    <option name=\"stateVersion\" value=\"1\" />\r\n  </component>\r\n  <component name=\"ProjectColorInfo\">{\r\n  &quot;associatedIndex&quot;: 8\r\n}</component>\r\n  <component name=\"ProjectId\" id=\"2jh7jgEZ1Vsi0A0ju8IVpuO8SVw\" />\r\n  <component name=\"ProjectViewState\">\r\n    <option name=\"hideEmptyMiddlePackages\" value=\"true\" />\r\n    <option name=\"showLibraryContents\" value=\"true\" />\r\n  </component>\r\n  <component name=\"PropertiesComponent\">{\r\n  &quot;keyToString&quot;: {\r\n    &quot;Python tests.Python tests for converter_test.test_dataframe_from_file.executor&quot;: &quot;Run&quot;,\r\n    &quot;Python tests.Python tests for footprint_tests.test_calc_footprint_values.executor&quot;: &quot;Run&quot;,\r\n    &quot;Python tests.Python tests for footprint_tests.test_coordinate_system.executor&quot;: &quot;Run&quot;,\r\n    &quot;Python tests.Python tests for footprint_tests.test_different_stability_conditions.executor&quot;: &quot;Run&quot;,\r\n    &quot;Python tests.Python tests for meteolib_tests.TestEvaporationComparisons.test_radiation_limits.executor&quot;: &quot;Run&quot;,\r\n    &quot;Python tests.Python tests for meteolib_tests.TestVaporPressure.executor&quot;: &quot;Run&quot;,\r\n    &quot;Python tests.Python tests for test_converter.test_data_preprocessing.executor&quot;: &quot;Run&quot;,\r\n    &quot;Python tests.Python tests in converter_test.py.executor&quot;: &quot;Run&quot;,\r\n    &quot;Python tests.Python tests in ffp_tests.py.executor&quot;: &quot;Run&quot;,\r\n    &quot;Python tests.Python tests in footprint_tests.py.executor&quot;: &quot;Run&quot;,\r\n    &quot;Python tests.Python tests in meteolib_tests.py.executor&quot;: &quot;Run&quot;,\r\n    &quot;Python tests.Python tests in outlier_removal_tests.py.executor&quot;: &quot;Run&quot;,\r\n    &quot;Python tests.Python tests in spectral-tests.py.executor&quot;: &quot;Run&quot;,\r\n    &quot;Python tests.Python tests in spectral_tests_2.py.executor&quot;: &quot;Run&quot;,\r\n    &quot;Python tests.Python tests in test_converter.py.executor&quot;: &quot;Run&quot;,\r\n    &quot;Python.spectral_tests_2.executor&quot;: &quot;Run&quot;,\r\n    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,\r\n    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,\r\n    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,\r\n    &quot;git-widget-placeholder&quot;: &quot;main&quot;,\r\n    &quot;ignore.virus.scanning.warn.message&quot;: &quot;true&quot;,\r\n    &quot;last_opened_file_path&quot;: &quot;C:/Users/paulinkenbrandt/Documents/GitHub/MicroMet&quot;,\r\n    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,\r\n    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,\r\n    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,\r\n    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,\r\n    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,\r\n    &quot;run.code.analysis.last.selected.profile&quot;: &quot;pProject Default&quot;,\r\n    &quot;settings.editor.selected.configurable&quot;: &quot;preferences.pluginManager&quot;,\r\n    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;\r\n  }\r\n}</component>\r\n  <component name=\"RecentsManager\">\r\n    <key name=\"CopyFile.RECENT_KEYS\">\r\n      <recent name=\"G:\\Shared drives\\UGS_Flux\\Data_Processing\\Jupyter_Notebooks\\Micromet\\micromet\" />\r\n    </key>\r\n    <key name=\"MoveFile.RECENT_KEYS\">\r\n      <recent name=\"C:\\Users\\paulinkenbrandt\\Documents\\GitHub\\MicroMet\\Notebooks\\Processing Workflow Notebooks\" />\r\n      <recent name=\"C:\\Users\\paulinkenbrandt\\Documents\\GitHub\\MicroMet\\Notebooks\" />\r\n      <recent name=\"C:\\Users\\paulinkenbrandt\\Documents\\GitHub\\MicroMet\\micromet\" />\r\n      <recent name=\"C:\\Users\\paulinkenbrandt\\Documents\\GitHub\\MicroMet\\docs\\source\\api\" />\r\n      <recent name=\"C:\\Users\\paulinkenbrandt\\Documents\\GitHub\\MicroMet\\docs\" />\r\n    </key>\r\n  </component>\r\n  <component name=\"RunManager\" selected=\"Python tests.Python tests in converter_test.py\">\r\n    <configuration name=\"spectral_tests_2\" type=\"PythonConfigurationType\" factoryName=\"Python\" temporary=\"true\" nameIsGenerated=\"true\">\r\n      <module name=\"Micromet\" />\r\n      <option name=\"ENV_FILES\" value=\"\" />\r\n      <option name=\"INTERPRETER_OPTIONS\" value=\"\" />\r\n      <option name=\"PARENT_ENVS\" value=\"true\" />\r\n      <envs>\r\n        <env name=\"PYTHONUNBUFFERED\" value=\"1\" />\r\n      </envs>\r\n      <option name=\"SDK_HOME\" value=\"\" />\r\n      <option name=\"WORKING_DIRECTORY\" value=\"$PROJECT_DIR$/micromet\" />\r\n      <option name=\"IS_MODULE_SDK\" value=\"true\" />\r\n      <option name=\"ADD_CONTENT_ROOTS\" value=\"true\" />\r\n      <option name=\"ADD_SOURCE_ROOTS\" value=\"true\" />\r\n      <EXTENSION ID=\"PythonCoverageRunConfigurationExtension\" runner=\"coverage.py\" />\r\n      <option name=\"SCRIPT_NAME\" value=\"$PROJECT_DIR$/micromet/spectral_tests_2.py\" />\r\n      <option name=\"PARAMETERS\" value=\"\" />\r\n      <option name=\"SHOW_COMMAND_LINE\" value=\"false\" />\r\n      <option name=\"EMULATE_TERMINAL\" value=\"false\" />\r\n      <option name=\"MODULE_MODE\" value=\"false\" />\r\n      <option name=\"REDIRECT_INPUT\" value=\"false\" />\r\n      <option name=\"INPUT_FILE\" value=\"\" />\r\n      <method v=\"2\" />\r\n    </configuration>\r\n    <configuration name=\"Python tests for converter_test.test_dataframe_from_file\" type=\"tests\" factoryName=\"Autodetect\" temporary=\"true\" nameIsGenerated=\"true\">\r\n      <module name=\"Micromet\" />\r\n      <option name=\"ENV_FILES\" value=\"\" />\r\n      <option name=\"INTERPRETER_OPTIONS\" value=\"\" />\r\n      <option name=\"PARENT_ENVS\" value=\"true\" />\r\n      <option name=\"SDK_HOME\" value=\"\" />\r\n      <option name=\"WORKING_DIRECTORY\" value=\"$PROJECT_DIR$/tests\" />\r\n      <option name=\"IS_MODULE_SDK\" value=\"true\" />\r\n      <option name=\"ADD_CONTENT_ROOTS\" value=\"true\" />\r\n      <option name=\"ADD_SOURCE_ROOTS\" value=\"true\" />\r\n      <EXTENSION ID=\"PythonCoverageRunConfigurationExtension\" runner=\"coverage.py\" />\r\n      <option name=\"_new_additionalArguments\" value=\"&quot;&quot;\" />\r\n      <option name=\"_new_target\" value=\"&quot;converter_test.test_dataframe_from_file&quot;\" />\r\n      <option name=\"_new_targetType\" value=\"&quot;PYTHON&quot;\" />\r\n      <method v=\"2\" />\r\n    </configuration>\r\n    <configuration name=\"Python tests in converter_test.py\" type=\"tests\" factoryName=\"Autodetect\" temporary=\"true\" nameIsGenerated=\"true\">\r\n      <module name=\"Micromet\" />\r\n      <option name=\"ENV_FILES\" value=\"\" />\r\n      <option name=\"INTERPRETER_OPTIONS\" value=\"\" />\r\n      <option name=\"PARENT_ENVS\" value=\"true\" />\r\n      <option name=\"SDK_HOME\" value=\"\" />\r\n      <option name=\"WORKING_DIRECTORY\" value=\"$PROJECT_DIR$/tests\" />\r\n      <option name=\"IS_MODULE_SDK\" value=\"true\" />\r\n      <option name=\"ADD_CONTENT_ROOTS\" value=\"true\" />\r\n      <option name=\"ADD_SOURCE_ROOTS\" value=\"true\" />\r\n      <EXTENSION ID=\"PythonCoverageRunConfigurationExtension\" runner=\"coverage.py\" />\r\n      <option name=\"_new_additionalArguments\" value=\"&quot;&quot;\" />\r\n      <option name=\"_new_target\" value=\"&quot;$PROJECT_DIR$/tests/converter_test.py&quot;\" />\r\n      <option name=\"_new_targetType\" value=\"&quot;PATH&quot;\" />\r\n      <method v=\"2\" />\r\n    </configuration>\r\n    <configuration name=\"Python tests in ffp_tests.py\" type=\"tests\" factoryName=\"Autodetect\" temporary=\"true\" nameIsGenerated=\"true\">\r\n      <module name=\"Micromet\" />\r\n      <option name=\"ENV_FILES\" value=\"\" />\r\n      <option name=\"INTERPRETER_OPTIONS\" value=\"\" />\r\n      <option name=\"PARENT_ENVS\" value=\"true\" />\r\n      <option name=\"SDK_HOME\" value=\"\" />\r\n      <option name=\"WORKING_DIRECTORY\" value=\"$PROJECT_DIR$/tests\" />\r\n      <option name=\"IS_MODULE_SDK\" value=\"true\" />\r\n      <option name=\"ADD_CONTENT_ROOTS\" value=\"true\" />\r\n      <option name=\"ADD_SOURCE_ROOTS\" value=\"true\" />\r\n      <EXTENSION ID=\"PythonCoverageRunConfigurationExtension\" runner=\"coverage.py\" />\r\n      <option name=\"_new_additionalArguments\" value=\"&quot;&quot;\" />\r\n      <option name=\"_new_target\" value=\"&quot;$PROJECT_DIR$/tests/ffp_tests.py&quot;\" />\r\n      <option name=\"_new_targetType\" value=\"&quot;PATH&quot;\" />\r\n      <method v=\"2\" />\r\n    </configuration>\r\n    <configuration name=\"Python tests in outlier_removal_tests.py\" type=\"tests\" factoryName=\"Autodetect\" temporary=\"true\" nameIsGenerated=\"true\">\r\n      <module name=\"Micromet\" />\r\n      <option name=\"ENV_FILES\" value=\"\" />\r\n      <option name=\"INTERPRETER_OPTIONS\" value=\"\" />\r\n      <option name=\"PARENT_ENVS\" value=\"true\" />\r\n      <option name=\"SDK_HOME\" value=\"\" />\r\n      <option name=\"WORKING_DIRECTORY\" value=\"$PROJECT_DIR$/tests\" />\r\n      <option name=\"IS_MODULE_SDK\" value=\"true\" />\r\n      <option name=\"ADD_CONTENT_ROOTS\" value=\"true\" />\r\n      <option name=\"ADD_SOURCE_ROOTS\" value=\"true\" />\r\n      <EXTENSION ID=\"PythonCoverageRunConfigurationExtension\" runner=\"coverage.py\" />\r\n      <option name=\"_new_additionalArguments\" value=\"&quot;&quot;\" />\r\n      <option name=\"_new_target\" value=\"&quot;$PROJECT_DIR$/tests/outlier_removal_tests.py&quot;\" />\r\n      <option name=\"_new_targetType\" value=\"&quot;PATH&quot;\" />\r\n      <method v=\"2\" />\r\n    </configuration>\r\n    <recent_temporary>\r\n      <list>\r\n        <item itemvalue=\"Python tests.Python tests in converter_test.py\" />\r\n        <item itemvalue=\"Python tests.Python tests for converter_test.test_dataframe_from_file\" />\r\n        <item itemvalue=\"Python tests.Python tests in ffp_tests.py\" />\r\n        <item itemvalue=\"Python tests.Python tests in outlier_removal_tests.py\" />\r\n        <item itemvalue=\"Python.spectral_tests_2\" />\r\n      </list>\r\n    </recent_temporary>\r\n  </component>\r\n  <component name=\"SharedIndexes\">\r\n    <attachedChunks>\r\n      <set>\r\n        <option value=\"bundled-js-predefined-d6986cc7102b-deb605915726-JavaScript-PY-243.22562.220\" />\r\n        <option value=\"bundled-python-sdk-0fc6c617c4bd-9a18a617cbe4-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-243.22562.220\" />\r\n      </set>\r\n    </attachedChunks>\r\n  </component>\r\n  <component name=\"SpellCheckerSettings\" RuntimeDictionaries=\"0\" Folders=\"0\" CustomDictionaries=\"0\" DefaultDictionary=\"application-level\" UseSingleDictionary=\"true\" transferred=\"true\" />\r\n  <component name=\"TaskManager\">\r\n    <task active=\"true\" id=\"Default\" summary=\"Default task\">\r\n      <changelist id=\"a09e9df8-2720-44bb-8605-374b38d0d9d1\" name=\"Changes\" comment=\"\" />\r\n      <created>1721827591964</created>\r\n      <option name=\"number\" value=\"Default\" />\r\n      <option name=\"presentableId\" value=\"Default\" />\r\n      <updated>1721827591964</updated>\r\n      <workItem from=\"1721827593130\" duration=\"958000\" />\r\n      <workItem from=\"1721828564645\" duration=\"4173000\" />\r\n      <workItem from=\"1721915893036\" duration=\"4637000\" />\r\n      <workItem from=\"1722001852977\" duration=\"13600000\" />\r\n      <workItem from=\"1722541163042\" duration=\"1910000\" />\r\n      <workItem from=\"1724780231841\" duration=\"799000\" />\r\n      <workItem from=\"1726074980456\" duration=\"785000\" />\r\n      <workItem from=\"1726075773255\" duration=\"9530000\" />\r\n      <workItem from=\"1726153356907\" duration=\"3396000\" />\r\n      <workItem from=\"1726180576034\" duration=\"1155000\" />\r\n      <workItem from=\"1726190174018\" duration=\"599000\" />\r\n      <workItem from=\"1726277785091\" duration=\"2700000\" />\r\n      <workItem from=\"1726321932216\" duration=\"4447000\" />\r\n      <workItem from=\"1726842475481\" duration=\"3482000\" />\r\n      <workItem from=\"1727714574027\" duration=\"5582000\" />\r\n      <workItem from=\"1727788416260\" duration=\"5165000\" />\r\n      <workItem from=\"1727808155312\" duration=\"4873000\" />\r\n      <workItem from=\"1729712702607\" duration=\"675000\" />\r\n      <workItem from=\"1730502603769\" duration=\"2665000\" />\r\n      <workItem from=\"1730515520478\" duration=\"271000\" />\r\n      <workItem from=\"1730515855990\" duration=\"23507000\" />\r\n      <workItem from=\"1730645157384\" duration=\"17424000\" />\r\n      <workItem from=\"1730686971587\" duration=\"2946000\" />\r\n      <workItem from=\"1730775951535\" duration=\"1668000\" />\r\n      <workItem from=\"1730856459982\" duration=\"1867000\" />\r\n      <workItem from=\"1730899964647\" duration=\"3606000\" />\r\n      <workItem from=\"1730909007039\" duration=\"4194000\" />\r\n      <workItem from=\"1732111481637\" duration=\"32925000\" />\r\n      <workItem from=\"1732216469116\" duration=\"4055000\" />\r\n      <workItem from=\"1732249013186\" duration=\"1170000\" />\r\n      <workItem from=\"1732286871397\" duration=\"17233000\" />\r\n      <workItem from=\"1732589664052\" duration=\"7038000\" />\r\n      <workItem from=\"1732813996170\" duration=\"1785000\" />\r\n      <workItem from=\"1733253709734\" duration=\"1477000\" />\r\n      <workItem from=\"1733262577819\" duration=\"1202000\" />\r\n      <workItem from=\"1733343275999\" duration=\"170000\" />\r\n      <workItem from=\"1733751392690\" duration=\"10379000\" />\r\n      <workItem from=\"1734042474366\" duration=\"1436000\" />\r\n      <workItem from=\"1734137905249\" duration=\"2013000\" />\r\n      <workItem from=\"1734140243416\" duration=\"40232000\" />\r\n      <workItem from=\"1734325047534\" duration=\"2550000\" />\r\n      <workItem from=\"1734356317225\" duration=\"2720000\" />\r\n      <workItem from=\"1734439962440\" duration=\"2701000\" />\r\n      <workItem from=\"1734473581697\" duration=\"1494000\" />\r\n      <workItem from=\"1734542372801\" duration=\"9384000\" />\r\n      <workItem from=\"1734560607295\" duration=\"5535000\" />\r\n      <workItem from=\"1734573004098\" duration=\"4537000\" />\r\n      <workItem from=\"1737051066971\" duration=\"437000\" />\r\n      <workItem from=\"1737054118288\" duration=\"12307000\" />\r\n      <workItem from=\"1737087287362\" duration=\"5965000\" />\r\n      <workItem from=\"1737129126750\" duration=\"22841000\" />\r\n      <workItem from=\"1737175778581\" duration=\"10000\" />\r\n      <workItem from=\"1737209442824\" duration=\"41426000\" />\r\n      <workItem from=\"1737381616428\" duration=\"3867000\" />\r\n      <workItem from=\"1737465388949\" duration=\"4726000\" />\r\n    </task>\r\n    <task id=\"LOCAL-00001\" summary=\"Add 'secrets' and 'station_data' to .gitignore&#10;&#10;The commit introduces two new entries to the .gitignore file. The '/secrets/' and '/station_data/' directories are now ignored to prevent sensitive or unnecessary data from being tracked by git.\">\r\n      <option name=\"closed\" value=\"true\" />\r\n      <created>1721828345157</created>\r\n      <option name=\"number\" value=\"00001\" />\r\n      <option name=\"presentableId\" value=\"LOCAL-00001\" />\r\n      <option name=\"project\" value=\"LOCAL\" />\r\n      <updated>1721828345157</updated>\r\n    </task>\r\n    <task id=\"LOCAL-00002\" summary=\"Simplify environment.yml and add pyproject.toml&#10;&#10;Removed unnecessary channels and dependencies in `environment.yml`. Updated the project description in `setup.py`. Introduced `pyproject.toml` for modern dependency and build management, outlining project metadata and dependencies, including optional development packages.\">\r\n      <option name=\"closed\" value=\"true\" />\r\n      <created>1721831485770</created>\r\n      <option name=\"number\" value=\"00002\" />\r\n      <option name=\"presentableId\" value=\"LOCAL-00002\" />\r\n      <option name=\"project\" value=\"LOCAL\" />\r\n      <updated>1721831485770</updated>\r\n    </task>\r\n    <task id=\"LOCAL-00003\" summary=\"Add Flux variables CSV and enhance micromet functionality&#10;&#10;Added a comprehensive CSV file for Flux variables, enhancing data tracking. Updated multiple scripts in the micromet package to improve configuration handling, CSV path management, and file compilation. Moreover, introduced new dependencies in the environment file and pyproject.toml to support enhanced data visualization and statistical analysis features.\">\r\n      <option name=\"closed\" value=\"true\" />\r\n      <created>1722032343374</created>\r\n      <option name=\"number\" value=\"00003\" />\r\n      <option name=\"presentableId\" value=\"LOCAL-00003\" />\r\n      <option name=\"project\" value=\"LOCAL\" />\r\n      <updated>1722032343374</updated>\r\n    </task>\r\n    <task id=\"LOCAL-00004\" summary=\"Add Flux variables CSV and enhance micromet functionality&#10;&#10;Added a comprehensive CSV file for Flux variables, enhancing data tracking. Updated multiple scripts in the micromet package to improve configuration handling, CSV path management, and file compilation. Moreover, introduced new dependencies in the environment file and pyproject.toml to support enhanced data visualization and statistical analysis features.\">\r\n      <option name=\"closed\" value=\"true\" />\r\n      <created>1726180759600</created>\r\n      <option name=\"number\" value=\"00004\" />\r\n      <option name=\"presentableId\" value=\"LOCAL-00004\" />\r\n      <option name=\"project\" value=\"LOCAL\" />\r\n      <updated>1726180759600</updated>\r\n    </task>\r\n    <task id=\"LOCAL-00005\" summary=\"Add Flux variables CSV and enhance micromet functionality&#10;&#10;Added a comprehensive CSV file for Flux variables, enhancing data tracking. Updated multiple scripts in the micromet package to improve configuration handling, CSV path management, and file compilation. Moreover, introduced new dependencies in the environment file and pyproject.toml to support enhanced data visualization and statistical analysis features.\">\r\n      <option name=\"closed\" value=\"true\" />\r\n      <created>1726371034336</created>\r\n      <option name=\"number\" value=\"00005\" />\r\n      <option name=\"presentableId\" value=\"LOCAL-00005\" />\r\n      <option name=\"project\" value=\"LOCAL\" />\r\n      <updated>1726371034336</updated>\r\n    </task>\r\n    <task id=\"LOCAL-00006\" summary=\"Add Flux variables CSV and enhance micromet functionality&#10;&#10;Added a comprehensive CSV file for Flux variables, enhancing data tracking. Updated multiple scripts in the micromet package to improve configuration handling, CSV path management, and file compilation. Moreover, introduced new dependencies in the environment file and pyproject.toml to support enhanced data visualization and statistical analysis features.\">\r\n      <option name=\"closed\" value=\"true\" />\r\n      <created>1726844077313</created>\r\n      <option name=\"number\" value=\"00006\" />\r\n      <option name=\"presentableId\" value=\"LOCAL-00006\" />\r\n      <option name=\"project\" value=\"LOCAL\" />\r\n      <updated>1726844077313</updated>\r\n    </task>\r\n    <task id=\"LOCAL-00007\" summary=\"Add Flux variables CSV and enhance micromet functionality&#10;&#10;Added a comprehensive CSV file for Flux variables, enhancing data tracking. Updated multiple scripts in the micromet package to improve configuration handling, CSV path management, and file compilation. Moreover, introduced new dependencies in the environment file and pyproject.toml to support enhanced data visualization and statistical analysis features.\">\r\n      <option name=\"closed\" value=\"true\" />\r\n      <created>1727796016510</created>\r\n      <option name=\"number\" value=\"00007\" />\r\n      <option name=\"presentableId\" value=\"LOCAL-00007\" />\r\n      <option name=\"project\" value=\"LOCAL\" />\r\n      <updated>1727796016510</updated>\r\n    </task>\r\n    <task id=\"LOCAL-00008\" summary=\"Add Flux variables CSV and enhance micromet functionality&#10;&#10;Added a comprehensive CSV file for Flux variables, enhancing data tracking. Updated multiple scripts in the micromet package to improve configuration handling, CSV path management, and file compilation. Moreover, introduced new dependencies in the environment file and pyproject.toml to support enhanced data visualization and statistical analysis features.&#10;&#10;Consolidated and eliminated uneccessary files\">\r\n      <option name=\"closed\" value=\"true\" />\r\n      <created>1730505223726</created>\r\n      <option name=\"number\" value=\"00008\" />\r\n      <option name=\"presentableId\" value=\"LOCAL-00008\" />\r\n      <option name=\"project\" value=\"LOCAL\" />\r\n      <updated>1730505223726</updated>\r\n    </task>\r\n    <task id=\"LOCAL-00009\" summary=\"Add Flux variables CSV and enhance micromet functionality&#10;&#10;Added a comprehensive CSV file for Flux variables, enhancing data tracking. Updated multiple scripts in the micromet package to improve configuration handling, CSV path management, and file compilation. Moreover, introduced new dependencies in the environment file and pyproject.toml to support enhanced data visualization and statistical analysis features.&#10;&#10;Consolidated and eliminated uneccessary files\">\r\n      <option name=\"closed\" value=\"true\" />\r\n      <created>1730686681170</created>\r\n      <option name=\"number\" value=\"00009\" />\r\n      <option name=\"presentableId\" value=\"LOCAL-00009\" />\r\n      <option name=\"project\" value=\"LOCAL\" />\r\n      <updated>1730686681170</updated>\r\n    </task>\r\n    <task id=\"LOCAL-00010\" summary=\"Add Flux variables CSV and enhance micromet functionality&#10;&#10;Added a comprehensive CSV file for Flux variables, enhancing data tracking. Updated multiple scripts in the micromet package to improve configuration handling, CSV path management, and file compilation. Moreover, introduced new dependencies in the environment file and pyproject.toml to support enhanced data visualization and statistical analysis features.&#10;&#10;Consolidated and eliminated uneccessary files\">\r\n      <option name=\"closed\" value=\"true\" />\r\n      <created>1730687142194</created>\r\n      <option name=\"number\" value=\"00010\" />\r\n      <option name=\"presentableId\" value=\"LOCAL-00010\" />\r\n      <option name=\"project\" value=\"LOCAL\" />\r\n      <updated>1730687142194</updated>\r\n    </task>\r\n    <task id=\"LOCAL-00011\" summary=\"Add Flux variables CSV and enhance micromet functionality&#10;&#10;Added a comprehensive CSV file for Flux variables, enhancing data tracking. Updated multiple scripts in the micromet package to improve configuration handling, CSV path management, and file compilation. Moreover, introduced new dependencies in the environment file and pyproject.toml to support enhanced data visualization and statistical analysis features.&#10;&#10;Consolidated and eliminated uneccessary files\">\r\n      <option name=\"closed\" value=\"true\" />\r\n      <created>1730688934062</created>\r\n      <option name=\"number\" value=\"00011\" />\r\n      <option name=\"presentableId\" value=\"LOCAL-00011\" />\r\n      <option name=\"project\" value=\"LOCAL\" />\r\n      <updated>1730688934062</updated>\r\n    </task>\r\n    <task id=\"LOCAL-00012\" summary=\"Add Flux variables CSV and enhance micromet functionality&#10;&#10;Added a comprehensive CSV file for Flux variables, enhancing data tracking. Updated multiple scripts in the micromet package to improve configuration handling, CSV path management, and file compilation. Moreover, introduced new dependencies in the environment file and pyproject.toml to support enhanced data visualization and statistical analysis features.&#10;&#10;Consolidated and eliminated uneccessary files\">\r\n      <option name=\"closed\" value=\"true\" />\r\n      <created>1730914284740</created>\r\n      <option name=\"number\" value=\"00012\" />\r\n      <option name=\"presentableId\" value=\"LOCAL-00012\" />\r\n      <option name=\"project\" value=\"LOCAL\" />\r\n      <updated>1730914284740</updated>\r\n    </task>\r\n    <task id=\"LOCAL-00013\" summary=\"Add functions to detect and plot data gaps in tools.py&#10;&#10;Added new functions `find_gaps` and `plot_gaps` to `tools.py` for detecting and visualizing missing data periods in time series datasets. Updated imports and provided example usage. Additionally, adjusted paths and configurations in the workspace setup and optimized dependencies in the notebook.\">\r\n      <option name=\"closed\" value=\"true\" />\r\n      <created>1732231056465</created>\r\n      <option name=\"number\" value=\"00013\" />\r\n      <option name=\"presentableId\" value=\"LOCAL-00013\" />\r\n      <option name=\"project\" value=\"LOCAL\" />\r\n      <updated>1732231056465</updated>\r\n    </task>\r\n    <task id=\"LOCAL-00014\" summary=\"Delete outdated documentation and spectral analysis modules.&#10;&#10;Removed obsolete files: `converter_docs.rst`, `meteolib-docs.rst`, `specplot.py`, and `spectral.py`. This cleanup is part of a broader effort to streamline the project and ensure only relevant, up-to-date documentation and modules are preserved.\">\r\n      <option name=\"closed\" value=\"true\" />\r\n      <created>1732598350470</created>\r\n      <option name=\"number\" value=\"00014\" />\r\n      <option name=\"presentableId\" value=\"LOCAL-00014\" />\r\n      <option name=\"project\" value=\"LOCAL\" />\r\n      <updated>1732598350470</updated>\r\n    </task>\r\n    <task id=\"LOCAL-00015\" summary=\"Improve DL_test.ipynb by updating content significantly.&#10;&#10;The notebook was heavily modified to reduce its overall size from over 17,000 lines to just under 400. This streamlining likely involved removing unnecessary code, outputs, or data, which would help in enhancing performance and readability.\">\r\n      <option name=\"closed\" value=\"true\" />\r\n      <created>1733774325762</created>\r\n      <option name=\"number\" value=\"00015\" />\r\n      <option name=\"presentableId\" value=\"LOCAL-00015\" />\r\n      <option name=\"project\" value=\"LOCAL\" />\r\n      <updated>1733774325762</updated>\r\n    </task>\r\n    <task id=\"LOCAL-00016\" summary=\"Refactor data compilation logic and optimize imports&#10;&#10;Simplified and streamlined the raw data processing workflow for AmeriFlux files. Removed unused imports, adjusted error handling, and ensured output formatting for consistency. Improved plotting by replacing missing values with NaN prior to visualization.\">\r\n      <option name=\"closed\" value=\"true\" />\r\n      <created>1734545895846</created>\r\n      <option name=\"number\" value=\"00016\" />\r\n      <option name=\"presentableId\" value=\"LOCAL-00016\" />\r\n      <option name=\"project\" value=\"LOCAL\" />\r\n      <updated>1734545895846</updated>\r\n    </task>\r\n    <task id=\"LOCAL-00017\" summary=\"Add shadow parameters to US-UTJ config and fix Jupyter notebook&#10;&#10;Updated the US-UTJ.ini configuration to include shadow_start and shadow_end parameters. Additionally, truncated the Jupyter notebook DL_test.ipynb to eliminate excessive overhead and improve usability. These changes enhance config flexibility and streamline the notebook structure.\">\r\n      <option name=\"closed\" value=\"true\" />\r\n      <created>1734554480714</created>\r\n      <option name=\"number\" value=\"00017\" />\r\n      <option name=\"presentableId\" value=\"LOCAL-00017\" />\r\n      <option name=\"project\" value=\"LOCAL\" />\r\n      <updated>1734554480714</updated>\r\n    </task>\r\n    <task id=\"LOCAL-00018\" summary=\"Add shadow parameters to US-UTJ config and fix Jupyter notebook&#10;&#10;Updated the US-UTJ.ini configuration to include shadow_start and shadow_end parameters. Additionally, truncated the Jupyter notebook DL_test.ipynb to eliminate excessive overhead and improve usability. These changes enhance config flexibility and streamline the notebook structure.\">\r\n      <option name=\"closed\" value=\"true\" />\r\n      <created>1737160834554</created>\r\n      <option name=\"number\" value=\"00018\" />\r\n      <option name=\"presentableId\" value=\"LOCAL-00018\" />\r\n      <option name=\"project\" value=\"LOCAL\" />\r\n      <updated>1737160834554</updated>\r\n    </task>\r\n    <task id=\"LOCAL-00019\" summary=\"Add shadow parameters to US-UTJ config and fix Jupyter notebook&#10;&#10;Updated the US-UTJ.ini configuration to include shadow_start and shadow_end parameters. Additionally, truncated the Jupyter notebook DL_test.ipynb to eliminate excessive overhead and improve usability. These changes enhance config flexibility and streamline the notebook structure.\">\r\n      <option name=\"closed\" value=\"true\" />\r\n      <created>1737265106636</created>\r\n      <option name=\"number\" value=\"00019\" />\r\n      <option name=\"presentableId\" value=\"LOCAL-00019\" />\r\n      <option name=\"project\" value=\"LOCAL\" />\r\n      <updated>1737265106636</updated>\r\n    </task>\r\n    <task id=\"LOCAL-00020\" summary=\"Add shadow parameters to US-UTJ config and fix Jupyter notebook&#10;&#10;Updated the US-UTJ.ini configuration to include shadow_start and shadow_end parameters. Additionally, truncated the Jupyter notebook DL_test.ipynb to eliminate excessive overhead and improve usability. These changes enhance config flexibility and streamline the notebook structure.\">\r\n      <option name=\"closed\" value=\"true\" />\r\n      <created>1737470949155</created>\r\n      <option name=\"number\" value=\"00020\" />\r\n      <option name=\"presentableId\" value=\"LOCAL-00020\" />\r\n      <option name=\"project\" value=\"LOCAL\" />\r\n      <updated>1737470949155</updated>\r\n    </task>\r\n    <option name=\"localTasksCounter\" value=\"21\" />\r\n    <servers />\r\n  </component>\r\n  <component name=\"TypeScriptGeneratedFilesManager\">\r\n    <option name=\"version\" value=\"3\" />\r\n  </component>\r\n  <component name=\"Vcs.Log.Tabs.Properties\">\r\n    <option name=\"TAB_STATES\">\r\n      <map>\r\n        <entry key=\"MAIN\">\r\n          <value>\r\n            <State />\r\n          </value>\r\n        </entry>\r\n      </map>\r\n    </option>\r\n  </component>\r\n  <component name=\"VcsManagerConfiguration\">\r\n    <MESSAGE value=\"Add 'secrets' and 'station_data' to .gitignore&#10;&#10;The commit introduces two new entries to the .gitignore file. The '/secrets/' and '/station_data/' directories are now ignored to prevent sensitive or unnecessary data from being tracked by git.\" />\r\n    <MESSAGE value=\"Simplify environment.yml and add pyproject.toml&#10;&#10;Removed unnecessary channels and dependencies in `environment.yml`. Updated the project description in `setup.py`. Introduced `pyproject.toml` for modern dependency and build management, outlining project metadata and dependencies, including optional development packages.\" />\r\n    <MESSAGE value=\"Add Flux variables CSV and enhance micromet functionality&#10;&#10;Added a comprehensive CSV file for Flux variables, enhancing data tracking. Updated multiple scripts in the micromet package to improve configuration handling, CSV path management, and file compilation. Moreover, introduced new dependencies in the environment file and pyproject.toml to support enhanced data visualization and statistical analysis features.\" />\r\n    <MESSAGE value=\"Add Flux variables CSV and enhance micromet functionality&#10;&#10;Added a comprehensive CSV file for Flux variables, enhancing data tracking. Updated multiple scripts in the micromet package to improve configuration handling, CSV path management, and file compilation. Moreover, introduced new dependencies in the environment file and pyproject.toml to support enhanced data visualization and statistical analysis features.&#10;&#10;Consolidated and eliminated uneccessary files\" />\r\n    <MESSAGE value=\"Add functions to detect and plot data gaps in tools.py&#10;&#10;Added new functions `find_gaps` and `plot_gaps` to `tools.py` for detecting and visualizing missing data periods in time series datasets. Updated imports and provided example usage. Additionally, adjusted paths and configurations in the workspace setup and optimized dependencies in the notebook.\" />\r\n    <MESSAGE value=\"&#10;&#10;Added new functions `find_gaps` and `plot_gaps` to `tools.py` for detecting and visualizing missing data periods in time series datasets. Updated imports and provided example usage. Additionally, adjusted paths and configurations in the workspace setup and optimized dependencies in the notebook.&#10;&#10;\" />\r\n    <MESSAGE value=\"Delete outdated documentation and spectral analysis modules.&#10;&#10;Removed obsolete files: `converter_docs.rst`, `meteolib-docs.rst`, `specplot.py`, and `spectral.py`. This cleanup is part of a broader effort to streamline the project and ensure only relevant, up-to-date documentation and modules are preserved.\" />\r\n    <MESSAGE value=\"Improve DL_test.ipynb by updating content significantly.&#10;&#10;The notebook was heavily modified to reduce its overall size from over 17,000 lines to just under 400. This streamlining likely involved removing unnecessary code, outputs, or data, which would help in enhancing performance and readability.\" />\r\n    <MESSAGE value=\"Refactor data compilation logic and optimize imports&#10;&#10;Simplified and streamlined the raw data processing workflow for AmeriFlux files. Removed unused imports, adjusted error handling, and ensured output formatting for consistency. Improved plotting by replacing missing values with NaN prior to visualization.\" />\r\n    <MESSAGE value=\"Add shadow parameters to US-UTJ config and fix Jupyter notebook&#10;&#10;Updated the US-UTJ.ini configuration to include shadow_start and shadow_end parameters. Additionally, truncated the Jupyter notebook DL_test.ipynb to eliminate excessive overhead and improve usability. These changes enhance config flexibility and streamline the notebook structure.\" />\r\n    <option name=\"LAST_COMMIT_MESSAGE\" value=\"Add shadow parameters to US-UTJ config and fix Jupyter notebook&#10;&#10;Updated the US-UTJ.ini configuration to include shadow_start and shadow_end parameters. Additionally, truncated the Jupyter notebook DL_test.ipynb to eliminate excessive overhead and improve usability. These changes enhance config flexibility and streamline the notebook structure.\" />\r\n  </component>\r\n  <component name=\"com.intellij.coverage.CoverageDataManagerImpl\">\r\n    <SUITE FILE_PATH=\"coverage/__init___py$.coverage\" NAME=\" Coverage Results\" MODIFIED=\"1734575204095\" SOURCE_PROVIDER=\"com.intellij.coverage.DefaultCoverageFileProvider\" RUNNER=\"coverage.py\" COVERAGE_BY_TEST_ENABLED=\"false\" COVERAGE_TRACING_ENABLED=\"false\" WORKING_DIRECTORY=\"$PROJECT_DIR$/tests\" />\r\n    <SUITE FILE_PATH=\"coverage/__init___py$spectral_tests_2.coverage\" NAME=\"spectral_tests_2 Coverage Results\" MODIFIED=\"1732398159837\" SOURCE_PROVIDER=\"com.intellij.coverage.DefaultCoverageFileProvider\" RUNNER=\"coverage.py\" COVERAGE_BY_TEST_ENABLED=\"false\" COVERAGE_TRACING_ENABLED=\"false\" WORKING_DIRECTORY=\"$PROJECT_DIR$/micromet\" />\r\n  </component>\r\n</project>
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/.idea/workspace.xml b/.idea/workspace.xml
+--- a/.idea/workspace.xml	(revision 727b618fe07b58b9be28c91fc1c847f38664fc34)
++++ b/.idea/workspace.xml	(date 1737496401532)
+@@ -8,7 +8,9 @@
+     <option name="autoReloadType" value="SELECTIVE" />
+   </component>
+   <component name="ChangeListManager">
+-    <list default="true" id="a09e9df8-2720-44bb-8605-374b38d0d9d1" name="Changes" comment="Add shadow parameters to US-UTJ config and fix Jupyter notebook&#10;&#10;Updated the US-UTJ.ini configuration to include shadow_start and shadow_end parameters. Additionally, truncated the Jupyter notebook DL_test.ipynb to eliminate excessive overhead and improve usability. These changes enhance config flexibility and streamline the notebook structure.">
++    <list default="true" id="a09e9df8-2720-44bb-8605-374b38d0d9d1" name="Changes" comment="Changed extreme values to accept SSITC values of 10 or less to allow for proper conversion of scales.">
++      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
++      <change beforePath="$PROJECT_DIR$/Notebooks/Footprints/row_footprint.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/Notebooks/Footprints/row_footprint.ipynb" afterDir="false" />
+       <change beforePath="$PROJECT_DIR$/micromet/tools.py" beforeDir="false" afterPath="$PROJECT_DIR$/micromet/tools.py" afterDir="false" />
+     </list>
+     <option name="SHOW_DIALOG" value="false" />
+@@ -266,6 +268,7 @@
+       <workItem from="1737209442824" duration="41426000" />
+       <workItem from="1737381616428" duration="3867000" />
+       <workItem from="1737465388949" duration="4726000" />
++      <workItem from="1737481936234" duration="6348000" />
+     </task>
+     <task id="LOCAL-00001" summary="Add 'secrets' and 'station_data' to .gitignore&#10;&#10;The commit introduces two new entries to the .gitignore file. The '/secrets/' and '/station_data/' directories are now ignored to prevent sensitive or unnecessary data from being tracked by git.">
+       <option name="closed" value="true" />
+@@ -427,7 +430,15 @@
+       <option name="project" value="LOCAL" />
+       <updated>1737470949155</updated>
+     </task>
+-    <option name="localTasksCounter" value="21" />
++    <task id="LOCAL-00021" summary="Changed extreme values to accept SSITC values of 10 or less to allow for proper conversion of scales.">
++      <option name="closed" value="true" />
++      <created>1737482359383</created>
++      <option name="number" value="00021" />
++      <option name="presentableId" value="LOCAL-00021" />
++      <option name="project" value="LOCAL" />
++      <updated>1737482359383</updated>
++    </task>
++    <option name="localTasksCounter" value="22" />
+     <servers />
+   </component>
+   <component name="TypeScriptGeneratedFilesManager">
+@@ -455,7 +466,8 @@
+     <MESSAGE value="Improve DL_test.ipynb by updating content significantly.&#10;&#10;The notebook was heavily modified to reduce its overall size from over 17,000 lines to just under 400. This streamlining likely involved removing unnecessary code, outputs, or data, which would help in enhancing performance and readability." />
+     <MESSAGE value="Refactor data compilation logic and optimize imports&#10;&#10;Simplified and streamlined the raw data processing workflow for AmeriFlux files. Removed unused imports, adjusted error handling, and ensured output formatting for consistency. Improved plotting by replacing missing values with NaN prior to visualization." />
+     <MESSAGE value="Add shadow parameters to US-UTJ config and fix Jupyter notebook&#10;&#10;Updated the US-UTJ.ini configuration to include shadow_start and shadow_end parameters. Additionally, truncated the Jupyter notebook DL_test.ipynb to eliminate excessive overhead and improve usability. These changes enhance config flexibility and streamline the notebook structure." />
+-    <option name="LAST_COMMIT_MESSAGE" value="Add shadow parameters to US-UTJ config and fix Jupyter notebook&#10;&#10;Updated the US-UTJ.ini configuration to include shadow_start and shadow_end parameters. Additionally, truncated the Jupyter notebook DL_test.ipynb to eliminate excessive overhead and improve usability. These changes enhance config flexibility and streamline the notebook structure." />
++    <MESSAGE value="Changed extreme values to accept SSITC values of 10 or less to allow for proper conversion of scales." />
++    <option name="LAST_COMMIT_MESSAGE" value="Changed extreme values to accept SSITC values of 10 or less to allow for proper conversion of scales." />
+   </component>
+   <component name="com.intellij.coverage.CoverageDataManagerImpl">
+     <SUITE FILE_PATH="coverage/__init___py$.coverage" NAME=" Coverage Results" MODIFIED="1734575204095" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/tests" />
+Index: Notebooks/Footprints/row_footprint.ipynb
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>{\r\n \"cells\": [\r\n  {\r\n   \"cell_type\": \"code\",\r\n   \"id\": \"initial_id\",\r\n   \"metadata\": {\r\n    \"collapsed\": true,\r\n    \"ExecuteTime\": {\r\n     \"end_time\": \"2025-01-21T14:34:27.516666Z\",\r\n     \"start_time\": \"2025-01-21T14:34:23.347950Z\"\r\n    }\r\n   },\r\n   \"source\": [\r\n    \"import pandas as pd\\n\",\r\n    \"import numpy as np\\n\",\r\n    \"import glob\\n\",\r\n    \"import os\\n\",\r\n    \"import geopandas as gpd\\n\",\r\n    \"import urllib\\n\",\r\n    \"import sys\\n\",\r\n    \"import pathlib\\n\",\r\n    \"import glob\\n\",\r\n    \"import matplotlib.pyplot as plt\\n\",\r\n    \"from urllib.parse import quote\\n\",\r\n    \"from sqlalchemy import create_engine\\n\",\r\n    \"import configparser\\n\",\r\n    \"\\n\",\r\n    \"\\n\",\r\n    \"import statsmodels.api as sm\\n\",\r\n    \"#import pingouin as pg\\n\",\r\n    \"import plotly.express as px\\n\",\r\n    \"from fluxdataqaqc import Data, QaQc, Plot\\n\",\r\n    \"from bokeh.plotting import figure, show, ColumnDataSource\\n\",\r\n    \"from bokeh.models.formatters import DatetimeTickFormatter\\n\",\r\n    \"from bokeh.models import LinearAxis, Range1d\\n\",\r\n    \"from bokeh.io import output_notebook\\n\",\r\n    \"output_notebook()\"\r\n   ],\r\n   \"outputs\": [\r\n    {\r\n     \"data\": {\r\n      \"text/html\": [\r\n       \"    <style>\\n\",\r\n       \"        .bk-notebook-logo {\\n\",\r\n       \"            display: block;\\n\",\r\n       \"            width: 20px;\\n\",\r\n       \"            height: 20px;\\n\",\r\n       \"            background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAUCAYAAACNiR0NAAAABHNCSVQICAgIfAhkiAAAAAlwSFlzAAALEgAACxIB0t1+/AAAABx0RVh0U29mdHdhcmUAQWRvYmUgRmlyZXdvcmtzIENTNui8sowAAAOkSURBVDiNjZRtaJVlGMd/1/08zzln5zjP1LWcU9N0NkN8m2CYjpgQYQXqSs0I84OLIC0hkEKoPtiH3gmKoiJDU7QpLgoLjLIQCpEsNJ1vqUOdO7ppbuec5+V+rj4ctwzd8IIbbi6u+8f1539dt3A78eXC7QizUF7gyV1fD1Yqg4JWz84yffhm0qkFqBogB9rM8tZdtwVsPUhWhGcFJngGeWrPzHm5oaMmkfEg1usvLFyc8jLRqDOMru7AyC8saQr7GG7f5fvDeH7Ej8CM66nIF+8yngt6HWaKh7k49Soy9nXurCi1o3qUbS3zWfrYeQDTB/Qj6kX6Ybhw4B+bOYoLKCC9H3Nu/leUTZ1JdRWkkn2ldcCamzrcf47KKXdAJllSlxAOkRgyHsGC/zRday5Qld9DyoM4/q/rUoy/CXh3jzOu3bHUVZeU+DEn8FInkPBFlu3+nW3Nw0mk6vCDiWg8CeJaxEwuHS3+z5RgY+YBR6V1Z1nxSOfoaPa4LASWxxdNp+VWTk7+4vzaou8v8PN+xo+KY2xsw6une2frhw05CTYOmQvsEhjhWjn0bmXPjpE1+kplmmkP3suftwTubK9Vq22qKmrBhpY4jvd5afdRA3wGjFAgcnTK2s4hY0/GPNIb0nErGMCRxWOOX64Z8RAC4oCXdklmEvcL8o0BfkNK4lUg9HTl+oPlQxdNo3Mg4Nv175e/1LDGzZen30MEjRUtmXSfiTVu1kK8W4txyV6BMKlbgk3lMwYCiusNy9fVfvvwMxv8Ynl6vxoByANLTWplvuj/nF9m2+PDtt1eiHPBr1oIfhCChQMBw6Aw0UulqTKZdfVvfG7VcfIqLG9bcldL/+pdWTLxLUy8Qq38heUIjh4XlzZxzQm19lLFlr8vdQ97rjZVOLf8nclzckbcD4wxXMidpX30sFd37Fv/GtwwhzhxGVAprjbg0gCAEeIgwCZyTV2Z1REEW8O4py0wsjeloKoMr6iCY6dP92H6Vw/oTyICIthibxjm/DfN9lVz8IqtqKYLUXfoKVMVQVVJOElGjrnnUt9T9wbgp8AyYKaGlqingHZU/uG2NTZSVqwHQTWkx9hxjkpWDaCg6Ckj5qebgBVbT3V3NNXMSiWSDdGV3hrtzla7J+duwPOToIg42ChPQOQjspnSlp1V+Gjdged7+8UN5CRAV7a5EdFNwCjEaBR27b3W890TE7g24NAP/mMDXRWrGoFPQI9ls/MWO2dWFAar/xcOIImbbpA3zgAAAABJRU5ErkJggg==);\\n\",\r\n       \"        }\\n\",\r\n       \"    </style>\\n\",\r\n       \"    <div>\\n\",\r\n       \"        <a href=\\\"https://bokeh.org\\\" target=\\\"_blank\\\" class=\\\"bk-notebook-logo\\\"></a>\\n\",\r\n       \"        <span id=\\\"d8bf98d6-e6f6-4080-a236-84cbb75ea664\\\">Loading BokehJS ...</span>\\n\",\r\n       \"    </div>\\n\"\r\n      ]\r\n     },\r\n     \"metadata\": {},\r\n     \"output_type\": \"display_data\"\r\n    },\r\n    {\r\n     \"data\": {\r\n      \"application/javascript\": \"'use strict';\\n(function(root) {\\n  function now() {\\n    return new Date();\\n  }\\n\\n  const force = true;\\n\\n  if (typeof root._bokeh_onload_callbacks === \\\"undefined\\\" || force === true) {\\n    root._bokeh_onload_callbacks = [];\\n    root._bokeh_is_loading = undefined;\\n  }\\n\\nconst JS_MIME_TYPE = 'application/javascript';\\n  const HTML_MIME_TYPE = 'text/html';\\n  const EXEC_MIME_TYPE = 'application/vnd.bokehjs_exec.v0+json';\\n  const CLASS_NAME = 'output_bokeh rendered_html';\\n\\n  /**\\n   * Render data to the DOM node\\n   */\\n  function render(props, node) {\\n    const script = document.createElement(\\\"script\\\");\\n    node.appendChild(script);\\n  }\\n\\n  /**\\n   * Handle when an output is cleared or removed\\n   */\\n  function handleClearOutput(event, handle) {\\n    function drop(id) {\\n      const view = Bokeh.index.get_by_id(id)\\n      if (view != null) {\\n        view.model.document.clear()\\n        Bokeh.index.delete(view)\\n      }\\n    }\\n\\n    const cell = handle.cell;\\n\\n    const id = cell.output_area._bokeh_element_id;\\n    const server_id = cell.output_area._bokeh_server_id;\\n\\n    // Clean up Bokeh references\\n    if (id != null) {\\n      drop(id)\\n    }\\n\\n    if (server_id !== undefined) {\\n      // Clean up Bokeh references\\n      const cmd_clean = \\\"from bokeh.io.state import curstate; print(curstate().uuid_to_server['\\\" + server_id + \\\"'].get_sessions()[0].document.roots[0]._id)\\\";\\n      cell.notebook.kernel.execute(cmd_clean, {\\n        iopub: {\\n          output: function(msg) {\\n            const id = msg.content.text.trim()\\n            drop(id)\\n          }\\n        }\\n      });\\n      // Destroy server and session\\n      const cmd_destroy = \\\"import bokeh.io.notebook as ion; ion.destroy_server('\\\" + server_id + \\\"')\\\";\\n      cell.notebook.kernel.execute(cmd_destroy);\\n    }\\n  }\\n\\n  /**\\n   * Handle when a new output is added\\n   */\\n  function handleAddOutput(event, handle) {\\n    const output_area = handle.output_area;\\n    const output = handle.output;\\n\\n    // limit handleAddOutput to display_data with EXEC_MIME_TYPE content only\\n    if ((output.output_type != \\\"display_data\\\") || (!Object.prototype.hasOwnProperty.call(output.data, EXEC_MIME_TYPE))) {\\n      return\\n    }\\n\\n    const toinsert = output_area.element.find(\\\".\\\" + CLASS_NAME.split(' ')[0]);\\n\\n    if (output.metadata[EXEC_MIME_TYPE][\\\"id\\\"] !== undefined) {\\n      toinsert[toinsert.length - 1].firstChild.textContent = output.data[JS_MIME_TYPE];\\n      // store reference to embed id on output_area\\n      output_area._bokeh_element_id = output.metadata[EXEC_MIME_TYPE][\\\"id\\\"];\\n    }\\n    if (output.metadata[EXEC_MIME_TYPE][\\\"server_id\\\"] !== undefined) {\\n      const bk_div = document.createElement(\\\"div\\\");\\n      bk_div.innerHTML = output.data[HTML_MIME_TYPE];\\n      const script_attrs = bk_div.children[0].attributes;\\n      for (let i = 0; i < script_attrs.length; i++) {\\n        toinsert[toinsert.length - 1].firstChild.setAttribute(script_attrs[i].name, script_attrs[i].value);\\n        toinsert[toinsert.length - 1].firstChild.textContent = bk_div.children[0].textContent\\n      }\\n      // store reference to server id on output_area\\n      output_area._bokeh_server_id = output.metadata[EXEC_MIME_TYPE][\\\"server_id\\\"];\\n    }\\n  }\\n\\n  function register_renderer(events, OutputArea) {\\n\\n    function append_mime(data, metadata, element) {\\n      // create a DOM node to render to\\n      const toinsert = this.create_output_subarea(\\n        metadata,\\n        CLASS_NAME,\\n        EXEC_MIME_TYPE\\n      );\\n      this.keyboard_manager.register_events(toinsert);\\n      // Render to node\\n      const props = {data: data, metadata: metadata[EXEC_MIME_TYPE]};\\n      render(props, toinsert[toinsert.length - 1]);\\n      element.append(toinsert);\\n      return toinsert\\n    }\\n\\n    /* Handle when an output is cleared or removed */\\n    events.on('clear_output.CodeCell', handleClearOutput);\\n    events.on('delete.Cell', handleClearOutput);\\n\\n    /* Handle when a new output is added */\\n    events.on('output_added.OutputArea', handleAddOutput);\\n\\n    /**\\n     * Register the mime type and append_mime function with output_area\\n     */\\n    OutputArea.prototype.register_mime_type(EXEC_MIME_TYPE, append_mime, {\\n      /* Is output safe? */\\n      safe: true,\\n      /* Index of renderer in `output_area.display_order` */\\n      index: 0\\n    });\\n  }\\n\\n  // register the mime type if in Jupyter Notebook environment and previously unregistered\\n  if (root.Jupyter !== undefined) {\\n    const events = require('base/js/events');\\n    const OutputArea = require('notebook/js/outputarea').OutputArea;\\n\\n    if (OutputArea.prototype.mime_types().indexOf(EXEC_MIME_TYPE) == -1) {\\n      register_renderer(events, OutputArea);\\n    }\\n  }\\n  if (typeof (root._bokeh_timeout) === \\\"undefined\\\" || force === true) {\\n    root._bokeh_timeout = Date.now() + 5000;\\n    root._bokeh_failed_load = false;\\n  }\\n\\n  const NB_LOAD_WARNING = {'data': {'text/html':\\n     \\\"<div style='background-color: #fdd'>\\\\n\\\"+\\n     \\\"<p>\\\\n\\\"+\\n     \\\"BokehJS does not appear to have successfully loaded. If loading BokehJS from CDN, this \\\\n\\\"+\\n     \\\"may be due to a slow or bad network connection. Possible fixes:\\\\n\\\"+\\n     \\\"</p>\\\\n\\\"+\\n     \\\"<ul>\\\\n\\\"+\\n     \\\"<li>re-rerun `output_notebook()` to attempt to load from CDN again, or</li>\\\\n\\\"+\\n     \\\"<li>use INLINE resources instead, as so:</li>\\\\n\\\"+\\n     \\\"</ul>\\\\n\\\"+\\n     \\\"<code>\\\\n\\\"+\\n     \\\"from bokeh.resources import INLINE\\\\n\\\"+\\n     \\\"output_notebook(resources=INLINE)\\\\n\\\"+\\n     \\\"</code>\\\\n\\\"+\\n     \\\"</div>\\\"}};\\n\\n  function display_loaded(error = null) {\\n    const el = document.getElementById(\\\"d8bf98d6-e6f6-4080-a236-84cbb75ea664\\\");\\n    if (el != null) {\\n      const html = (() => {\\n        if (typeof root.Bokeh === \\\"undefined\\\") {\\n          if (error == null) {\\n            return \\\"BokehJS is loading ...\\\";\\n          } else {\\n            return \\\"BokehJS failed to load.\\\";\\n          }\\n        } else {\\n          const prefix = `BokehJS ${root.Bokeh.version}`;\\n          if (error == null) {\\n            return `${prefix} successfully loaded.`;\\n          } else {\\n            return `${prefix} <b>encountered errors</b> while loading and may not function as expected.`;\\n          }\\n        }\\n      })();\\n      el.innerHTML = html;\\n\\n      if (error != null) {\\n        const wrapper = document.createElement(\\\"div\\\");\\n        wrapper.style.overflow = \\\"auto\\\";\\n        wrapper.style.height = \\\"5em\\\";\\n        wrapper.style.resize = \\\"vertical\\\";\\n        const content = document.createElement(\\\"div\\\");\\n        content.style.fontFamily = \\\"monospace\\\";\\n        content.style.whiteSpace = \\\"pre-wrap\\\";\\n        content.style.backgroundColor = \\\"rgb(255, 221, 221)\\\";\\n        content.textContent = error.stack ?? error.toString();\\n        wrapper.append(content);\\n        el.append(wrapper);\\n      }\\n    } else if (Date.now() < root._bokeh_timeout) {\\n      setTimeout(() => display_loaded(error), 100);\\n    }\\n  }\\n\\n  function run_callbacks() {\\n    try {\\n      root._bokeh_onload_callbacks.forEach(function(callback) {\\n        if (callback != null)\\n          callback();\\n      });\\n    } finally {\\n      delete root._bokeh_onload_callbacks\\n    }\\n    console.debug(\\\"Bokeh: all callbacks have finished\\\");\\n  }\\n\\n  function load_libs(css_urls, js_urls, callback) {\\n    if (css_urls == null) css_urls = [];\\n    if (js_urls == null) js_urls = [];\\n\\n    root._bokeh_onload_callbacks.push(callback);\\n    if (root._bokeh_is_loading > 0) {\\n      console.debug(\\\"Bokeh: BokehJS is being loaded, scheduling callback at\\\", now());\\n      return null;\\n    }\\n    if (js_urls == null || js_urls.length === 0) {\\n      run_callbacks();\\n      return null;\\n    }\\n    console.debug(\\\"Bokeh: BokehJS not loaded, scheduling load and callback at\\\", now());\\n    root._bokeh_is_loading = css_urls.length + js_urls.length;\\n\\n    function on_load() {\\n      root._bokeh_is_loading--;\\n      if (root._bokeh_is_loading === 0) {\\n        console.debug(\\\"Bokeh: all BokehJS libraries/stylesheets loaded\\\");\\n        run_callbacks()\\n      }\\n    }\\n\\n    function on_error(url) {\\n      console.error(\\\"failed to load \\\" + url);\\n    }\\n\\n    for (let i = 0; i < css_urls.length; i++) {\\n      const url = css_urls[i];\\n      const element = document.createElement(\\\"link\\\");\\n      element.onload = on_load;\\n      element.onerror = on_error.bind(null, url);\\n      element.rel = \\\"stylesheet\\\";\\n      element.type = \\\"text/css\\\";\\n      element.href = url;\\n      console.debug(\\\"Bokeh: injecting link tag for BokehJS stylesheet: \\\", url);\\n      document.body.appendChild(element);\\n    }\\n\\n    for (let i = 0; i < js_urls.length; i++) {\\n      const url = js_urls[i];\\n      const element = document.createElement('script');\\n      element.onload = on_load;\\n      element.onerror = on_error.bind(null, url);\\n      element.async = false;\\n      element.src = url;\\n      console.debug(\\\"Bokeh: injecting script tag for BokehJS library: \\\", url);\\n      document.head.appendChild(element);\\n    }\\n  };\\n\\n  function inject_raw_css(css) {\\n    const element = document.createElement(\\\"style\\\");\\n    element.appendChild(document.createTextNode(css));\\n    document.body.appendChild(element);\\n  }\\n\\n  const js_urls = [\\\"https://cdn.bokeh.org/bokeh/release/bokeh-3.5.2.min.js\\\", \\\"https://cdn.bokeh.org/bokeh/release/bokeh-gl-3.5.2.min.js\\\", \\\"https://cdn.bokeh.org/bokeh/release/bokeh-widgets-3.5.2.min.js\\\", \\\"https://cdn.bokeh.org/bokeh/release/bokeh-tables-3.5.2.min.js\\\", \\\"https://cdn.bokeh.org/bokeh/release/bokeh-mathjax-3.5.2.min.js\\\"];\\n  const css_urls = [];\\n\\n  const inline_js = [    function(Bokeh) {\\n      Bokeh.set_log_level(\\\"info\\\");\\n    },\\nfunction(Bokeh) {\\n    }\\n  ];\\n\\n  function run_inline_js() {\\n    if (root.Bokeh !== undefined || force === true) {\\n      try {\\n            for (let i = 0; i < inline_js.length; i++) {\\n      inline_js[i].call(root, root.Bokeh);\\n    }\\n\\n      } catch (error) {display_loaded(error);throw error;\\n      }if (force === true) {\\n        display_loaded();\\n      }} else if (Date.now() < root._bokeh_timeout) {\\n      setTimeout(run_inline_js, 100);\\n    } else if (!root._bokeh_failed_load) {\\n      console.log(\\\"Bokeh: BokehJS failed to load within specified timeout.\\\");\\n      root._bokeh_failed_load = true;\\n    } else if (force !== true) {\\n      const cell = $(document.getElementById(\\\"d8bf98d6-e6f6-4080-a236-84cbb75ea664\\\")).parents('.cell').data().cell;\\n      cell.output_area.append_execute_result(NB_LOAD_WARNING)\\n    }\\n  }\\n\\n  if (root._bokeh_is_loading === 0) {\\n    console.debug(\\\"Bokeh: BokehJS loaded, going straight to plotting\\\");\\n    run_inline_js();\\n  } else {\\n    load_libs(css_urls, js_urls, function() {\\n      console.debug(\\\"Bokeh: BokehJS plotting callback run at\\\", now());\\n      run_inline_js();\\n    });\\n  }\\n}(window));\",\r\n      \"application/vnd.bokehjs_load.v0+json\": \"'use strict';\\n(function(root) {\\n  function now() {\\n    return new Date();\\n  }\\n\\n  const force = true;\\n\\n  if (typeof root._bokeh_onload_callbacks === \\\"undefined\\\" || force === true) {\\n    root._bokeh_onload_callbacks = [];\\n    root._bokeh_is_loading = undefined;\\n  }\\n\\n\\n  if (typeof (root._bokeh_timeout) === \\\"undefined\\\" || force === true) {\\n    root._bokeh_timeout = Date.now() + 5000;\\n    root._bokeh_failed_load = false;\\n  }\\n\\n  const NB_LOAD_WARNING = {'data': {'text/html':\\n     \\\"<div style='background-color: #fdd'>\\\\n\\\"+\\n     \\\"<p>\\\\n\\\"+\\n     \\\"BokehJS does not appear to have successfully loaded. If loading BokehJS from CDN, this \\\\n\\\"+\\n     \\\"may be due to a slow or bad network connection. Possible fixes:\\\\n\\\"+\\n     \\\"</p>\\\\n\\\"+\\n     \\\"<ul>\\\\n\\\"+\\n     \\\"<li>re-rerun `output_notebook()` to attempt to load from CDN again, or</li>\\\\n\\\"+\\n     \\\"<li>use INLINE resources instead, as so:</li>\\\\n\\\"+\\n     \\\"</ul>\\\\n\\\"+\\n     \\\"<code>\\\\n\\\"+\\n     \\\"from bokeh.resources import INLINE\\\\n\\\"+\\n     \\\"output_notebook(resources=INLINE)\\\\n\\\"+\\n     \\\"</code>\\\\n\\\"+\\n     \\\"</div>\\\"}};\\n\\n  function display_loaded(error = null) {\\n    const el = document.getElementById(\\\"d8bf98d6-e6f6-4080-a236-84cbb75ea664\\\");\\n    if (el != null) {\\n      const html = (() => {\\n        if (typeof root.Bokeh === \\\"undefined\\\") {\\n          if (error == null) {\\n            return \\\"BokehJS is loading ...\\\";\\n          } else {\\n            return \\\"BokehJS failed to load.\\\";\\n          }\\n        } else {\\n          const prefix = `BokehJS ${root.Bokeh.version}`;\\n          if (error == null) {\\n            return `${prefix} successfully loaded.`;\\n          } else {\\n            return `${prefix} <b>encountered errors</b> while loading and may not function as expected.`;\\n          }\\n        }\\n      })();\\n      el.innerHTML = html;\\n\\n      if (error != null) {\\n        const wrapper = document.createElement(\\\"div\\\");\\n        wrapper.style.overflow = \\\"auto\\\";\\n        wrapper.style.height = \\\"5em\\\";\\n        wrapper.style.resize = \\\"vertical\\\";\\n        const content = document.createElement(\\\"div\\\");\\n        content.style.fontFamily = \\\"monospace\\\";\\n        content.style.whiteSpace = \\\"pre-wrap\\\";\\n        content.style.backgroundColor = \\\"rgb(255, 221, 221)\\\";\\n        content.textContent = error.stack ?? error.toString();\\n        wrapper.append(content);\\n        el.append(wrapper);\\n      }\\n    } else if (Date.now() < root._bokeh_timeout) {\\n      setTimeout(() => display_loaded(error), 100);\\n    }\\n  }\\n\\n  function run_callbacks() {\\n    try {\\n      root._bokeh_onload_callbacks.forEach(function(callback) {\\n        if (callback != null)\\n          callback();\\n      });\\n    } finally {\\n      delete root._bokeh_onload_callbacks\\n    }\\n    console.debug(\\\"Bokeh: all callbacks have finished\\\");\\n  }\\n\\n  function load_libs(css_urls, js_urls, callback) {\\n    if (css_urls == null) css_urls = [];\\n    if (js_urls == null) js_urls = [];\\n\\n    root._bokeh_onload_callbacks.push(callback);\\n    if (root._bokeh_is_loading > 0) {\\n      console.debug(\\\"Bokeh: BokehJS is being loaded, scheduling callback at\\\", now());\\n      return null;\\n    }\\n    if (js_urls == null || js_urls.length === 0) {\\n      run_callbacks();\\n      return null;\\n    }\\n    console.debug(\\\"Bokeh: BokehJS not loaded, scheduling load and callback at\\\", now());\\n    root._bokeh_is_loading = css_urls.length + js_urls.length;\\n\\n    function on_load() {\\n      root._bokeh_is_loading--;\\n      if (root._bokeh_is_loading === 0) {\\n        console.debug(\\\"Bokeh: all BokehJS libraries/stylesheets loaded\\\");\\n        run_callbacks()\\n      }\\n    }\\n\\n    function on_error(url) {\\n      console.error(\\\"failed to load \\\" + url);\\n    }\\n\\n    for (let i = 0; i < css_urls.length; i++) {\\n      const url = css_urls[i];\\n      const element = document.createElement(\\\"link\\\");\\n      element.onload = on_load;\\n      element.onerror = on_error.bind(null, url);\\n      element.rel = \\\"stylesheet\\\";\\n      element.type = \\\"text/css\\\";\\n      element.href = url;\\n      console.debug(\\\"Bokeh: injecting link tag for BokehJS stylesheet: \\\", url);\\n      document.body.appendChild(element);\\n    }\\n\\n    for (let i = 0; i < js_urls.length; i++) {\\n      const url = js_urls[i];\\n      const element = document.createElement('script');\\n      element.onload = on_load;\\n      element.onerror = on_error.bind(null, url);\\n      element.async = false;\\n      element.src = url;\\n      console.debug(\\\"Bokeh: injecting script tag for BokehJS library: \\\", url);\\n      document.head.appendChild(element);\\n    }\\n  };\\n\\n  function inject_raw_css(css) {\\n    const element = document.createElement(\\\"style\\\");\\n    element.appendChild(document.createTextNode(css));\\n    document.body.appendChild(element);\\n  }\\n\\n  const js_urls = [\\\"https://cdn.bokeh.org/bokeh/release/bokeh-3.5.2.min.js\\\", \\\"https://cdn.bokeh.org/bokeh/release/bokeh-gl-3.5.2.min.js\\\", \\\"https://cdn.bokeh.org/bokeh/release/bokeh-widgets-3.5.2.min.js\\\", \\\"https://cdn.bokeh.org/bokeh/release/bokeh-tables-3.5.2.min.js\\\", \\\"https://cdn.bokeh.org/bokeh/release/bokeh-mathjax-3.5.2.min.js\\\"];\\n  const css_urls = [];\\n\\n  const inline_js = [    function(Bokeh) {\\n      Bokeh.set_log_level(\\\"info\\\");\\n    },\\nfunction(Bokeh) {\\n    }\\n  ];\\n\\n  function run_inline_js() {\\n    if (root.Bokeh !== undefined || force === true) {\\n      try {\\n            for (let i = 0; i < inline_js.length; i++) {\\n      inline_js[i].call(root, root.Bokeh);\\n    }\\n\\n      } catch (error) {display_loaded(error);throw error;\\n      }if (force === true) {\\n        display_loaded();\\n      }} else if (Date.now() < root._bokeh_timeout) {\\n      setTimeout(run_inline_js, 100);\\n    } else if (!root._bokeh_failed_load) {\\n      console.log(\\\"Bokeh: BokehJS failed to load within specified timeout.\\\");\\n      root._bokeh_failed_load = true;\\n    } else if (force !== true) {\\n      const cell = $(document.getElementById(\\\"d8bf98d6-e6f6-4080-a236-84cbb75ea664\\\")).parents('.cell').data().cell;\\n      cell.output_area.append_execute_result(NB_LOAD_WARNING)\\n    }\\n  }\\n\\n  if (root._bokeh_is_loading === 0) {\\n    console.debug(\\\"Bokeh: BokehJS loaded, going straight to plotting\\\");\\n    run_inline_js();\\n  } else {\\n    load_libs(css_urls, js_urls, function() {\\n      console.debug(\\\"Bokeh: BokehJS plotting callback run at\\\", now());\\n      run_inline_js();\\n    });\\n  }\\n}(window));\"\r\n     },\r\n     \"metadata\": {},\r\n     \"output_type\": \"display_data\"\r\n    }\r\n   ],\r\n   \"execution_count\": 2\r\n  },\r\n  {\r\n   \"metadata\": {\r\n    \"ExecuteTime\": {\r\n     \"end_time\": \"2025-01-21T14:34:29.639194Z\",\r\n     \"start_time\": \"2025-01-21T14:34:29.205729Z\"\r\n    }\r\n   },\r\n   \"cell_type\": \"code\",\r\n   \"source\": [\r\n    \"sys.path.append(\\\"//\\\")\\n\",\r\n    \"#sys.path.append(\\\"../../Micromet\\\")\\n\",\r\n    \"import micromet\\n\",\r\n    \"from micromet import AmerifluxDataProcessor\\n\",\r\n    \"%matplotlib inline\"\r\n   ],\r\n   \"id\": \"7bbb41a5f666cb68\",\r\n   \"outputs\": [],\r\n   \"execution_count\": 3\r\n  },\r\n  {\r\n   \"metadata\": {\r\n    \"ExecuteTime\": {\r\n     \"end_time\": \"2025-01-21T14:34:31.124981Z\",\r\n     \"start_time\": \"2025-01-21T14:34:31.081815Z\"\r\n    }\r\n   },\r\n   \"cell_type\": \"code\",\r\n   \"source\": [\r\n    \"from pyproj import Transformer\\n\",\r\n    \"EPSG = 5070\\n\",\r\n    \"# load initial flux data\\n\",\r\n    \"station = 'US-UTW'\\n\",\r\n    \"config_path = f'../../station_config/{station}.ini'\\n\",\r\n    \"config = configparser.ConfigParser()\\n\",\r\n    \"config.read(config_path)\\n\",\r\n    \"\\n\",\r\n    \"latitude = config['METADATA']['station_latitude']\\n\",\r\n    \"longitude = config['METADATA']['station_longitude']\\n\",\r\n    \"\\n\",\r\n    \"# Define the transformer from WGS84 to NAD83 Conus Albers\\n\",\r\n    \"transformer = Transformer.from_crs(\\\"EPSG:4326\\\", f\\\"EPSG:{EPSG}\\\", always_xy=True)\\n\",\r\n    \"\\n\",\r\n    \"# Perform the transformation\\n\",\r\n    \"station_x, station_y = transformer.transform(longitude, latitude)\\n\",\r\n    \"\\n\",\r\n    \"print(f\\\"Projected Coordinates in NAD83 Conus Albers (EPSG:5070): X={station_x}, Y={station_y}\\\")\"\r\n   ],\r\n   \"id\": \"4283758589c0b977\",\r\n   \"outputs\": [\r\n    {\r\n     \"name\": \"stdout\",\r\n     \"output_type\": \"stream\",\r\n     \"text\": [\r\n      \"Projected Coordinates in NAD83 Conus Albers (EPSG:5070): X=-1251001.2763440341, Y=1921956.3381891234\\n\"\r\n     ]\r\n    }\r\n   ],\r\n   \"execution_count\": 4\r\n  },\r\n  {\r\n   \"metadata\": {\r\n    \"ExecuteTime\": {\r\n     \"end_time\": \"2025-01-21T14:39:16.764185Z\",\r\n     \"start_time\": \"2025-01-21T14:39:16.759247Z\"\r\n    }\r\n   },\r\n   \"cell_type\": \"code\",\r\n   \"source\": [\r\n    \"import math\\n\",\r\n    \"\\n\",\r\n    \"def polar_to_cartesian_dataframe(df, wd_column='WD', dist_column='Dist'):\\n\",\r\n    \"    \\\"\\\"\\\"\\n\",\r\n    \"    Convert polar coordinates from a DataFrame to Cartesian coordinates.\\n\",\r\n    \"\\n\",\r\n    \"    Parameters:\\n\",\r\n    \"        df (pd.DataFrame): Input DataFrame containing polar coordinates.\\n\",\r\n    \"        wd_column (str): Column name for degrees from north.\\n\",\r\n    \"        dist_column (str): Column name for distance from origin.\\n\",\r\n    \"\\n\",\r\n    \"    Returns:\\n\",\r\n    \"        pd.DataFrame: A DataFrame with added 'X' and 'Y' columns.\\n\",\r\n    \"    \\\"\\\"\\\"\\n\",\r\n    \"    # Create copies of the input columns to avoid modifying original data\\n\",\r\n    \"    wd = df[wd_column].copy()\\n\",\r\n    \"    dist = df[dist_column].copy()\\n\",\r\n    \"\\n\",\r\n    \"    # Identify invalid values (-9999 or NaN)\\n\",\r\n    \"    invalid_mask = (wd == -9999) | (dist == -9999) | wd.isna() | dist.isna()\\n\",\r\n    \"\\n\",\r\n    \"    # Convert degrees from north to standard polar angle (radians) where valid\\n\",\r\n    \"    theta_radians = np.radians(90 - wd)\\n\",\r\n    \"\\n\",\r\n    \"    # Calculate Cartesian coordinates, setting invalid values to NaN\\n\",\r\n    \"    df[f'X_{dist_column}'] = np.where(invalid_mask, np.nan, dist * np.cos(theta_radians))\\n\",\r\n    \"    df[f'Y_{dist_column}'] = np.where(invalid_mask, np.nan, dist * np.sin(theta_radians))\\n\",\r\n    \"\\n\",\r\n    \"    return df\\n\"\r\n   ],\r\n   \"id\": \"f1f002bdb859d9a\",\r\n   \"outputs\": [],\r\n   \"execution_count\": 11\r\n  },\r\n  {\r\n   \"metadata\": {\r\n    \"ExecuteTime\": {\r\n     \"end_time\": \"2025-01-21T14:39:27.317546Z\",\r\n     \"start_time\": \"2025-01-21T14:39:27.150908Z\"\r\n    }\r\n   },\r\n   \"cell_type\": \"code\",\r\n   \"source\": [\r\n    \"#df = pd.read_csv(config['METADATA']['climate_file_path'],skiprows=config['METADATA']['skiprows'])\\n\",\r\n    \"df = pd.read_csv(\\\"../../station_data/US-CdM_HH_202306141100_202410081700.csv\\\")\\n\",\r\n    \"for col in df.columns:\\n\",\r\n    \"    if \\\"fetch\\\" in col.lower():\\n\",\r\n    \"        df = polar_to_cartesian_dataframe(df, wd_column='WD',dist_column=col)\"\r\n   ],\r\n   \"id\": \"fd1e0f76afe76a44\",\r\n   \"outputs\": [],\r\n   \"execution_count\": 12\r\n  },\r\n  {\r\n   \"metadata\": {\r\n    \"ExecuteTime\": {\r\n     \"end_time\": \"2025-01-21T14:39:31.953294Z\",\r\n     \"start_time\": \"2025-01-21T14:39:31.922222Z\"\r\n    }\r\n   },\r\n   \"cell_type\": \"code\",\r\n   \"source\": \"df\",\r\n   \"id\": \"6097d04a22258117\",\r\n   \"outputs\": [\r\n    {\r\n     \"data\": {\r\n      \"text/plain\": [\r\n       \"            datetime_start  TIMESTAMP_START  TIMESTAMP_END        CO2  \\\\\\n\",\r\n       \"0      2023-06-14 11:00:00     202306141100   202306141130 -9999.0000   \\n\",\r\n       \"1      2023-06-14 11:30:00     202306141130   202306141200 -9999.0000   \\n\",\r\n       \"2      2023-06-14 12:00:00     202306141200   202306141230   404.8652   \\n\",\r\n       \"3      2023-06-14 12:30:00     202306141230   202306141300   403.2438   \\n\",\r\n       \"4      2023-06-14 13:00:00     202306141300   202306141330   397.2703   \\n\",\r\n       \"...                    ...              ...            ...        ...   \\n\",\r\n       \"23143  2024-10-08 14:30:00     202410081430   202410081500   401.5762   \\n\",\r\n       \"23144  2024-10-08 15:00:00     202410081500   202410081530   401.5929   \\n\",\r\n       \"23145  2024-10-08 15:30:00     202410081530   202410081600   401.3630   \\n\",\r\n       \"23146  2024-10-08 16:00:00     202410081600   202410081630   401.1919   \\n\",\r\n       \"23147  2024-10-08 16:30:00     202410081630   202410081700   401.1366   \\n\",\r\n       \"\\n\",\r\n       \"         CO2_SIGMA          H2O    H2O_SIGMA           FC  FC_SSITC_TEST  \\\\\\n\",\r\n       \"0     -9999.000000 -9999.000000 -9999.000000 -9999.000000        -9999.0   \\n\",\r\n       \"1     -9999.000000 -9999.000000 -9999.000000 -9999.000000        -9999.0   \\n\",\r\n       \"2         7.160377    11.003180     1.408956 -9999.000000        -9999.0   \\n\",\r\n       \"3         6.578680    10.929970     1.396008   -19.724970        -9999.0   \\n\",\r\n       \"4         7.669390    12.208020     1.357026   -29.465460        -9999.0   \\n\",\r\n       \"...            ...          ...          ...          ...            ...   \\n\",\r\n       \"23143     0.373631     2.863288     0.053154    -0.284607        -9999.0   \\n\",\r\n       \"23144     0.473523     2.466282     0.107060    -0.755953            2.0   \\n\",\r\n       \"23145     0.335989     2.445982     0.044886    -0.116504        -9999.0   \\n\",\r\n       \"23146     0.380539     2.550954     0.069491    -0.942505            2.0   \\n\",\r\n       \"23147     0.212202     2.600495     0.047844    -0.032935            2.0   \\n\",\r\n       \"\\n\",\r\n       \"                LE  ...    TS_2_1_1    SWC_2_1_1  X_FETCH_MAX  Y_FETCH_MAX  \\\\\\n\",\r\n       \"0     -9999.000000  ... -9999.00000 -9999.000000          NaN          NaN   \\n\",\r\n       \"1     -9999.000000  ... -9999.00000 -9999.000000          NaN          NaN   \\n\",\r\n       \"2       394.658600  ... -9999.00000 -9999.000000   -22.087887    -0.541745   \\n\",\r\n       \"3       277.552900  ... -9999.00000 -9999.000000    27.341082   -12.220065   \\n\",\r\n       \"4       290.635000  ... -9999.00000 -9999.000000   -12.573416   -13.561474   \\n\",\r\n       \"...            ...  ...         ...          ...          ...          ...   \\n\",\r\n       \"23143     5.291050  ...    25.01365     2.415389    12.467820   -90.431495   \\n\",\r\n       \"23144     0.461339  ...    24.36275     2.412944   -77.916613     0.484539   \\n\",\r\n       \"23145     4.989396  ...    23.67358     2.412833   -82.222816    25.811203   \\n\",\r\n       \"23146    11.713800  ...    23.25630     2.413972   -72.149224   -11.916283   \\n\",\r\n       \"23147     4.988314  ...    23.06013 -9999.000000   -59.415652   -32.550418   \\n\",\r\n       \"\\n\",\r\n       \"       X_FETCH_90  Y_FETCH_90  X_FETCH_55  Y_FETCH_55  X_FETCH_40  Y_FETCH_40  \\n\",\r\n       \"0             NaN         NaN         NaN         NaN         NaN         NaN  \\n\",\r\n       \"1             NaN         NaN         NaN         NaN         NaN         NaN  \\n\",\r\n       \"2      -60.935784   -1.494559  -31.392359   -0.769954  -23.760674   -0.582773  \\n\",\r\n       \"3       75.411491  -33.705078   38.863654  -17.370065   29.415165  -13.147074  \\n\",\r\n       \"4      -35.182653  -37.947417  -17.948699  -19.359165  -13.577773  -14.644758  \\n\",\r\n       \"...           ...         ...         ...         ...         ...         ...  \\n\",\r\n       \"23143   34.685692 -251.581992   17.772194 -128.905138   13.446685  -97.531394  \\n\",\r\n       \"23144 -216.863007    1.348603 -111.061753    0.690658  -84.031255    0.522564  \\n\",\r\n       \"23145 -228.782695   71.818954 -117.203015   36.792109  -88.677530   27.837453  \\n\",\r\n       \"23146 -200.821981  -33.168085 -102.834360  -16.984290  -77.806878  -12.850711  \\n\",\r\n       \"23147 -165.442496  -90.636427  -84.686644  -46.394941  -64.075752  -35.103419  \\n\",\r\n       \"\\n\",\r\n       \"[23148 rows x 71 columns]\"\r\n      ],\r\n      \"text/html\": [\r\n       \"<div>\\n\",\r\n       \"<style scoped>\\n\",\r\n       \"    .dataframe tbody tr th:only-of-type {\\n\",\r\n       \"        vertical-align: middle;\\n\",\r\n       \"    }\\n\",\r\n       \"\\n\",\r\n       \"    .dataframe tbody tr th {\\n\",\r\n       \"        vertical-align: top;\\n\",\r\n       \"    }\\n\",\r\n       \"\\n\",\r\n       \"    .dataframe thead th {\\n\",\r\n       \"        text-align: right;\\n\",\r\n       \"    }\\n\",\r\n       \"</style>\\n\",\r\n       \"<table border=\\\"1\\\" class=\\\"dataframe\\\">\\n\",\r\n       \"  <thead>\\n\",\r\n       \"    <tr style=\\\"text-align: right;\\\">\\n\",\r\n       \"      <th></th>\\n\",\r\n       \"      <th>datetime_start</th>\\n\",\r\n       \"      <th>TIMESTAMP_START</th>\\n\",\r\n       \"      <th>TIMESTAMP_END</th>\\n\",\r\n       \"      <th>CO2</th>\\n\",\r\n       \"      <th>CO2_SIGMA</th>\\n\",\r\n       \"      <th>H2O</th>\\n\",\r\n       \"      <th>H2O_SIGMA</th>\\n\",\r\n       \"      <th>FC</th>\\n\",\r\n       \"      <th>FC_SSITC_TEST</th>\\n\",\r\n       \"      <th>LE</th>\\n\",\r\n       \"      <th>...</th>\\n\",\r\n       \"      <th>TS_2_1_1</th>\\n\",\r\n       \"      <th>SWC_2_1_1</th>\\n\",\r\n       \"      <th>X_FETCH_MAX</th>\\n\",\r\n       \"      <th>Y_FETCH_MAX</th>\\n\",\r\n       \"      <th>X_FETCH_90</th>\\n\",\r\n       \"      <th>Y_FETCH_90</th>\\n\",\r\n       \"      <th>X_FETCH_55</th>\\n\",\r\n       \"      <th>Y_FETCH_55</th>\\n\",\r\n       \"      <th>X_FETCH_40</th>\\n\",\r\n       \"      <th>Y_FETCH_40</th>\\n\",\r\n       \"    </tr>\\n\",\r\n       \"  </thead>\\n\",\r\n       \"  <tbody>\\n\",\r\n       \"    <tr>\\n\",\r\n       \"      <th>0</th>\\n\",\r\n       \"      <td>2023-06-14 11:00:00</td>\\n\",\r\n       \"      <td>202306141100</td>\\n\",\r\n       \"      <td>202306141130</td>\\n\",\r\n       \"      <td>-9999.0000</td>\\n\",\r\n       \"      <td>-9999.000000</td>\\n\",\r\n       \"      <td>-9999.000000</td>\\n\",\r\n       \"      <td>-9999.000000</td>\\n\",\r\n       \"      <td>-9999.000000</td>\\n\",\r\n       \"      <td>-9999.0</td>\\n\",\r\n       \"      <td>-9999.000000</td>\\n\",\r\n       \"      <td>...</td>\\n\",\r\n       \"      <td>-9999.00000</td>\\n\",\r\n       \"      <td>-9999.000000</td>\\n\",\r\n       \"      <td>NaN</td>\\n\",\r\n       \"      <td>NaN</td>\\n\",\r\n       \"      <td>NaN</td>\\n\",\r\n       \"      <td>NaN</td>\\n\",\r\n       \"      <td>NaN</td>\\n\",\r\n       \"      <td>NaN</td>\\n\",\r\n       \"      <td>NaN</td>\\n\",\r\n       \"      <td>NaN</td>\\n\",\r\n       \"    </tr>\\n\",\r\n       \"    <tr>\\n\",\r\n       \"      <th>1</th>\\n\",\r\n       \"      <td>2023-06-14 11:30:00</td>\\n\",\r\n       \"      <td>202306141130</td>\\n\",\r\n       \"      <td>202306141200</td>\\n\",\r\n       \"      <td>-9999.0000</td>\\n\",\r\n       \"      <td>-9999.000000</td>\\n\",\r\n       \"      <td>-9999.000000</td>\\n\",\r\n       \"      <td>-9999.000000</td>\\n\",\r\n       \"      <td>-9999.000000</td>\\n\",\r\n       \"      <td>-9999.0</td>\\n\",\r\n       \"      <td>-9999.000000</td>\\n\",\r\n       \"      <td>...</td>\\n\",\r\n       \"      <td>-9999.00000</td>\\n\",\r\n       \"      <td>-9999.000000</td>\\n\",\r\n       \"      <td>NaN</td>\\n\",\r\n       \"      <td>NaN</td>\\n\",\r\n       \"      <td>NaN</td>\\n\",\r\n       \"      <td>NaN</td>\\n\",\r\n       \"      <td>NaN</td>\\n\",\r\n       \"      <td>NaN</td>\\n\",\r\n       \"      <td>NaN</td>\\n\",\r\n       \"      <td>NaN</td>\\n\",\r\n       \"    </tr>\\n\",\r\n       \"    <tr>\\n\",\r\n       \"      <th>2</th>\\n\",\r\n       \"      <td>2023-06-14 12:00:00</td>\\n\",\r\n       \"      <td>202306141200</td>\\n\",\r\n       \"      <td>202306141230</td>\\n\",\r\n       \"      <td>404.8652</td>\\n\",\r\n       \"      <td>7.160377</td>\\n\",\r\n       \"      <td>11.003180</td>\\n\",\r\n       \"      <td>1.408956</td>\\n\",\r\n       \"      <td>-9999.000000</td>\\n\",\r\n       \"      <td>-9999.0</td>\\n\",\r\n       \"      <td>394.658600</td>\\n\",\r\n       \"      <td>...</td>\\n\",\r\n       \"      <td>-9999.00000</td>\\n\",\r\n       \"      <td>-9999.000000</td>\\n\",\r\n       \"      <td>-22.087887</td>\\n\",\r\n       \"      <td>-0.541745</td>\\n\",\r\n       \"      <td>-60.935784</td>\\n\",\r\n       \"      <td>-1.494559</td>\\n\",\r\n       \"      <td>-31.392359</td>\\n\",\r\n       \"      <td>-0.769954</td>\\n\",\r\n       \"      <td>-23.760674</td>\\n\",\r\n       \"      <td>-0.582773</td>\\n\",\r\n       \"    </tr>\\n\",\r\n       \"    <tr>\\n\",\r\n       \"      <th>3</th>\\n\",\r\n       \"      <td>2023-06-14 12:30:00</td>\\n\",\r\n       \"      <td>202306141230</td>\\n\",\r\n       \"      <td>202306141300</td>\\n\",\r\n       \"      <td>403.2438</td>\\n\",\r\n       \"      <td>6.578680</td>\\n\",\r\n       \"      <td>10.929970</td>\\n\",\r\n       \"      <td>1.396008</td>\\n\",\r\n       \"      <td>-19.724970</td>\\n\",\r\n       \"      <td>-9999.0</td>\\n\",\r\n       \"      <td>277.552900</td>\\n\",\r\n       \"      <td>...</td>\\n\",\r\n       \"      <td>-9999.00000</td>\\n\",\r\n       \"      <td>-9999.000000</td>\\n\",\r\n       \"      <td>27.341082</td>\\n\",\r\n       \"      <td>-12.220065</td>\\n\",\r\n       \"      <td>75.411491</td>\\n\",\r\n       \"      <td>-33.705078</td>\\n\",\r\n       \"      <td>38.863654</td>\\n\",\r\n       \"      <td>-17.370065</td>\\n\",\r\n       \"      <td>29.415165</td>\\n\",\r\n       \"      <td>-13.147074</td>\\n\",\r\n       \"    </tr>\\n\",\r\n       \"    <tr>\\n\",\r\n       \"      <th>4</th>\\n\",\r\n       \"      <td>2023-06-14 13:00:00</td>\\n\",\r\n       \"      <td>202306141300</td>\\n\",\r\n       \"      <td>202306141330</td>\\n\",\r\n       \"      <td>397.2703</td>\\n\",\r\n       \"      <td>7.669390</td>\\n\",\r\n       \"      <td>12.208020</td>\\n\",\r\n       \"      <td>1.357026</td>\\n\",\r\n       \"      <td>-29.465460</td>\\n\",\r\n       \"      <td>-9999.0</td>\\n\",\r\n       \"      <td>290.635000</td>\\n\",\r\n       \"      <td>...</td>\\n\",\r\n       \"      <td>-9999.00000</td>\\n\",\r\n       \"      <td>-9999.000000</td>\\n\",\r\n       \"      <td>-12.573416</td>\\n\",\r\n       \"      <td>-13.561474</td>\\n\",\r\n       \"      <td>-35.182653</td>\\n\",\r\n       \"      <td>-37.947417</td>\\n\",\r\n       \"      <td>-17.948699</td>\\n\",\r\n       \"      <td>-19.359165</td>\\n\",\r\n       \"      <td>-13.577773</td>\\n\",\r\n       \"      <td>-14.644758</td>\\n\",\r\n       \"    </tr>\\n\",\r\n       \"    <tr>\\n\",\r\n       \"      <th>...</th>\\n\",\r\n       \"      <td>...</td>\\n\",\r\n       \"      <td>...</td>\\n\",\r\n       \"      <td>...</td>\\n\",\r\n       \"      <td>...</td>\\n\",\r\n       \"      <td>...</td>\\n\",\r\n       \"      <td>...</td>\\n\",\r\n       \"      <td>...</td>\\n\",\r\n       \"      <td>...</td>\\n\",\r\n       \"      <td>...</td>\\n\",\r\n       \"      <td>...</td>\\n\",\r\n       \"      <td>...</td>\\n\",\r\n       \"      <td>...</td>\\n\",\r\n       \"      <td>...</td>\\n\",\r\n       \"      <td>...</td>\\n\",\r\n       \"      <td>...</td>\\n\",\r\n       \"      <td>...</td>\\n\",\r\n       \"      <td>...</td>\\n\",\r\n       \"      <td>...</td>\\n\",\r\n       \"      <td>...</td>\\n\",\r\n       \"      <td>...</td>\\n\",\r\n       \"      <td>...</td>\\n\",\r\n       \"    </tr>\\n\",\r\n       \"    <tr>\\n\",\r\n       \"      <th>23143</th>\\n\",\r\n       \"      <td>2024-10-08 14:30:00</td>\\n\",\r\n       \"      <td>202410081430</td>\\n\",\r\n       \"      <td>202410081500</td>\\n\",\r\n       \"      <td>401.5762</td>\\n\",\r\n       \"      <td>0.373631</td>\\n\",\r\n       \"      <td>2.863288</td>\\n\",\r\n       \"      <td>0.053154</td>\\n\",\r\n       \"      <td>-0.284607</td>\\n\",\r\n       \"      <td>-9999.0</td>\\n\",\r\n       \"      <td>5.291050</td>\\n\",\r\n       \"      <td>...</td>\\n\",\r\n       \"      <td>25.01365</td>\\n\",\r\n       \"      <td>2.415389</td>\\n\",\r\n       \"      <td>12.467820</td>\\n\",\r\n       \"      <td>-90.431495</td>\\n\",\r\n       \"      <td>34.685692</td>\\n\",\r\n       \"      <td>-251.581992</td>\\n\",\r\n       \"      <td>17.772194</td>\\n\",\r\n       \"      <td>-128.905138</td>\\n\",\r\n       \"      <td>13.446685</td>\\n\",\r\n       \"      <td>-97.531394</td>\\n\",\r\n       \"    </tr>\\n\",\r\n       \"    <tr>\\n\",\r\n       \"      <th>23144</th>\\n\",\r\n       \"      <td>2024-10-08 15:00:00</td>\\n\",\r\n       \"      <td>202410081500</td>\\n\",\r\n       \"      <td>202410081530</td>\\n\",\r\n       \"      <td>401.5929</td>\\n\",\r\n       \"      <td>0.473523</td>\\n\",\r\n       \"      <td>2.466282</td>\\n\",\r\n       \"      <td>0.107060</td>\\n\",\r\n       \"      <td>-0.755953</td>\\n\",\r\n       \"      <td>2.0</td>\\n\",\r\n       \"      <td>0.461339</td>\\n\",\r\n       \"      <td>...</td>\\n\",\r\n       \"      <td>24.36275</td>\\n\",\r\n       \"      <td>2.412944</td>\\n\",\r\n       \"      <td>-77.916613</td>\\n\",\r\n       \"      <td>0.484539</td>\\n\",\r\n       \"      <td>-216.863007</td>\\n\",\r\n       \"      <td>1.348603</td>\\n\",\r\n       \"      <td>-111.061753</td>\\n\",\r\n       \"      <td>0.690658</td>\\n\",\r\n       \"      <td>-84.031255</td>\\n\",\r\n       \"      <td>0.522564</td>\\n\",\r\n       \"    </tr>\\n\",\r\n       \"    <tr>\\n\",\r\n       \"      <th>23145</th>\\n\",\r\n       \"      <td>2024-10-08 15:30:00</td>\\n\",\r\n       \"      <td>202410081530</td>\\n\",\r\n       \"      <td>202410081600</td>\\n\",\r\n       \"      <td>401.3630</td>\\n\",\r\n       \"      <td>0.335989</td>\\n\",\r\n       \"      <td>2.445982</td>\\n\",\r\n       \"      <td>0.044886</td>\\n\",\r\n       \"      <td>-0.116504</td>\\n\",\r\n       \"      <td>-9999.0</td>\\n\",\r\n       \"      <td>4.989396</td>\\n\",\r\n       \"      <td>...</td>\\n\",\r\n       \"      <td>23.67358</td>\\n\",\r\n       \"      <td>2.412833</td>\\n\",\r\n       \"      <td>-82.222816</td>\\n\",\r\n       \"      <td>25.811203</td>\\n\",\r\n       \"      <td>-228.782695</td>\\n\",\r\n       \"      <td>71.818954</td>\\n\",\r\n       \"      <td>-117.203015</td>\\n\",\r\n       \"      <td>36.792109</td>\\n\",\r\n       \"      <td>-88.677530</td>\\n\",\r\n       \"      <td>27.837453</td>\\n\",\r\n       \"    </tr>\\n\",\r\n       \"    <tr>\\n\",\r\n       \"      <th>23146</th>\\n\",\r\n       \"      <td>2024-10-08 16:00:00</td>\\n\",\r\n       \"      <td>202410081600</td>\\n\",\r\n       \"      <td>202410081630</td>\\n\",\r\n       \"      <td>401.1919</td>\\n\",\r\n       \"      <td>0.380539</td>\\n\",\r\n       \"      <td>2.550954</td>\\n\",\r\n       \"      <td>0.069491</td>\\n\",\r\n       \"      <td>-0.942505</td>\\n\",\r\n       \"      <td>2.0</td>\\n\",\r\n       \"      <td>11.713800</td>\\n\",\r\n       \"      <td>...</td>\\n\",\r\n       \"      <td>23.25630</td>\\n\",\r\n       \"      <td>2.413972</td>\\n\",\r\n       \"      <td>-72.149224</td>\\n\",\r\n       \"      <td>-11.916283</td>\\n\",\r\n       \"      <td>-200.821981</td>\\n\",\r\n       \"      <td>-33.168085</td>\\n\",\r\n       \"      <td>-102.834360</td>\\n\",\r\n       \"      <td>-16.984290</td>\\n\",\r\n       \"      <td>-77.806878</td>\\n\",\r\n       \"      <td>-12.850711</td>\\n\",\r\n       \"    </tr>\\n\",\r\n       \"    <tr>\\n\",\r\n       \"      <th>23147</th>\\n\",\r\n       \"      <td>2024-10-08 16:30:00</td>\\n\",\r\n       \"      <td>202410081630</td>\\n\",\r\n       \"      <td>202410081700</td>\\n\",\r\n       \"      <td>401.1366</td>\\n\",\r\n       \"      <td>0.212202</td>\\n\",\r\n       \"      <td>2.600495</td>\\n\",\r\n       \"      <td>0.047844</td>\\n\",\r\n       \"      <td>-0.032935</td>\\n\",\r\n       \"      <td>2.0</td>\\n\",\r\n       \"      <td>4.988314</td>\\n\",\r\n       \"      <td>...</td>\\n\",\r\n       \"      <td>23.06013</td>\\n\",\r\n       \"      <td>-9999.000000</td>\\n\",\r\n       \"      <td>-59.415652</td>\\n\",\r\n       \"      <td>-32.550418</td>\\n\",\r\n       \"      <td>-165.442496</td>\\n\",\r\n       \"      <td>-90.636427</td>\\n\",\r\n       \"      <td>-84.686644</td>\\n\",\r\n       \"      <td>-46.394941</td>\\n\",\r\n       \"      <td>-64.075752</td>\\n\",\r\n       \"      <td>-35.103419</td>\\n\",\r\n       \"    </tr>\\n\",\r\n       \"  </tbody>\\n\",\r\n       \"</table>\\n\",\r\n       \"<p>23148 rows × 71 columns</p>\\n\",\r\n       \"</div>\"\r\n      ]\r\n     },\r\n     \"execution_count\": 13,\r\n     \"metadata\": {},\r\n     \"output_type\": \"execute_result\"\r\n    }\r\n   ],\r\n   \"execution_count\": 13\r\n  },\r\n  {\r\n   \"metadata\": {},\r\n   \"cell_type\": \"code\",\r\n   \"outputs\": [],\r\n   \"execution_count\": null,\r\n   \"source\": \"\",\r\n   \"id\": \"e3c7eb6737ed449e\"\r\n  }\r\n ],\r\n \"metadata\": {\r\n  \"kernelspec\": {\r\n   \"display_name\": \"Python 3\",\r\n   \"language\": \"python\",\r\n   \"name\": \"python3\"\r\n  },\r\n  \"language_info\": {\r\n   \"codemirror_mode\": {\r\n    \"name\": \"ipython\",\r\n    \"version\": 2\r\n   },\r\n   \"file_extension\": \".py\",\r\n   \"mimetype\": \"text/x-python\",\r\n   \"name\": \"python\",\r\n   \"nbconvert_exporter\": \"python\",\r\n   \"pygments_lexer\": \"ipython2\",\r\n   \"version\": \"2.7.6\"\r\n  }\r\n },\r\n \"nbformat\": 4,\r\n \"nbformat_minor\": 5\r\n}\r\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/Notebooks/Footprints/row_footprint.ipynb b/Notebooks/Footprints/row_footprint.ipynb
+--- a/Notebooks/Footprints/row_footprint.ipynb	(revision 727b618fe07b58b9be28c91fc1c847f38664fc34)
++++ b/Notebooks/Footprints/row_footprint.ipynb	(date 1737496398189)
+@@ -1,610 +1,183 @@
+-{
+- "cells": [
+-  {
+-   "cell_type": "code",
+-   "id": "initial_id",
+-   "metadata": {
+-    "collapsed": true,
+-    "ExecuteTime": {
+-     "end_time": "2025-01-21T14:34:27.516666Z",
+-     "start_time": "2025-01-21T14:34:23.347950Z"
+-    }
+-   },
+-   "source": [
+-    "import pandas as pd\n",
+-    "import numpy as np\n",
+-    "import glob\n",
+-    "import os\n",
+-    "import geopandas as gpd\n",
+-    "import urllib\n",
+-    "import sys\n",
+-    "import pathlib\n",
+-    "import glob\n",
+-    "import matplotlib.pyplot as plt\n",
+-    "from urllib.parse import quote\n",
+-    "from sqlalchemy import create_engine\n",
+-    "import configparser\n",
+-    "\n",
+-    "\n",
+-    "import statsmodels.api as sm\n",
+-    "#import pingouin as pg\n",
+-    "import plotly.express as px\n",
+-    "from fluxdataqaqc import Data, QaQc, Plot\n",
+-    "from bokeh.plotting import figure, show, ColumnDataSource\n",
+-    "from bokeh.models.formatters import DatetimeTickFormatter\n",
+-    "from bokeh.models import LinearAxis, Range1d\n",
+-    "from bokeh.io import output_notebook\n",
+-    "output_notebook()"
+-   ],
+-   "outputs": [
+-    {
+-     "data": {
+-      "text/html": [
+-       "    <style>\n",
+-       "        .bk-notebook-logo {\n",
+-       "            display: block;\n",
+-       "            width: 20px;\n",
+-       "            height: 20px;\n",
+-       "            background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAUCAYAAACNiR0NAAAABHNCSVQICAgIfAhkiAAAAAlwSFlzAAALEgAACxIB0t1+/AAAABx0RVh0U29mdHdhcmUAQWRvYmUgRmlyZXdvcmtzIENTNui8sowAAAOkSURBVDiNjZRtaJVlGMd/1/08zzln5zjP1LWcU9N0NkN8m2CYjpgQYQXqSs0I84OLIC0hkEKoPtiH3gmKoiJDU7QpLgoLjLIQCpEsNJ1vqUOdO7ppbuec5+V+rj4ctwzd8IIbbi6u+8f1539dt3A78eXC7QizUF7gyV1fD1Yqg4JWz84yffhm0qkFqBogB9rM8tZdtwVsPUhWhGcFJngGeWrPzHm5oaMmkfEg1usvLFyc8jLRqDOMru7AyC8saQr7GG7f5fvDeH7Ej8CM66nIF+8yngt6HWaKh7k49Soy9nXurCi1o3qUbS3zWfrYeQDTB/Qj6kX6Ybhw4B+bOYoLKCC9H3Nu/leUTZ1JdRWkkn2ldcCamzrcf47KKXdAJllSlxAOkRgyHsGC/zRday5Qld9DyoM4/q/rUoy/CXh3jzOu3bHUVZeU+DEn8FInkPBFlu3+nW3Nw0mk6vCDiWg8CeJaxEwuHS3+z5RgY+YBR6V1Z1nxSOfoaPa4LASWxxdNp+VWTk7+4vzaou8v8PN+xo+KY2xsw6une2frhw05CTYOmQvsEhjhWjn0bmXPjpE1+kplmmkP3suftwTubK9Vq22qKmrBhpY4jvd5afdRA3wGjFAgcnTK2s4hY0/GPNIb0nErGMCRxWOOX64Z8RAC4oCXdklmEvcL8o0BfkNK4lUg9HTl+oPlQxdNo3Mg4Nv175e/1LDGzZen30MEjRUtmXSfiTVu1kK8W4txyV6BMKlbgk3lMwYCiusNy9fVfvvwMxv8Ynl6vxoByANLTWplvuj/nF9m2+PDtt1eiHPBr1oIfhCChQMBw6Aw0UulqTKZdfVvfG7VcfIqLG9bcldL/+pdWTLxLUy8Qq38heUIjh4XlzZxzQm19lLFlr8vdQ97rjZVOLf8nclzckbcD4wxXMidpX30sFd37Fv/GtwwhzhxGVAprjbg0gCAEeIgwCZyTV2Z1REEW8O4py0wsjeloKoMr6iCY6dP92H6Vw/oTyICIthibxjm/DfN9lVz8IqtqKYLUXfoKVMVQVVJOElGjrnnUt9T9wbgp8AyYKaGlqingHZU/uG2NTZSVqwHQTWkx9hxjkpWDaCg6Ckj5qebgBVbT3V3NNXMSiWSDdGV3hrtzla7J+duwPOToIg42ChPQOQjspnSlp1V+Gjdged7+8UN5CRAV7a5EdFNwCjEaBR27b3W890TE7g24NAP/mMDXRWrGoFPQI9ls/MWO2dWFAar/xcOIImbbpA3zgAAAABJRU5ErkJggg==);\n",
+-       "        }\n",
+-       "    </style>\n",
+-       "    <div>\n",
+-       "        <a href=\"https://bokeh.org\" target=\"_blank\" class=\"bk-notebook-logo\"></a>\n",
+-       "        <span id=\"d8bf98d6-e6f6-4080-a236-84cbb75ea664\">Loading BokehJS ...</span>\n",
+-       "    </div>\n"
+-      ]
+-     },
+-     "metadata": {},
+-     "output_type": "display_data"
+-    },
+-    {
+-     "data": {
+-      "application/javascript": "'use strict';\n(function(root) {\n  function now() {\n    return new Date();\n  }\n\n  const force = true;\n\n  if (typeof root._bokeh_onload_callbacks === \"undefined\" || force === true) {\n    root._bokeh_onload_callbacks = [];\n    root._bokeh_is_loading = undefined;\n  }\n\nconst JS_MIME_TYPE = 'application/javascript';\n  const HTML_MIME_TYPE = 'text/html';\n  const EXEC_MIME_TYPE = 'application/vnd.bokehjs_exec.v0+json';\n  const CLASS_NAME = 'output_bokeh rendered_html';\n\n  /**\n   * Render data to the DOM node\n   */\n  function render(props, node) {\n    const script = document.createElement(\"script\");\n    node.appendChild(script);\n  }\n\n  /**\n   * Handle when an output is cleared or removed\n   */\n  function handleClearOutput(event, handle) {\n    function drop(id) {\n      const view = Bokeh.index.get_by_id(id)\n      if (view != null) {\n        view.model.document.clear()\n        Bokeh.index.delete(view)\n      }\n    }\n\n    const cell = handle.cell;\n\n    const id = cell.output_area._bokeh_element_id;\n    const server_id = cell.output_area._bokeh_server_id;\n\n    // Clean up Bokeh references\n    if (id != null) {\n      drop(id)\n    }\n\n    if (server_id !== undefined) {\n      // Clean up Bokeh references\n      const cmd_clean = \"from bokeh.io.state import curstate; print(curstate().uuid_to_server['\" + server_id + \"'].get_sessions()[0].document.roots[0]._id)\";\n      cell.notebook.kernel.execute(cmd_clean, {\n        iopub: {\n          output: function(msg) {\n            const id = msg.content.text.trim()\n            drop(id)\n          }\n        }\n      });\n      // Destroy server and session\n      const cmd_destroy = \"import bokeh.io.notebook as ion; ion.destroy_server('\" + server_id + \"')\";\n      cell.notebook.kernel.execute(cmd_destroy);\n    }\n  }\n\n  /**\n   * Handle when a new output is added\n   */\n  function handleAddOutput(event, handle) {\n    const output_area = handle.output_area;\n    const output = handle.output;\n\n    // limit handleAddOutput to display_data with EXEC_MIME_TYPE content only\n    if ((output.output_type != \"display_data\") || (!Object.prototype.hasOwnProperty.call(output.data, EXEC_MIME_TYPE))) {\n      return\n    }\n\n    const toinsert = output_area.element.find(\".\" + CLASS_NAME.split(' ')[0]);\n\n    if (output.metadata[EXEC_MIME_TYPE][\"id\"] !== undefined) {\n      toinsert[toinsert.length - 1].firstChild.textContent = output.data[JS_MIME_TYPE];\n      // store reference to embed id on output_area\n      output_area._bokeh_element_id = output.metadata[EXEC_MIME_TYPE][\"id\"];\n    }\n    if (output.metadata[EXEC_MIME_TYPE][\"server_id\"] !== undefined) {\n      const bk_div = document.createElement(\"div\");\n      bk_div.innerHTML = output.data[HTML_MIME_TYPE];\n      const script_attrs = bk_div.children[0].attributes;\n      for (let i = 0; i < script_attrs.length; i++) {\n        toinsert[toinsert.length - 1].firstChild.setAttribute(script_attrs[i].name, script_attrs[i].value);\n        toinsert[toinsert.length - 1].firstChild.textContent = bk_div.children[0].textContent\n      }\n      // store reference to server id on output_area\n      output_area._bokeh_server_id = output.metadata[EXEC_MIME_TYPE][\"server_id\"];\n    }\n  }\n\n  function register_renderer(events, OutputArea) {\n\n    function append_mime(data, metadata, element) {\n      // create a DOM node to render to\n      const toinsert = this.create_output_subarea(\n        metadata,\n        CLASS_NAME,\n        EXEC_MIME_TYPE\n      );\n      this.keyboard_manager.register_events(toinsert);\n      // Render to node\n      const props = {data: data, metadata: metadata[EXEC_MIME_TYPE]};\n      render(props, toinsert[toinsert.length - 1]);\n      element.append(toinsert);\n      return toinsert\n    }\n\n    /* Handle when an output is cleared or removed */\n    events.on('clear_output.CodeCell', handleClearOutput);\n    events.on('delete.Cell', handleClearOutput);\n\n    /* Handle when a new output is added */\n    events.on('output_added.OutputArea', handleAddOutput);\n\n    /**\n     * Register the mime type and append_mime function with output_area\n     */\n    OutputArea.prototype.register_mime_type(EXEC_MIME_TYPE, append_mime, {\n      /* Is output safe? */\n      safe: true,\n      /* Index of renderer in `output_area.display_order` */\n      index: 0\n    });\n  }\n\n  // register the mime type if in Jupyter Notebook environment and previously unregistered\n  if (root.Jupyter !== undefined) {\n    const events = require('base/js/events');\n    const OutputArea = require('notebook/js/outputarea').OutputArea;\n\n    if (OutputArea.prototype.mime_types().indexOf(EXEC_MIME_TYPE) == -1) {\n      register_renderer(events, OutputArea);\n    }\n  }\n  if (typeof (root._bokeh_timeout) === \"undefined\" || force === true) {\n    root._bokeh_timeout = Date.now() + 5000;\n    root._bokeh_failed_load = false;\n  }\n\n  const NB_LOAD_WARNING = {'data': {'text/html':\n     \"<div style='background-color: #fdd'>\\n\"+\n     \"<p>\\n\"+\n     \"BokehJS does not appear to have successfully loaded. If loading BokehJS from CDN, this \\n\"+\n     \"may be due to a slow or bad network connection. Possible fixes:\\n\"+\n     \"</p>\\n\"+\n     \"<ul>\\n\"+\n     \"<li>re-rerun `output_notebook()` to attempt to load from CDN again, or</li>\\n\"+\n     \"<li>use INLINE resources instead, as so:</li>\\n\"+\n     \"</ul>\\n\"+\n     \"<code>\\n\"+\n     \"from bokeh.resources import INLINE\\n\"+\n     \"output_notebook(resources=INLINE)\\n\"+\n     \"</code>\\n\"+\n     \"</div>\"}};\n\n  function display_loaded(error = null) {\n    const el = document.getElementById(\"d8bf98d6-e6f6-4080-a236-84cbb75ea664\");\n    if (el != null) {\n      const html = (() => {\n        if (typeof root.Bokeh === \"undefined\") {\n          if (error == null) {\n            return \"BokehJS is loading ...\";\n          } else {\n            return \"BokehJS failed to load.\";\n          }\n        } else {\n          const prefix = `BokehJS ${root.Bokeh.version}`;\n          if (error == null) {\n            return `${prefix} successfully loaded.`;\n          } else {\n            return `${prefix} <b>encountered errors</b> while loading and may not function as expected.`;\n          }\n        }\n      })();\n      el.innerHTML = html;\n\n      if (error != null) {\n        const wrapper = document.createElement(\"div\");\n        wrapper.style.overflow = \"auto\";\n        wrapper.style.height = \"5em\";\n        wrapper.style.resize = \"vertical\";\n        const content = document.createElement(\"div\");\n        content.style.fontFamily = \"monospace\";\n        content.style.whiteSpace = \"pre-wrap\";\n        content.style.backgroundColor = \"rgb(255, 221, 221)\";\n        content.textContent = error.stack ?? error.toString();\n        wrapper.append(content);\n        el.append(wrapper);\n      }\n    } else if (Date.now() < root._bokeh_timeout) {\n      setTimeout(() => display_loaded(error), 100);\n    }\n  }\n\n  function run_callbacks() {\n    try {\n      root._bokeh_onload_callbacks.forEach(function(callback) {\n        if (callback != null)\n          callback();\n      });\n    } finally {\n      delete root._bokeh_onload_callbacks\n    }\n    console.debug(\"Bokeh: all callbacks have finished\");\n  }\n\n  function load_libs(css_urls, js_urls, callback) {\n    if (css_urls == null) css_urls = [];\n    if (js_urls == null) js_urls = [];\n\n    root._bokeh_onload_callbacks.push(callback);\n    if (root._bokeh_is_loading > 0) {\n      console.debug(\"Bokeh: BokehJS is being loaded, scheduling callback at\", now());\n      return null;\n    }\n    if (js_urls == null || js_urls.length === 0) {\n      run_callbacks();\n      return null;\n    }\n    console.debug(\"Bokeh: BokehJS not loaded, scheduling load and callback at\", now());\n    root._bokeh_is_loading = css_urls.length + js_urls.length;\n\n    function on_load() {\n      root._bokeh_is_loading--;\n      if (root._bokeh_is_loading === 0) {\n        console.debug(\"Bokeh: all BokehJS libraries/stylesheets loaded\");\n        run_callbacks()\n      }\n    }\n\n    function on_error(url) {\n      console.error(\"failed to load \" + url);\n    }\n\n    for (let i = 0; i < css_urls.length; i++) {\n      const url = css_urls[i];\n      const element = document.createElement(\"link\");\n      element.onload = on_load;\n      element.onerror = on_error.bind(null, url);\n      element.rel = \"stylesheet\";\n      element.type = \"text/css\";\n      element.href = url;\n      console.debug(\"Bokeh: injecting link tag for BokehJS stylesheet: \", url);\n      document.body.appendChild(element);\n    }\n\n    for (let i = 0; i < js_urls.length; i++) {\n      const url = js_urls[i];\n      const element = document.createElement('script');\n      element.onload = on_load;\n      element.onerror = on_error.bind(null, url);\n      element.async = false;\n      element.src = url;\n      console.debug(\"Bokeh: injecting script tag for BokehJS library: \", url);\n      document.head.appendChild(element);\n    }\n  };\n\n  function inject_raw_css(css) {\n    const element = document.createElement(\"style\");\n    element.appendChild(document.createTextNode(css));\n    document.body.appendChild(element);\n  }\n\n  const js_urls = [\"https://cdn.bokeh.org/bokeh/release/bokeh-3.5.2.min.js\", \"https://cdn.bokeh.org/bokeh/release/bokeh-gl-3.5.2.min.js\", \"https://cdn.bokeh.org/bokeh/release/bokeh-widgets-3.5.2.min.js\", \"https://cdn.bokeh.org/bokeh/release/bokeh-tables-3.5.2.min.js\", \"https://cdn.bokeh.org/bokeh/release/bokeh-mathjax-3.5.2.min.js\"];\n  const css_urls = [];\n\n  const inline_js = [    function(Bokeh) {\n      Bokeh.set_log_level(\"info\");\n    },\nfunction(Bokeh) {\n    }\n  ];\n\n  function run_inline_js() {\n    if (root.Bokeh !== undefined || force === true) {\n      try {\n            for (let i = 0; i < inline_js.length; i++) {\n      inline_js[i].call(root, root.Bokeh);\n    }\n\n      } catch (error) {display_loaded(error);throw error;\n      }if (force === true) {\n        display_loaded();\n      }} else if (Date.now() < root._bokeh_timeout) {\n      setTimeout(run_inline_js, 100);\n    } else if (!root._bokeh_failed_load) {\n      console.log(\"Bokeh: BokehJS failed to load within specified timeout.\");\n      root._bokeh_failed_load = true;\n    } else if (force !== true) {\n      const cell = $(document.getElementById(\"d8bf98d6-e6f6-4080-a236-84cbb75ea664\")).parents('.cell').data().cell;\n      cell.output_area.append_execute_result(NB_LOAD_WARNING)\n    }\n  }\n\n  if (root._bokeh_is_loading === 0) {\n    console.debug(\"Bokeh: BokehJS loaded, going straight to plotting\");\n    run_inline_js();\n  } else {\n    load_libs(css_urls, js_urls, function() {\n      console.debug(\"Bokeh: BokehJS plotting callback run at\", now());\n      run_inline_js();\n    });\n  }\n}(window));",
+-      "application/vnd.bokehjs_load.v0+json": "'use strict';\n(function(root) {\n  function now() {\n    return new Date();\n  }\n\n  const force = true;\n\n  if (typeof root._bokeh_onload_callbacks === \"undefined\" || force === true) {\n    root._bokeh_onload_callbacks = [];\n    root._bokeh_is_loading = undefined;\n  }\n\n\n  if (typeof (root._bokeh_timeout) === \"undefined\" || force === true) {\n    root._bokeh_timeout = Date.now() + 5000;\n    root._bokeh_failed_load = false;\n  }\n\n  const NB_LOAD_WARNING = {'data': {'text/html':\n     \"<div style='background-color: #fdd'>\\n\"+\n     \"<p>\\n\"+\n     \"BokehJS does not appear to have successfully loaded. If loading BokehJS from CDN, this \\n\"+\n     \"may be due to a slow or bad network connection. Possible fixes:\\n\"+\n     \"</p>\\n\"+\n     \"<ul>\\n\"+\n     \"<li>re-rerun `output_notebook()` to attempt to load from CDN again, or</li>\\n\"+\n     \"<li>use INLINE resources instead, as so:</li>\\n\"+\n     \"</ul>\\n\"+\n     \"<code>\\n\"+\n     \"from bokeh.resources import INLINE\\n\"+\n     \"output_notebook(resources=INLINE)\\n\"+\n     \"</code>\\n\"+\n     \"</div>\"}};\n\n  function display_loaded(error = null) {\n    const el = document.getElementById(\"d8bf98d6-e6f6-4080-a236-84cbb75ea664\");\n    if (el != null) {\n      const html = (() => {\n        if (typeof root.Bokeh === \"undefined\") {\n          if (error == null) {\n            return \"BokehJS is loading ...\";\n          } else {\n            return \"BokehJS failed to load.\";\n          }\n        } else {\n          const prefix = `BokehJS ${root.Bokeh.version}`;\n          if (error == null) {\n            return `${prefix} successfully loaded.`;\n          } else {\n            return `${prefix} <b>encountered errors</b> while loading and may not function as expected.`;\n          }\n        }\n      })();\n      el.innerHTML = html;\n\n      if (error != null) {\n        const wrapper = document.createElement(\"div\");\n        wrapper.style.overflow = \"auto\";\n        wrapper.style.height = \"5em\";\n        wrapper.style.resize = \"vertical\";\n        const content = document.createElement(\"div\");\n        content.style.fontFamily = \"monospace\";\n        content.style.whiteSpace = \"pre-wrap\";\n        content.style.backgroundColor = \"rgb(255, 221, 221)\";\n        content.textContent = error.stack ?? error.toString();\n        wrapper.append(content);\n        el.append(wrapper);\n      }\n    } else if (Date.now() < root._bokeh_timeout) {\n      setTimeout(() => display_loaded(error), 100);\n    }\n  }\n\n  function run_callbacks() {\n    try {\n      root._bokeh_onload_callbacks.forEach(function(callback) {\n        if (callback != null)\n          callback();\n      });\n    } finally {\n      delete root._bokeh_onload_callbacks\n    }\n    console.debug(\"Bokeh: all callbacks have finished\");\n  }\n\n  function load_libs(css_urls, js_urls, callback) {\n    if (css_urls == null) css_urls = [];\n    if (js_urls == null) js_urls = [];\n\n    root._bokeh_onload_callbacks.push(callback);\n    if (root._bokeh_is_loading > 0) {\n      console.debug(\"Bokeh: BokehJS is being loaded, scheduling callback at\", now());\n      return null;\n    }\n    if (js_urls == null || js_urls.length === 0) {\n      run_callbacks();\n      return null;\n    }\n    console.debug(\"Bokeh: BokehJS not loaded, scheduling load and callback at\", now());\n    root._bokeh_is_loading = css_urls.length + js_urls.length;\n\n    function on_load() {\n      root._bokeh_is_loading--;\n      if (root._bokeh_is_loading === 0) {\n        console.debug(\"Bokeh: all BokehJS libraries/stylesheets loaded\");\n        run_callbacks()\n      }\n    }\n\n    function on_error(url) {\n      console.error(\"failed to load \" + url);\n    }\n\n    for (let i = 0; i < css_urls.length; i++) {\n      const url = css_urls[i];\n      const element = document.createElement(\"link\");\n      element.onload = on_load;\n      element.onerror = on_error.bind(null, url);\n      element.rel = \"stylesheet\";\n      element.type = \"text/css\";\n      element.href = url;\n      console.debug(\"Bokeh: injecting link tag for BokehJS stylesheet: \", url);\n      document.body.appendChild(element);\n    }\n\n    for (let i = 0; i < js_urls.length; i++) {\n      const url = js_urls[i];\n      const element = document.createElement('script');\n      element.onload = on_load;\n      element.onerror = on_error.bind(null, url);\n      element.async = false;\n      element.src = url;\n      console.debug(\"Bokeh: injecting script tag for BokehJS library: \", url);\n      document.head.appendChild(element);\n    }\n  };\n\n  function inject_raw_css(css) {\n    const element = document.createElement(\"style\");\n    element.appendChild(document.createTextNode(css));\n    document.body.appendChild(element);\n  }\n\n  const js_urls = [\"https://cdn.bokeh.org/bokeh/release/bokeh-3.5.2.min.js\", \"https://cdn.bokeh.org/bokeh/release/bokeh-gl-3.5.2.min.js\", \"https://cdn.bokeh.org/bokeh/release/bokeh-widgets-3.5.2.min.js\", \"https://cdn.bokeh.org/bokeh/release/bokeh-tables-3.5.2.min.js\", \"https://cdn.bokeh.org/bokeh/release/bokeh-mathjax-3.5.2.min.js\"];\n  const css_urls = [];\n\n  const inline_js = [    function(Bokeh) {\n      Bokeh.set_log_level(\"info\");\n    },\nfunction(Bokeh) {\n    }\n  ];\n\n  function run_inline_js() {\n    if (root.Bokeh !== undefined || force === true) {\n      try {\n            for (let i = 0; i < inline_js.length; i++) {\n      inline_js[i].call(root, root.Bokeh);\n    }\n\n      } catch (error) {display_loaded(error);throw error;\n      }if (force === true) {\n        display_loaded();\n      }} else if (Date.now() < root._bokeh_timeout) {\n      setTimeout(run_inline_js, 100);\n    } else if (!root._bokeh_failed_load) {\n      console.log(\"Bokeh: BokehJS failed to load within specified timeout.\");\n      root._bokeh_failed_load = true;\n    } else if (force !== true) {\n      const cell = $(document.getElementById(\"d8bf98d6-e6f6-4080-a236-84cbb75ea664\")).parents('.cell').data().cell;\n      cell.output_area.append_execute_result(NB_LOAD_WARNING)\n    }\n  }\n\n  if (root._bokeh_is_loading === 0) {\n    console.debug(\"Bokeh: BokehJS loaded, going straight to plotting\");\n    run_inline_js();\n  } else {\n    load_libs(css_urls, js_urls, function() {\n      console.debug(\"Bokeh: BokehJS plotting callback run at\", now());\n      run_inline_js();\n    });\n  }\n}(window));"
+-     },
+-     "metadata": {},
+-     "output_type": "display_data"
+-    }
+-   ],
+-   "execution_count": 2
+-  },
+-  {
+-   "metadata": {
+-    "ExecuteTime": {
+-     "end_time": "2025-01-21T14:34:29.639194Z",
+-     "start_time": "2025-01-21T14:34:29.205729Z"
+-    }
+-   },
+-   "cell_type": "code",
+-   "source": [
+-    "sys.path.append(\"//\")\n",
+-    "#sys.path.append(\"../../Micromet\")\n",
+-    "import micromet\n",
+-    "from micromet import AmerifluxDataProcessor\n",
+-    "%matplotlib inline"
+-   ],
+-   "id": "7bbb41a5f666cb68",
+-   "outputs": [],
+-   "execution_count": 3
+-  },
+-  {
+-   "metadata": {
+-    "ExecuteTime": {
+-     "end_time": "2025-01-21T14:34:31.124981Z",
+-     "start_time": "2025-01-21T14:34:31.081815Z"
+-    }
+-   },
+-   "cell_type": "code",
+-   "source": [
+-    "from pyproj import Transformer\n",
+-    "EPSG = 5070\n",
+-    "# load initial flux data\n",
+-    "station = 'US-UTW'\n",
+-    "config_path = f'../../station_config/{station}.ini'\n",
+-    "config = configparser.ConfigParser()\n",
+-    "config.read(config_path)\n",
+-    "\n",
+-    "latitude = config['METADATA']['station_latitude']\n",
+-    "longitude = config['METADATA']['station_longitude']\n",
+-    "\n",
+-    "# Define the transformer from WGS84 to NAD83 Conus Albers\n",
+-    "transformer = Transformer.from_crs(\"EPSG:4326\", f\"EPSG:{EPSG}\", always_xy=True)\n",
+-    "\n",
+-    "# Perform the transformation\n",
+-    "station_x, station_y = transformer.transform(longitude, latitude)\n",
+-    "\n",
+-    "print(f\"Projected Coordinates in NAD83 Conus Albers (EPSG:5070): X={station_x}, Y={station_y}\")"
+-   ],
+-   "id": "4283758589c0b977",
+-   "outputs": [
+-    {
+-     "name": "stdout",
+-     "output_type": "stream",
+-     "text": [
+-      "Projected Coordinates in NAD83 Conus Albers (EPSG:5070): X=-1251001.2763440341, Y=1921956.3381891234\n"
+-     ]
+-    }
+-   ],
+-   "execution_count": 4
+-  },
+-  {
+-   "metadata": {
+-    "ExecuteTime": {
+-     "end_time": "2025-01-21T14:39:16.764185Z",
+-     "start_time": "2025-01-21T14:39:16.759247Z"
+-    }
+-   },
+-   "cell_type": "code",
+-   "source": [
+-    "import math\n",
+-    "\n",
+-    "def polar_to_cartesian_dataframe(df, wd_column='WD', dist_column='Dist'):\n",
+-    "    \"\"\"\n",
+-    "    Convert polar coordinates from a DataFrame to Cartesian coordinates.\n",
+-    "\n",
+-    "    Parameters:\n",
+-    "        df (pd.DataFrame): Input DataFrame containing polar coordinates.\n",
+-    "        wd_column (str): Column name for degrees from north.\n",
+-    "        dist_column (str): Column name for distance from origin.\n",
+-    "\n",
+-    "    Returns:\n",
+-    "        pd.DataFrame: A DataFrame with added 'X' and 'Y' columns.\n",
+-    "    \"\"\"\n",
+-    "    # Create copies of the input columns to avoid modifying original data\n",
+-    "    wd = df[wd_column].copy()\n",
+-    "    dist = df[dist_column].copy()\n",
+-    "\n",
+-    "    # Identify invalid values (-9999 or NaN)\n",
+-    "    invalid_mask = (wd == -9999) | (dist == -9999) | wd.isna() | dist.isna()\n",
+-    "\n",
+-    "    # Convert degrees from north to standard polar angle (radians) where valid\n",
+-    "    theta_radians = np.radians(90 - wd)\n",
+-    "\n",
+-    "    # Calculate Cartesian coordinates, setting invalid values to NaN\n",
+-    "    df[f'X_{dist_column}'] = np.where(invalid_mask, np.nan, dist * np.cos(theta_radians))\n",
+-    "    df[f'Y_{dist_column}'] = np.where(invalid_mask, np.nan, dist * np.sin(theta_radians))\n",
+-    "\n",
+-    "    return df\n"
+-   ],
+-   "id": "f1f002bdb859d9a",
+-   "outputs": [],
+-   "execution_count": 11
+-  },
+-  {
+-   "metadata": {
+-    "ExecuteTime": {
+-     "end_time": "2025-01-21T14:39:27.317546Z",
+-     "start_time": "2025-01-21T14:39:27.150908Z"
+-    }
+-   },
+-   "cell_type": "code",
+-   "source": [
+-    "#df = pd.read_csv(config['METADATA']['climate_file_path'],skiprows=config['METADATA']['skiprows'])\n",
+-    "df = pd.read_csv(\"../../station_data/US-CdM_HH_202306141100_202410081700.csv\")\n",
+-    "for col in df.columns:\n",
+-    "    if \"fetch\" in col.lower():\n",
+-    "        df = polar_to_cartesian_dataframe(df, wd_column='WD',dist_column=col)"
+-   ],
+-   "id": "fd1e0f76afe76a44",
+-   "outputs": [],
+-   "execution_count": 12
+-  },
+-  {
+-   "metadata": {
+-    "ExecuteTime": {
+-     "end_time": "2025-01-21T14:39:31.953294Z",
+-     "start_time": "2025-01-21T14:39:31.922222Z"
+-    }
+-   },
+-   "cell_type": "code",
+-   "source": "df",
+-   "id": "6097d04a22258117",
+-   "outputs": [
+-    {
+-     "data": {
+-      "text/plain": [
+-       "            datetime_start  TIMESTAMP_START  TIMESTAMP_END        CO2  \\\n",
+-       "0      2023-06-14 11:00:00     202306141100   202306141130 -9999.0000   \n",
+-       "1      2023-06-14 11:30:00     202306141130   202306141200 -9999.0000   \n",
+-       "2      2023-06-14 12:00:00     202306141200   202306141230   404.8652   \n",
+-       "3      2023-06-14 12:30:00     202306141230   202306141300   403.2438   \n",
+-       "4      2023-06-14 13:00:00     202306141300   202306141330   397.2703   \n",
+-       "...                    ...              ...            ...        ...   \n",
+-       "23143  2024-10-08 14:30:00     202410081430   202410081500   401.5762   \n",
+-       "23144  2024-10-08 15:00:00     202410081500   202410081530   401.5929   \n",
+-       "23145  2024-10-08 15:30:00     202410081530   202410081600   401.3630   \n",
+-       "23146  2024-10-08 16:00:00     202410081600   202410081630   401.1919   \n",
+-       "23147  2024-10-08 16:30:00     202410081630   202410081700   401.1366   \n",
+-       "\n",
+-       "         CO2_SIGMA          H2O    H2O_SIGMA           FC  FC_SSITC_TEST  \\\n",
+-       "0     -9999.000000 -9999.000000 -9999.000000 -9999.000000        -9999.0   \n",
+-       "1     -9999.000000 -9999.000000 -9999.000000 -9999.000000        -9999.0   \n",
+-       "2         7.160377    11.003180     1.408956 -9999.000000        -9999.0   \n",
+-       "3         6.578680    10.929970     1.396008   -19.724970        -9999.0   \n",
+-       "4         7.669390    12.208020     1.357026   -29.465460        -9999.0   \n",
+-       "...            ...          ...          ...          ...            ...   \n",
+-       "23143     0.373631     2.863288     0.053154    -0.284607        -9999.0   \n",
+-       "23144     0.473523     2.466282     0.107060    -0.755953            2.0   \n",
+-       "23145     0.335989     2.445982     0.044886    -0.116504        -9999.0   \n",
+-       "23146     0.380539     2.550954     0.069491    -0.942505            2.0   \n",
+-       "23147     0.212202     2.600495     0.047844    -0.032935            2.0   \n",
+-       "\n",
+-       "                LE  ...    TS_2_1_1    SWC_2_1_1  X_FETCH_MAX  Y_FETCH_MAX  \\\n",
+-       "0     -9999.000000  ... -9999.00000 -9999.000000          NaN          NaN   \n",
+-       "1     -9999.000000  ... -9999.00000 -9999.000000          NaN          NaN   \n",
+-       "2       394.658600  ... -9999.00000 -9999.000000   -22.087887    -0.541745   \n",
+-       "3       277.552900  ... -9999.00000 -9999.000000    27.341082   -12.220065   \n",
+-       "4       290.635000  ... -9999.00000 -9999.000000   -12.573416   -13.561474   \n",
+-       "...            ...  ...         ...          ...          ...          ...   \n",
+-       "23143     5.291050  ...    25.01365     2.415389    12.467820   -90.431495   \n",
+-       "23144     0.461339  ...    24.36275     2.412944   -77.916613     0.484539   \n",
+-       "23145     4.989396  ...    23.67358     2.412833   -82.222816    25.811203   \n",
+-       "23146    11.713800  ...    23.25630     2.413972   -72.149224   -11.916283   \n",
+-       "23147     4.988314  ...    23.06013 -9999.000000   -59.415652   -32.550418   \n",
+-       "\n",
+-       "       X_FETCH_90  Y_FETCH_90  X_FETCH_55  Y_FETCH_55  X_FETCH_40  Y_FETCH_40  \n",
+-       "0             NaN         NaN         NaN         NaN         NaN         NaN  \n",
+-       "1             NaN         NaN         NaN         NaN         NaN         NaN  \n",
+-       "2      -60.935784   -1.494559  -31.392359   -0.769954  -23.760674   -0.582773  \n",
+-       "3       75.411491  -33.705078   38.863654  -17.370065   29.415165  -13.147074  \n",
+-       "4      -35.182653  -37.947417  -17.948699  -19.359165  -13.577773  -14.644758  \n",
+-       "...           ...         ...         ...         ...         ...         ...  \n",
+-       "23143   34.685692 -251.581992   17.772194 -128.905138   13.446685  -97.531394  \n",
+-       "23144 -216.863007    1.348603 -111.061753    0.690658  -84.031255    0.522564  \n",
+-       "23145 -228.782695   71.818954 -117.203015   36.792109  -88.677530   27.837453  \n",
+-       "23146 -200.821981  -33.168085 -102.834360  -16.984290  -77.806878  -12.850711  \n",
+-       "23147 -165.442496  -90.636427  -84.686644  -46.394941  -64.075752  -35.103419  \n",
+-       "\n",
+-       "[23148 rows x 71 columns]"
+-      ],
+-      "text/html": [
+-       "<div>\n",
+-       "<style scoped>\n",
+-       "    .dataframe tbody tr th:only-of-type {\n",
+-       "        vertical-align: middle;\n",
+-       "    }\n",
+-       "\n",
+-       "    .dataframe tbody tr th {\n",
+-       "        vertical-align: top;\n",
+-       "    }\n",
+-       "\n",
+-       "    .dataframe thead th {\n",
+-       "        text-align: right;\n",
+-       "    }\n",
+-       "</style>\n",
+-       "<table border=\"1\" class=\"dataframe\">\n",
+-       "  <thead>\n",
+-       "    <tr style=\"text-align: right;\">\n",
+-       "      <th></th>\n",
+-       "      <th>datetime_start</th>\n",
+-       "      <th>TIMESTAMP_START</th>\n",
+-       "      <th>TIMESTAMP_END</th>\n",
+-       "      <th>CO2</th>\n",
+-       "      <th>CO2_SIGMA</th>\n",
+-       "      <th>H2O</th>\n",
+-       "      <th>H2O_SIGMA</th>\n",
+-       "      <th>FC</th>\n",
+-       "      <th>FC_SSITC_TEST</th>\n",
+-       "      <th>LE</th>\n",
+-       "      <th>...</th>\n",
+-       "      <th>TS_2_1_1</th>\n",
+-       "      <th>SWC_2_1_1</th>\n",
+-       "      <th>X_FETCH_MAX</th>\n",
+-       "      <th>Y_FETCH_MAX</th>\n",
+-       "      <th>X_FETCH_90</th>\n",
+-       "      <th>Y_FETCH_90</th>\n",
+-       "      <th>X_FETCH_55</th>\n",
+-       "      <th>Y_FETCH_55</th>\n",
+-       "      <th>X_FETCH_40</th>\n",
+-       "      <th>Y_FETCH_40</th>\n",
+-       "    </tr>\n",
+-       "  </thead>\n",
+-       "  <tbody>\n",
+-       "    <tr>\n",
+-       "      <th>0</th>\n",
+-       "      <td>2023-06-14 11:00:00</td>\n",
+-       "      <td>202306141100</td>\n",
+-       "      <td>202306141130</td>\n",
+-       "      <td>-9999.0000</td>\n",
+-       "      <td>-9999.000000</td>\n",
+-       "      <td>-9999.000000</td>\n",
+-       "      <td>-9999.000000</td>\n",
+-       "      <td>-9999.000000</td>\n",
+-       "      <td>-9999.0</td>\n",
+-       "      <td>-9999.000000</td>\n",
+-       "      <td>...</td>\n",
+-       "      <td>-9999.00000</td>\n",
+-       "      <td>-9999.000000</td>\n",
+-       "      <td>NaN</td>\n",
+-       "      <td>NaN</td>\n",
+-       "      <td>NaN</td>\n",
+-       "      <td>NaN</td>\n",
+-       "      <td>NaN</td>\n",
+-       "      <td>NaN</td>\n",
+-       "      <td>NaN</td>\n",
+-       "      <td>NaN</td>\n",
+-       "    </tr>\n",
+-       "    <tr>\n",
+-       "      <th>1</th>\n",
+-       "      <td>2023-06-14 11:30:00</td>\n",
+-       "      <td>202306141130</td>\n",
+-       "      <td>202306141200</td>\n",
+-       "      <td>-9999.0000</td>\n",
+-       "      <td>-9999.000000</td>\n",
+-       "      <td>-9999.000000</td>\n",
+-       "      <td>-9999.000000</td>\n",
+-       "      <td>-9999.000000</td>\n",
+-       "      <td>-9999.0</td>\n",
+-       "      <td>-9999.000000</td>\n",
+-       "      <td>...</td>\n",
+-       "      <td>-9999.00000</td>\n",
+-       "      <td>-9999.000000</td>\n",
+-       "      <td>NaN</td>\n",
+-       "      <td>NaN</td>\n",
+-       "      <td>NaN</td>\n",
+-       "      <td>NaN</td>\n",
+-       "      <td>NaN</td>\n",
+-       "      <td>NaN</td>\n",
+-       "      <td>NaN</td>\n",
+-       "      <td>NaN</td>\n",
+-       "    </tr>\n",
+-       "    <tr>\n",
+-       "      <th>2</th>\n",
+-       "      <td>2023-06-14 12:00:00</td>\n",
+-       "      <td>202306141200</td>\n",
+-       "      <td>202306141230</td>\n",
+-       "      <td>404.8652</td>\n",
+-       "      <td>7.160377</td>\n",
+-       "      <td>11.003180</td>\n",
+-       "      <td>1.408956</td>\n",
+-       "      <td>-9999.000000</td>\n",
+-       "      <td>-9999.0</td>\n",
+-       "      <td>394.658600</td>\n",
+-       "      <td>...</td>\n",
+-       "      <td>-9999.00000</td>\n",
+-       "      <td>-9999.000000</td>\n",
+-       "      <td>-22.087887</td>\n",
+-       "      <td>-0.541745</td>\n",
+-       "      <td>-60.935784</td>\n",
+-       "      <td>-1.494559</td>\n",
+-       "      <td>-31.392359</td>\n",
+-       "      <td>-0.769954</td>\n",
+-       "      <td>-23.760674</td>\n",
+-       "      <td>-0.582773</td>\n",
+-       "    </tr>\n",
+-       "    <tr>\n",
+-       "      <th>3</th>\n",
+-       "      <td>2023-06-14 12:30:00</td>\n",
+-       "      <td>202306141230</td>\n",
+-       "      <td>202306141300</td>\n",
+-       "      <td>403.2438</td>\n",
+-       "      <td>6.578680</td>\n",
+-       "      <td>10.929970</td>\n",
+-       "      <td>1.396008</td>\n",
+-       "      <td>-19.724970</td>\n",
+-       "      <td>-9999.0</td>\n",
+-       "      <td>277.552900</td>\n",
+-       "      <td>...</td>\n",
+-       "      <td>-9999.00000</td>\n",
+-       "      <td>-9999.000000</td>\n",
+-       "      <td>27.341082</td>\n",
+-       "      <td>-12.220065</td>\n",
+-       "      <td>75.411491</td>\n",
+-       "      <td>-33.705078</td>\n",
+-       "      <td>38.863654</td>\n",
+-       "      <td>-17.370065</td>\n",
+-       "      <td>29.415165</td>\n",
+-       "      <td>-13.147074</td>\n",
+-       "    </tr>\n",
+-       "    <tr>\n",
+-       "      <th>4</th>\n",
+-       "      <td>2023-06-14 13:00:00</td>\n",
+-       "      <td>202306141300</td>\n",
+-       "      <td>202306141330</td>\n",
+-       "      <td>397.2703</td>\n",
+-       "      <td>7.669390</td>\n",
+-       "      <td>12.208020</td>\n",
+-       "      <td>1.357026</td>\n",
+-       "      <td>-29.465460</td>\n",
+-       "      <td>-9999.0</td>\n",
+-       "      <td>290.635000</td>\n",
+-       "      <td>...</td>\n",
+-       "      <td>-9999.00000</td>\n",
+-       "      <td>-9999.000000</td>\n",
+-       "      <td>-12.573416</td>\n",
+-       "      <td>-13.561474</td>\n",
+-       "      <td>-35.182653</td>\n",
+-       "      <td>-37.947417</td>\n",
+-       "      <td>-17.948699</td>\n",
+-       "      <td>-19.359165</td>\n",
+-       "      <td>-13.577773</td>\n",
+-       "      <td>-14.644758</td>\n",
+-       "    </tr>\n",
+-       "    <tr>\n",
+-       "      <th>...</th>\n",
+-       "      <td>...</td>\n",
+-       "      <td>...</td>\n",
+-       "      <td>...</td>\n",
+-       "      <td>...</td>\n",
+-       "      <td>...</td>\n",
+-       "      <td>...</td>\n",
+-       "      <td>...</td>\n",
+-       "      <td>...</td>\n",
+-       "      <td>...</td>\n",
+-       "      <td>...</td>\n",
+-       "      <td>...</td>\n",
+-       "      <td>...</td>\n",
+-       "      <td>...</td>\n",
+-       "      <td>...</td>\n",
+-       "      <td>...</td>\n",
+-       "      <td>...</td>\n",
+-       "      <td>...</td>\n",
+-       "      <td>...</td>\n",
+-       "      <td>...</td>\n",
+-       "      <td>...</td>\n",
+-       "      <td>...</td>\n",
+-       "    </tr>\n",
+-       "    <tr>\n",
+-       "      <th>23143</th>\n",
+-       "      <td>2024-10-08 14:30:00</td>\n",
+-       "      <td>202410081430</td>\n",
+-       "      <td>202410081500</td>\n",
+-       "      <td>401.5762</td>\n",
+-       "      <td>0.373631</td>\n",
+-       "      <td>2.863288</td>\n",
+-       "      <td>0.053154</td>\n",
+-       "      <td>-0.284607</td>\n",
+-       "      <td>-9999.0</td>\n",
+-       "      <td>5.291050</td>\n",
+-       "      <td>...</td>\n",
+-       "      <td>25.01365</td>\n",
+-       "      <td>2.415389</td>\n",
+-       "      <td>12.467820</td>\n",
+-       "      <td>-90.431495</td>\n",
+-       "      <td>34.685692</td>\n",
+-       "      <td>-251.581992</td>\n",
+-       "      <td>17.772194</td>\n",
+-       "      <td>-128.905138</td>\n",
+-       "      <td>13.446685</td>\n",
+-       "      <td>-97.531394</td>\n",
+-       "    </tr>\n",
+-       "    <tr>\n",
+-       "      <th>23144</th>\n",
+-       "      <td>2024-10-08 15:00:00</td>\n",
+-       "      <td>202410081500</td>\n",
+-       "      <td>202410081530</td>\n",
+-       "      <td>401.5929</td>\n",
+-       "      <td>0.473523</td>\n",
+-       "      <td>2.466282</td>\n",
+-       "      <td>0.107060</td>\n",
+-       "      <td>-0.755953</td>\n",
+-       "      <td>2.0</td>\n",
+-       "      <td>0.461339</td>\n",
+-       "      <td>...</td>\n",
+-       "      <td>24.36275</td>\n",
+-       "      <td>2.412944</td>\n",
+-       "      <td>-77.916613</td>\n",
+-       "      <td>0.484539</td>\n",
+-       "      <td>-216.863007</td>\n",
+-       "      <td>1.348603</td>\n",
+-       "      <td>-111.061753</td>\n",
+-       "      <td>0.690658</td>\n",
+-       "      <td>-84.031255</td>\n",
+-       "      <td>0.522564</td>\n",
+-       "    </tr>\n",
+-       "    <tr>\n",
+-       "      <th>23145</th>\n",
+-       "      <td>2024-10-08 15:30:00</td>\n",
+-       "      <td>202410081530</td>\n",
+-       "      <td>202410081600</td>\n",
+-       "      <td>401.3630</td>\n",
+-       "      <td>0.335989</td>\n",
+-       "      <td>2.445982</td>\n",
+-       "      <td>0.044886</td>\n",
+-       "      <td>-0.116504</td>\n",
+-       "      <td>-9999.0</td>\n",
+-       "      <td>4.989396</td>\n",
+-       "      <td>...</td>\n",
+-       "      <td>23.67358</td>\n",
+-       "      <td>2.412833</td>\n",
+-       "      <td>-82.222816</td>\n",
+-       "      <td>25.811203</td>\n",
+-       "      <td>-228.782695</td>\n",
+-       "      <td>71.818954</td>\n",
+-       "      <td>-117.203015</td>\n",
+-       "      <td>36.792109</td>\n",
+-       "      <td>-88.677530</td>\n",
+-       "      <td>27.837453</td>\n",
+-       "    </tr>\n",
+-       "    <tr>\n",
+-       "      <th>23146</th>\n",
+-       "      <td>2024-10-08 16:00:00</td>\n",
+-       "      <td>202410081600</td>\n",
+-       "      <td>202410081630</td>\n",
+-       "      <td>401.1919</td>\n",
+-       "      <td>0.380539</td>\n",
+-       "      <td>2.550954</td>\n",
+-       "      <td>0.069491</td>\n",
+-       "      <td>-0.942505</td>\n",
+-       "      <td>2.0</td>\n",
+-       "      <td>11.713800</td>\n",
+-       "      <td>...</td>\n",
+-       "      <td>23.25630</td>\n",
+-       "      <td>2.413972</td>\n",
+-       "      <td>-72.149224</td>\n",
+-       "      <td>-11.916283</td>\n",
+-       "      <td>-200.821981</td>\n",
+-       "      <td>-33.168085</td>\n",
+-       "      <td>-102.834360</td>\n",
+-       "      <td>-16.984290</td>\n",
+-       "      <td>-77.806878</td>\n",
+-       "      <td>-12.850711</td>\n",
+-       "    </tr>\n",
+-       "    <tr>\n",
+-       "      <th>23147</th>\n",
+-       "      <td>2024-10-08 16:30:00</td>\n",
+-       "      <td>202410081630</td>\n",
+-       "      <td>202410081700</td>\n",
+-       "      <td>401.1366</td>\n",
+-       "      <td>0.212202</td>\n",
+-       "      <td>2.600495</td>\n",
+-       "      <td>0.047844</td>\n",
+-       "      <td>-0.032935</td>\n",
+-       "      <td>2.0</td>\n",
+-       "      <td>4.988314</td>\n",
+-       "      <td>...</td>\n",
+-       "      <td>23.06013</td>\n",
+-       "      <td>-9999.000000</td>\n",
+-       "      <td>-59.415652</td>\n",
+-       "      <td>-32.550418</td>\n",
+-       "      <td>-165.442496</td>\n",
+-       "      <td>-90.636427</td>\n",
+-       "      <td>-84.686644</td>\n",
+-       "      <td>-46.394941</td>\n",
+-       "      <td>-64.075752</td>\n",
+-       "      <td>-35.103419</td>\n",
+-       "    </tr>\n",
+-       "  </tbody>\n",
+-       "</table>\n",
+-       "<p>23148 rows × 71 columns</p>\n",
+-       "</div>"
+-      ]
+-     },
+-     "execution_count": 13,
+-     "metadata": {},
+-     "output_type": "execute_result"
+-    }
+-   ],
+-   "execution_count": 13
+-  },
+-  {
+-   "metadata": {},
+-   "cell_type": "code",
+-   "outputs": [],
+-   "execution_count": null,
+-   "source": "",
+-   "id": "e3c7eb6737ed449e"
+-  }
+- ],
+- "metadata": {
+-  "kernelspec": {
+-   "display_name": "Python 3",
+-   "language": "python",
+-   "name": "python3"
+-  },
+-  "language_info": {
+-   "codemirror_mode": {
+-    "name": "ipython",
+-    "version": 2
+-   },
+-   "file_extension": ".py",
+-   "mimetype": "text/x-python",
+-   "name": "python",
+-   "nbconvert_exporter": "python",
+-   "pygments_lexer": "ipython2",
+-   "version": "2.7.6"
+-  }
+- },
+- "nbformat": 4,
+- "nbformat_minor": 5
+-}
++#%%
++import pandas as pd
++import numpy as np
++import glob
++import os
++import geopandas as gpd
++import urllib
++import sys
++import pathlib
++import glob
++import matplotlib.pyplot as plt
++from urllib.parse import quote
++from sqlalchemy import create_engine
++import configparser
++
++
++import statsmodels.api as sm
++#import pingouin as pg
++import plotly.express as px
++from fluxdataqaqc import Data, QaQc, Plot
++from bokeh.plotting import figure, show, ColumnDataSource
++from bokeh.models.formatters import DatetimeTickFormatter
++from bokeh.models import LinearAxis, Range1d
++from bokeh.io import output_notebook
++output_notebook()
++#%%
++sys.path.append("//")
++#sys.path.append("../../Micromet")
++import micromet
++from micromet import AmerifluxDataProcessor
++%matplotlib inline
++#%%
++from pyproj import Transformer
++EPSG = 5070
++# load initial flux data
++station = 'US-UTW'
++config_path = f'../../station_config/{station}.ini'
++config = configparser.ConfigParser()
++config.read(config_path)
++
++latitude = config['METADATA']['station_latitude']
++longitude = config['METADATA']['station_longitude']
++
++# Define the transformer from WGS84 to NAD83 Conus Albers
++transformer = Transformer.from_crs("EPSG:4326", f"EPSG:{EPSG}", always_xy=True)
++
++# Perform the transformation
++station_x, station_y = transformer.transform(longitude, latitude)
++
++print(f"Projected Coordinates in NAD83 Conus Albers (EPSG:5070): X={station_x}, Y={station_y}")
++#%%
++col_centroid = {}
++df = pd.read_csv("../../station_data/US-CdM_HH_202306141100_202410081700.csv")
++for col in df.columns:
++    if "fetch" in col.lower():
++        df = micromet.polar_to_cartesian_dataframe(df, wd_column='WD',dist_column=col)
++        col_centroid[f'{col}']= micromet.aggregate_to_daily_centroid(df, date_column='datetime_start',x_column=f'X_{col}',y_column=f'Y_{col}')
++#%%
++#df = pd.read_csv(config['METADATA']['climate_file_path'],skiprows=config['METADATA']['skiprows'])
++col_centroid['FETCH_40'].columns
++#%%
++import geopandas as gpd
++
++
++
++url = "https://services.arcgis.com/ZzrwjTRez6FJiOq4/arcgis/rest/services/WaterRelatedLandUse_2023/FeatureServer/1/query?where=1%3D1&outFields=*&geometry=-110.74%2C39.442%2C-110.709%2C39.45&geometryType=esriGeometryEnvelope&inSR=4326&spatialRel=esriSpatialRelIntersects&outSR=5070&f=json"
++fields = gpd.read_file(url)
++fields = fields[fields['OBJECTID'].isin([53384,57425])]
++
++#%%
++fig, ax = plt.subplots(figsize=(14,14))
++.plot()
++fields.plot(ax=ax, zorder=0)
++ax.scatter(station_x, station_y, color='red',zorder=500)
++ax.scatter(col_centroid['FETCH_40']['X_FETCH_40']+station_x, col_centroid['FETCH_40']['Y_FETCH_40']+station_y, color='green',zorder=499)
++#%%
++    # Get the extent of the shapefile
++    total_bounds = gdf.total_bounds
++
++    # Get minX, minY, maxX, maxY
++    minX, minY, maxX, maxY = total_bounds
++
++    # Create a fishnet
++    x, y = (minX, minY)
++    geom_array = []
++
++    # Polygon Size
++    square_size = 10
++    while y <= maxY:
++        while x <= maxX:
++            geom = geometry.Polygon([(x,y), (x, y+square_size), (x+square_size, y+square_size), (x+square_size, y), (x, y)])
++            geom_array.append(geom)
++            x += square_size
++        x = minX
++        y += square_size
++
++    fishnet = gpd.GeoDataFrame(geom_array, columns=['geometry']).set_crs('EPSG:3857')
++    fishnet.to_file('fishnet_grid.shp')
++#%%
++
++#%%
++import math
++
++def polar_to_cartesian_dataframe(df, wd_column='WD', dist_column='Dist'):
++    """
++    Convert polar coordinates from a DataFrame to Cartesian coordinates.
++
++    Parameters:
++        df (pd.DataFrame): Input DataFrame containing polar coordinates.
++        wd_column (str): Column name for degrees from north.
++        dist_column (str): Column name for distance from origin.
++
++    Returns:
++        pd.DataFrame: A DataFrame with added 'X' and 'Y' columns.
++    """
++    # Create copies of the input columns to avoid modifying original data
++    wd = df[wd_column].copy()
++    dist = df[dist_column].copy()
++
++    # Identify invalid values (-9999 or NaN)
++    invalid_mask = (wd == -9999) | (dist == -9999) | wd.isna() | dist.isna()
++
++    # Convert degrees from north to standard polar angle (radians) where valid
++    theta_radians = np.radians(90 - wd)
++
++    # Calculate Cartesian coordinates, setting invalid values to NaN
++    df[f'X_{dist_column}'] = np.where(invalid_mask, np.nan, dist * np.cos(theta_radians))
++    df[f'Y_{dist_column}'] = np.where(invalid_mask, np.nan, dist * np.sin(theta_radians))
++
++    return df
++
++#%%
++#df = pd.read_csv(config['METADATA']['climate_file_path'],skiprows=config['METADATA']['skiprows'])
++df = pd.read_csv("../../station_data/US-CdM_HH_202306141100_202410081700.csv")
++for col in df.columns:
++    if "fetch" in col.lower():
++        df = polar_to_cartesian_dataframe(df, wd_column='WD',dist_column=col)
++#%%
++df.columns
++#%%
++import seaborn as sns
++# Create the density plot
++plt.figure(figsize=(8, 6))
++kdeplot = sns.kdeplot(data=df, x='X_FETCH_55', y='Y_FETCH_55', cmap='viridis', fill=True, thresh=0)
++
++
++# Add labels and title
++plt.xlabel('X Coordinate')
++plt.ylabel('Y Coordinate')
++plt.title('Density Plot of Points')
++
++# Show the plot
++plt.show()
++#%%
++# x='X_FETCH_55', y='Y_FETCH_55'
++
++# Extract the contour levels
++contour_set = kdeplot.collections[0].axes.contourf(df['X_FETCH_55'], df['Y_FETCH_55'],
++                                                   sns.kdeplot(data=df, x='X_FETCH_55', y='Y_FETCH_55', fill=True).get_array().reshape(100,100),
++                                                   levels=10, cmap='viridis')
++
++# Get contour levels and find the 90% contour
++levels = contour_set.levels
++density_values = np.array(levels)
++cumulative_density = np.cumsum(density_values) / np.sum(density_values)
++level_90 = levels[np.argmax(cumulative_density >= 0.90)]  # Find 90% threshold
++
++# Extract the contour at the 90% density level
++for contour in contour_set.collections:
++    for path in contour.get_paths():
++        if contour.get_cmap()(contour.get_clim()[1]) == level_90:
++            vertices = path.vertices
++            plt.plot(vertices[:, 0], vertices[:, 1], color='red', linewidth=2, label='90% Density Contour')
++            break
++
++# Add labels and legend
++plt.xlabel('X Coordinate')
++plt.ylabel('Y Coordinate')
++plt.title('KDE with 90% Density Contour')
++plt.legend()
++plt.show()
++#%%
++kdeplot
+\ No newline at end of file
