@@ -43,11 +43,6 @@ station_config/output/US-UTW_daily_data.csv
 station_config/output/US-UTW_monthly_data.csv
 station_config/output/US-UTW_daily_data.csv
 station_config/output/US-UTW_monthly_data.csv
-/Notebooks/Footprints/2021_utah_merged.nc
-/Notebooks/Footprints/2021_utah_merged.parquet
-/Notebooks/Footprints/2022_utah_merged.nc
-/Notebooks/Footprints/2022_utah_merged.parquet
-/Notebooks/Footprints/2023_utah_merged.nc
-/Notebooks/Footprints/2023_utah_merged.parquet
-/Notebooks/Footprints/2024_utah_merged.nc
-/Notebooks/Footprints/2024_utah_merged.parquet
+
+/.pytest_cache
+/Notebooks/logs
