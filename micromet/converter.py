@@ -285,7 +285,6 @@ class AmerifluxDataProcessor:
             ],
         }
 
-<<<<<<< HEAD
         # Simplify derived headers
         self.headers["bflat"] = [
             h
@@ -325,7 +324,6 @@ class AmerifluxDataProcessor:
             132: self.headers["big_math_v2_filt"],
         }
 
-
     @staticmethod
     def check_header(csv_file: Union[str, Path]) -> int:
         """
@@ -339,7 +337,6 @@ class AmerifluxDataProcessor:
             0 otherwise.
         :rtype: int
         """
-<<<<<<< HEAD
         try:
             with open(csv_file, "r", newline="", encoding="utf-8") as file:
                 first_row = next(csv.reader(file), [])
@@ -350,8 +347,6 @@ class AmerifluxDataProcessor:
                 return 0
         except Exception:
             return 0
-=======
-=======
 
     @staticmethod
     def check_header(csv_file):
@@ -366,8 +361,8 @@ class AmerifluxDataProcessor:
             0 otherwise.
         :rtype: int
         """
->>>>>>> 9aee40b (Add new log files, merged datasets, and GeoJSON files; remove unused bytecode files)
-        with open(csv_file, 'r', newline='', encoding='utf-8') as file:
+
+        with open(csv_file, "r", newline="", encoding="utf-8") as file:
             reader = csv.reader(file)
             try:
                 first_row = next(reader)
@@ -380,10 +375,6 @@ class AmerifluxDataProcessor:
                 return 2
             else:
                 return 0
-<<<<<<< HEAD
->>>>>>> 9aee40b (Add new log files, merged datasets, and GeoJSON files; remove unused bytecode files)
-=======
->>>>>>> 9aee40b (Add new log files, merged datasets, and GeoJSON files; remove unused bytecode files)
 
     def dataframe_from_file(self, file: Union[str, Path]) -> Optional[pd.DataFrame]:
         """
@@ -395,41 +386,23 @@ class AmerifluxDataProcessor:
         Returns:
         - pd.DataFrame or None: DataFrame with proper headers, or None if unsupported format or errors occur.
         """
-<<<<<<< HEAD
-<<<<<<< HEAD
-        header_type = self.check_header(file)
 
-=======
->>>>>>> 9aee40b (Add new log files, merged datasets, and GeoJSON files; remove unused bytecode files)
-        try:
-            if header_type == 1:
-                return pd.read_csv(file, na_values=self.NA_VALUES)
-            elif header_type == 2:
-                df = pd.read_csv(file, na_values=self.NA_VALUES, skiprows=[0, 2, 3])
-                df.drop(columns=["TIMESTAMP"], errors="ignore", inplace=True)
-=======
         try:
             header_type = self.check_header(file)
 
             if header_type == 1:
                 # Known header with "TIMESTAMP_START"
-                return pd.read_csv(file,
-                                   na_values=self.na_values)
+                return pd.read_csv(file, na_values=self.na_values)
 
             elif header_type == 2:
                 # "TOA5" format, skip known metadata lines
-                df = pd.read_csv(file,
-                                 na_values=self.na_values,
-                                 skiprows=[0, 2, 3])
-                df.drop(columns=["TIMESTAMP"],
-                        errors='ignore',
-                        inplace=True)
-<<<<<<< HEAD
->>>>>>> 9aee40b (Add new log files, merged datasets, and GeoJSON files; remove unused bytecode files)
+                df = pd.read_csv(file, na_values=self.na_values, skiprows=[0, 2, 3])
+                df.drop(columns=["TIMESTAMP"], errors="ignore", inplace=True)
+
                 return df
 
             else:
-<<<<<<< HEAD
+
                 col_count = pd.read_csv(file, header=None, nrows=1).shape[1]
                 header = self.header_dict.get(col_count)
 
@@ -446,46 +419,6 @@ class AmerifluxDataProcessor:
         except Exception as e:
             logger.error(f"Error reading file {file}: {e}")
         return None
-=======
-                # Infer headers based on column count
-                first_line = pd.read_csv(file, header=None, nrows=1)
-                col_count = first_line.shape[1]
-
-                header = self.header_dict.get(col_count)
-
-                if header:
-=======
-                return df
-
-            else:
-                # Infer headers based on column count
-                first_line = pd.read_csv(file, header=None, nrows=1)
-                col_count = first_line.shape[1]
-
-                header = self.header_dict.get(col_count)
-
-                if header:
->>>>>>> 9aee40b (Add new log files, merged datasets, and GeoJSON files; remove unused bytecode files)
-                    return pd.read_csv(file,
-                                       names=header,
-                                       na_values=self.na_values)
-                else:
-                    print(f"Unknown header format (columns={col_count}) in file: {file}")
-                    return None
-
-        except pd.errors.EmptyDataError:
-            print(f"No data found in file: {file}")
-<<<<<<< HEAD
-=======
-            return None
-        except Exception as e:
-            print(f"Error reading file {file}: {e}")
->>>>>>> 9aee40b (Add new log files, merged datasets, and GeoJSON files; remove unused bytecode files)
-            return None
-        except Exception as e:
-            print(f"Error reading file {file}: {e}")
-            return None
->>>>>>> 9aee40b (Add new log files, merged datasets, and GeoJSON files; remove unused bytecode files)
 
     def _is_int(self, element: any) -> bool:
         """
@@ -579,8 +512,6 @@ class Reformatter(object):
         despike_ewma_fb: Removes spikes using forward-backward EWMA smoothing.
     """
 
-<<<<<<< HEAD
-<<<<<<< HEAD
     def __init__(
         self,
         et_data,
@@ -639,26 +570,27 @@ class Reformatter(object):
                 "G:/Shared drives/Data_Processing/Jupyter_Notebooks/Micromet/data/extreme_values.csv"
             ),
         ]
-=======
-    def __init__(self,
-                 et_data,
-                 config_path='reformatter_vars.yml',
-                 drop_soil=True,
-                 data_path=None,
-                 data_type="eddy",
-                 spike_threshold=4.5,
-                 outlier_remove=True,
-                 ):
+
+    def __init__(
+        self,
+        et_data,
+        config_path="reformatter_vars.yml",
+        drop_soil=True,
+        data_path=None,
+        data_type="eddy",
+        spike_threshold=4.5,
+        outlier_remove=True,
+    ):
         self.config = self._load_config(config_path)
 
         self.data_path = data_path
         self.spike_threshold = spike_threshold
-        self.COL_NAME_MATCH = self.config['col_name_match']
-        self.MET_RENAMES = self.config['met_renames']
-        self.MET_VARS = self.config['met_vars']
-        self.DESPIKEY = self.config['despikey']
-        self.DROP_COLS = self.config['drop_cols']
-        self.OTHER_VARS = self.config['othervar']
+        self.COL_NAME_MATCH = self.config["col_name_match"]
+        self.MET_RENAMES = self.config["met_renames"]
+        self.MET_VARS = self.config["met_vars"]
+        self.DESPIKEY = self.config["despikey"]
+        self.DROP_COLS = self.config["drop_cols"]
+        self.OTHER_VARS = self.config["othervar"]
         self.varlimits = None
         self.load_variable_limits()
         self.et_data = self.prepare_et_data(et_data, data_type, drop_soil)
@@ -668,36 +600,36 @@ class Reformatter(object):
         path = pathlib.Path(config_path)
         if not path.exists():
             raise FileNotFoundError(f"Config file not found at {path.resolve()}")
-        with open(path, 'r') as file:
+        with open(path, "r") as file:
             return yaml.safe_load(file)
 
     def load_variable_limits(self):
         default_paths = [
             pathlib.Path("../data/extreme_values.csv"),
             pathlib.Path("data/extreme_values.csv"),
-            pathlib.Path("G:/Shared drives/.../extreme_values.csv")
+            pathlib.Path("G:/Shared drives/.../extreme_values.csv"),
         ]
 
-=======
-    def __init__(self,
-                 et_data,
-                 config_path='reformatter_vars.yml',
-                 drop_soil=True,
-                 data_path=None,
-                 data_type="eddy",
-                 spike_threshold=4.5,
-                 outlier_remove=True,
-                 ):
+    def __init__(
+        self,
+        et_data,
+        config_path="reformatter_vars.yml",
+        drop_soil=True,
+        data_path=None,
+        data_type="eddy",
+        spike_threshold=4.5,
+        outlier_remove=True,
+    ):
         self.config = self._load_config(config_path)
 
         self.data_path = data_path
         self.spike_threshold = spike_threshold
-        self.COL_NAME_MATCH = self.config['col_name_match']
-        self.MET_RENAMES = self.config['met_renames']
-        self.MET_VARS = self.config['met_vars']
-        self.DESPIKEY = self.config['despikey']
-        self.DROP_COLS = self.config['drop_cols']
-        self.OTHER_VARS = self.config['othervar']
+        self.COL_NAME_MATCH = self.config["col_name_match"]
+        self.MET_RENAMES = self.config["met_renames"]
+        self.MET_VARS = self.config["met_vars"]
+        self.DESPIKEY = self.config["despikey"]
+        self.DROP_COLS = self.config["drop_cols"]
+        self.OTHER_VARS = self.config["othervar"]
         self.varlimits = None
         self.load_variable_limits()
         self.et_data = self.prepare_et_data(et_data, data_type, drop_soil)
@@ -707,24 +639,27 @@ class Reformatter(object):
         path = pathlib.Path(config_path)
         if not path.exists():
             raise FileNotFoundError(f"Config file not found at {path.resolve()}")
-        with open(path, 'r') as file:
+        with open(path, "r") as file:
             return yaml.safe_load(file)
 
     def load_variable_limits(self):
         default_paths = [
             pathlib.Path("../data/extreme_values.csv"),
             pathlib.Path("data/extreme_values.csv"),
-            pathlib.Path("G:/Shared drives/.../extreme_values.csv")
+            pathlib.Path("G:/Shared drives/.../extreme_values.csv"),
         ]
 
->>>>>>> 9aee40b (Add new log files, merged datasets, and GeoJSON files; remove unused bytecode files)
-        paths_to_try = [pathlib.Path(self.data_path)] if self.data_path else default_paths
+        paths_to_try = (
+            [pathlib.Path(self.data_path)] if self.data_path else default_paths
+        )
         for path in paths_to_try:
             if path.exists():
                 self.varlimits = pd.read_csv(path, index_col="Name")
                 logger.info(f"Loaded variable limits from {path}")
                 return
-        raise FileNotFoundError("Could not locate extreme_values.csv in provided paths.")
+        raise FileNotFoundError(
+            "Could not locate extreme_values.csv in provided paths."
+        )
 
     def clean_columns(self):
         for col in self.et_data.columns:
@@ -732,9 +667,7 @@ class Reformatter(object):
 
             if col in ["MO_LENGTH", "RECORD"]:
                 self.et_data[col] = pd.to_numeric(
-                    self.et_data[col],
-                    downcast="integer",
-                    errors="coerce"
+                    self.et_data[col], downcast="integer", errors="coerce"
                 )
 
             elif col in ["TIMESTAMP_START", "TIMESTAMP_END"]:
@@ -742,13 +675,10 @@ class Reformatter(object):
 
             elif "SSITC" in col:
                 self.et_data[col] = pd.to_numeric(
-                    self.et_data[col],
-                    downcast="integer",
-                    errors="coerce"
+                    self.et_data[col], downcast="integer", errors="coerce"
                 )
             else:
-                self.et_data[col] = pd.to_numeric(self.et_data[col],
-                                                  errors="coerce")
+                self.et_data[col] = pd.to_numeric(self.et_data[col], errors="coerce")
 
             logger.debug(f"column {col} range: {np.max(self.et_data[col])}")
             logger.debug(f"column {col} range numeric: {np.max(self.et_data[col])}")
@@ -781,7 +711,6 @@ class Reformatter(object):
         logger.debug(f"Variable limits: \n {self.varlimits.tail(5)}")
         logger.debug(f"ET Data: \n {et_data.head(5)}")
         logger.debug(f"ET Data: \n {et_data.tail(5)}")
->>>>>>> 9aee40b (Add new log files, merged datasets, and GeoJSON files; remove unused bytecode files)
 
         paths_to_try = (
             [pathlib.Path(self.data_path)] if self.data_path else default_paths
@@ -795,8 +724,6 @@ class Reformatter(object):
             "Could not locate extreme_values.csv in provided paths."
         )
 
-<<<<<<< HEAD
-<<<<<<< HEAD
     def clean_columns(self):
         """Cleans and preprocesses columns, handling invalid values and despiking."""
         for col in self.et_data.columns:
@@ -860,10 +787,6 @@ class Reformatter(object):
         # fix datetimes
         self.et_data = self.datefixer(et_data)
 
-=======
->>>>>>> 9aee40b (Add new log files, merged datasets, and GeoJSON files; remove unused bytecode files)
-=======
->>>>>>> 9aee40b (Add new log files, merged datasets, and GeoJSON files; remove unused bytecode files)
         logger.debug("Corrected Datetimes:")
         logger.debug(f"{self.et_data.head(5)}")
         logger.debug(f"{self.et_data.tail(5)}")
@@ -886,15 +809,12 @@ class Reformatter(object):
         self.ssitc_scale()
 
         if "ET_SSITC_TEST" in self.et_data.columns:
-<<<<<<< HEAD
-<<<<<<< HEAD
+
             logger.debug(f"SSITC Values: {self.et_data['ET_SSITC_TEST'].unique()}")
-=======
+
             logger.info(f"SSITC Values: {self.et_data['ET_SSITC_TEST'].unique()}")
->>>>>>> 9aee40b (Add new log files, merged datasets, and GeoJSON files; remove unused bytecode files)
-=======
+
             logger.info(f"SSITC Values: {self.et_data['ET_SSITC_TEST'].unique()}")
->>>>>>> 9aee40b (Add new log files, merged datasets, and GeoJSON files; remove unused bytecode files)
 
         self.drop_extras()
 
@@ -914,16 +834,13 @@ class Reformatter(object):
 
         if "ET" in self.et_data.columns:
             count_neg_9999 = (self.et_data["ET"] == -9999).sum()
-<<<<<<< HEAD
+
             logger.debug(f"Null Value Count in ET: {count_neg_9999}")
             logger.debug(f"Length of ET: {len(self.et_data['ET'])}")
-=======
+
             logger.info(f"Null Value Count in ET: {count_neg_9999}")
             logger.info(f"Length of ET: {len(self.et_data['ET'])}")
-<<<<<<< HEAD
->>>>>>> 9aee40b (Add new log files, merged datasets, and GeoJSON files; remove unused bytecode files)
-=======
->>>>>>> 9aee40b (Add new log files, merged datasets, and GeoJSON files; remove unused bytecode files)
+
         self.col_order()
 
     def remove_extra_soil_params(self, df):
@@ -1071,8 +988,6 @@ class Reformatter(object):
         self.et_data[new_column] = self.et_data[[old_column, new_column]].max(axis=1)
         self.et_data = self.et_data.drop(old_column, axis=1)
 
-<<<<<<< HEAD
-<<<<<<< HEAD
     def rename_columns(self, data_type="eddy"):
         """Renames columns based on the dataset type and configuration mappings."""
 
@@ -1090,9 +1005,9 @@ class Reformatter(object):
                 else:
                     logger.debug(f"Renaming column: {old_col} to {new_col}")
                     self.et_data = self.et_data.rename(columns={old_col: new_col})
-=======
-    def rename_columns(self, data_type='eddy'):
-        mappings = self.COL_NAME_MATCH if data_type == 'eddy' else self.MET_RENAMES
+
+    def rename_columns(self, data_type="eddy"):
+        mappings = self.COL_NAME_MATCH if data_type == "eddy" else self.MET_RENAMES
         for old_col, new_col in mappings.items():
             if old_col in self.et_data.columns:
                 if new_col in self.et_data.columns:
@@ -1100,10 +1015,9 @@ class Reformatter(object):
                 else:
                     self.et_data[new_col] = self.et_data[old_col]
                 self.et_data.drop(old_col, axis=1, inplace=True)
->>>>>>> 9aee40b (Add new log files, merged datasets, and GeoJSON files; remove unused bytecode files)
-=======
-    def rename_columns(self, data_type='eddy'):
-        mappings = self.COL_NAME_MATCH if data_type == 'eddy' else self.MET_RENAMES
+
+    def rename_columns(self, data_type="eddy"):
+        mappings = self.COL_NAME_MATCH if data_type == "eddy" else self.MET_RENAMES
         for old_col, new_col in mappings.items():
             if old_col in self.et_data.columns:
                 if new_col in self.et_data.columns:
@@ -1111,7 +1025,6 @@ class Reformatter(object):
                 else:
                     self.et_data[new_col] = self.et_data[old_col]
                 self.et_data.drop(old_col, axis=1, inplace=True)
->>>>>>> 9aee40b (Add new log files, merged datasets, and GeoJSON files; remove unused bytecode files)
 
     def scale_and_convert(self, column: pd.Series) -> pd.Series:
         """
