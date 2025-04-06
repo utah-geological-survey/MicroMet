@@ -534,6 +534,16 @@ class Reformatter(object):
             spike_threshold (float): Threshold for spike removal.
             outlier_remove (bool): Whether to remove outliers.
         """
+        self.default_paths = [
+            pathlib.Path("../data/extreme_values.csv"),
+            pathlib.Path("data/extreme_values.csv"),
+            pathlib.Path("../../data/extreme_values.csv"),
+            pathlib.Path("../../../data/extreme_values.csv"),
+            pathlib.Path(
+                "G:/Shared drives/Data_Processing/Jupyter_Notebooks/Micromet/data/extreme_values.csv"
+            ),
+        ]
+
         self.config = self._load_config(config_path)
 
         self.data_path = data_path
@@ -560,95 +570,6 @@ class Reformatter(object):
             return yaml.safe_load(file)
 
     def load_variable_limits(self):
-        """Loads variable limits from predefined CSV paths."""
-        default_paths = [
-            pathlib.Path("../data/extreme_values.csv"),
-            pathlib.Path("data/extreme_values.csv"),
-            pathlib.Path("../../data/extreme_values.csv"),
-            pathlib.Path("../../../data/extreme_values.csv"),
-            pathlib.Path(
-                "G:/Shared drives/Data_Processing/Jupyter_Notebooks/Micromet/data/extreme_values.csv"
-            ),
-        ]
-
-    def __init__(
-        self,
-        et_data,
-        config_path="reformatter_vars.yml",
-        drop_soil=True,
-        data_path=None,
-        data_type="eddy",
-        spike_threshold=4.5,
-        outlier_remove=True,
-    ):
-        self.config = self._load_config(config_path)
-
-        self.data_path = data_path
-        self.spike_threshold = spike_threshold
-        self.COL_NAME_MATCH = self.config["col_name_match"]
-        self.MET_RENAMES = self.config["met_renames"]
-        self.MET_VARS = self.config["met_vars"]
-        self.DESPIKEY = self.config["despikey"]
-        self.DROP_COLS = self.config["drop_cols"]
-        self.OTHER_VARS = self.config["othervar"]
-        self.varlimits = None
-        self.load_variable_limits()
-        self.et_data = self.prepare_et_data(et_data, data_type, drop_soil)
-
-    @staticmethod
-    def _load_config(config_path):
-        path = pathlib.Path(config_path)
-        if not path.exists():
-            raise FileNotFoundError(f"Config file not found at {path.resolve()}")
-        with open(path, "r") as file:
-            return yaml.safe_load(file)
-
-    def load_variable_limits(self):
-        default_paths = [
-            pathlib.Path("../data/extreme_values.csv"),
-            pathlib.Path("data/extreme_values.csv"),
-            pathlib.Path("G:/Shared drives/.../extreme_values.csv"),
-        ]
-
-    def __init__(
-        self,
-        et_data,
-        config_path="reformatter_vars.yml",
-        drop_soil=True,
-        data_path=None,
-        data_type="eddy",
-        spike_threshold=4.5,
-        outlier_remove=True,
-    ):
-        self.config = self._load_config(config_path)
-
-        self.data_path = data_path
-        self.spike_threshold = spike_threshold
-        self.COL_NAME_MATCH = self.config["col_name_match"]
-        self.MET_RENAMES = self.config["met_renames"]
-        self.MET_VARS = self.config["met_vars"]
-        self.DESPIKEY = self.config["despikey"]
-        self.DROP_COLS = self.config["drop_cols"]
-        self.OTHER_VARS = self.config["othervar"]
-        self.varlimits = None
-        self.load_variable_limits()
-        self.et_data = self.prepare_et_data(et_data, data_type, drop_soil)
-
-        self.default_paths = [
-            pathlib.Path("../data/extreme_values.csv"),
-            pathlib.Path("data/extreme_values.csv"),
-            pathlib.Path("G:/Shared drives/.../extreme_values.csv"),
-        ]
-
-    @staticmethod
-    def _load_config(config_path):
-        path = pathlib.Path(config_path)
-        if not path.exists():
-            raise FileNotFoundError(f"Config file not found at {path.resolve()}")
-        with open(path, "r") as file:
-            return yaml.safe_load(file)
-
-    def load_variable_limits(self):
 
         paths_to_try = (
             [pathlib.Path(self.data_path)] if self.data_path else self.default_paths
@@ -657,69 +578,6 @@ class Reformatter(object):
             if path.exists():
                 self.varlimits = pd.read_csv(path, index_col="Name")
                 logger.info(f"Loaded variable limits from {path}")
-                return
-        raise FileNotFoundError(
-            "Could not locate extreme_values.csv in provided paths."
-        )
-
-    def clean_columns(self):
-        for col in self.et_data.columns:
-            logger.debug(f"column: {col}")
-
-            if col in ["MO_LENGTH", "RECORD"]:
-                self.et_data[col] = pd.to_numeric(
-                    self.et_data[col], downcast="integer", errors="coerce"
-                )
-
-            elif col in ["TIMESTAMP_START", "TIMESTAMP_END"]:
-                self.et_data[col] = self.et_data[col]
-
-            elif "SSITC" in col:
-                self.et_data[col] = pd.to_numeric(
-                    self.et_data[col], downcast="integer", errors="coerce"
-                )
-            else:
-                self.et_data[col] = pd.to_numeric(self.et_data[col], errors="coerce")
-
-            logger.debug(f"column {col} range: {np.max(self.et_data[col])}")
-            logger.debug(f"column {col} range numeric: {np.max(self.et_data[col])}")
-
-            self.et_data[col] = self.et_data[col].replace(-9999, np.nan)
-
-            # remove values that are outside of possible ranges
-            self.et_data = self.replace_out_of_range_with_nan(self.et_data, col, np.nan)
-
-            logger.debug(f"column range out of range: {np.max(self.et_data[col])}")
-
-            if col in self.DESPIKEY:
-
-                # despike
-                self.et_data[col] = self.despike(self.et_data[col])
-
-                # Remove Flat Values
-                if col in ["U", "V", "W", "u", "w", "v"]:
-                    pass
-                else:
-                    self.et_data[col] = replace_flat_values(
-                        self.et_data, col, replacement_value=np.nan, null_value=-9999
-                    )
-            logger.debug(f"column range despike: {np.max(self.et_data[col])}")
-
-    def prepare_et_data(self, et_data, data_type="eddy", drop_soil=True):
-        logger.info("Starting Processing")
-        logger.info(f"Reading first line of file: {self.data_path}")
-        logger.debug(f"Variable limits: \n {self.varlimits.head(5)}")
-        logger.debug(f"Variable limits: \n {self.varlimits.tail(5)}")
-        logger.debug(f"ET Data: \n {et_data.head(5)}")
-        logger.debug(f"ET Data: \n {et_data.tail(5)}")
-
-        paths_to_try = (
-            [pathlib.Path(self.data_path)] if self.data_path else self.default_paths
-        )
-        for path in paths_to_try:
-            if path.exists():
-                self.varlimits = pd.read_csv(path, index_col="Name")
-                logger.debug(f"Loaded variable limits from {path}")
                 return
         raise FileNotFoundError(
             "Could not locate extreme_values.csv in provided paths."
@@ -923,6 +781,13 @@ class Reformatter(object):
         print(fixed_data)
         ```
         """
+        # drop null index values
+        if "datetime_start" in et_data.columns:
+            et_data = et_data.drop("datetime_start", axis=1)
+            et_data = et_data.reset_index()
+        else:
+            et_data = et_data.reset_index()
+
         # create datetime fields to conduct datetime operations on dataset
         et_data["datetime_start"] = pd.to_datetime(
             et_data["TIMESTAMP_START"],
@@ -953,13 +818,6 @@ class Reformatter(object):
             .asfreq()  # Establishes a 30-minute frequency grid with NaNs in missing slots
             .interpolate(method="linear", limit=1)  # Fill up to 30-minute gaps
         )
-
-        # drop null index values
-        if "datetime_start" in et_data.columns:
-            et_data = et_data.drop("datetime_start", axis=1)
-            et_data = et_data.reset_index()
-        else:
-            et_data = et_data.reset_index()
 
         et_data = et_data.dropna(subset=["datetime_start"])
         et_data = et_data.set_index("datetime_start")
@@ -1006,26 +864,6 @@ class Reformatter(object):
                 else:
                     logger.debug(f"Renaming column: {old_col} to {new_col}")
                     self.et_data = self.et_data.rename(columns={old_col: new_col})
-
-    def rename_columns(self, data_type="eddy"):
-        mappings = self.COL_NAME_MATCH if data_type == "eddy" else self.MET_RENAMES
-        for old_col, new_col in mappings.items():
-            if old_col in self.et_data.columns:
-                if new_col in self.et_data.columns:
-                    self.et_data[new_col] = self.et_data[[old_col, new_col]].max(axis=1)
-                else:
-                    self.et_data[new_col] = self.et_data[old_col]
-                self.et_data.drop(old_col, axis=1, inplace=True)
-
-    def rename_columns(self, data_type="eddy"):
-        mappings = self.COL_NAME_MATCH if data_type == "eddy" else self.MET_RENAMES
-        for old_col, new_col in mappings.items():
-            if old_col in self.et_data.columns:
-                if new_col in self.et_data.columns:
-                    self.et_data[new_col] = self.et_data[[old_col, new_col]].max(axis=1)
-                else:
-                    self.et_data[new_col] = self.et_data[old_col]
-                self.et_data.drop(old_col, axis=1, inplace=True)
 
     def scale_and_convert(self, column: pd.Series) -> pd.Series:
         """
