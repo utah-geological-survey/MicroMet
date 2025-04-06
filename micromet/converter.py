@@ -634,6 +634,12 @@ class Reformatter(object):
         self.load_variable_limits()
         self.et_data = self.prepare_et_data(et_data, data_type, drop_soil)
 
+        self.default_paths = [
+            pathlib.Path("../data/extreme_values.csv"),
+            pathlib.Path("data/extreme_values.csv"),
+            pathlib.Path("G:/Shared drives/.../extreme_values.csv"),
+        ]
+
     @staticmethod
     def _load_config(config_path):
         path = pathlib.Path(config_path)
@@ -643,14 +649,9 @@ class Reformatter(object):
             return yaml.safe_load(file)
 
     def load_variable_limits(self):
-        default_paths = [
-            pathlib.Path("../data/extreme_values.csv"),
-            pathlib.Path("data/extreme_values.csv"),
-            pathlib.Path("G:/Shared drives/.../extreme_values.csv"),
-        ]
 
         paths_to_try = (
-            [pathlib.Path(self.data_path)] if self.data_path else default_paths
+            [pathlib.Path(self.data_path)] if self.data_path else self.default_paths
         )
         for path in paths_to_try:
             if path.exists():
@@ -713,7 +714,7 @@ class Reformatter(object):
         logger.debug(f"ET Data: \n {et_data.tail(5)}")
 
         paths_to_try = (
-            [pathlib.Path(self.data_path)] if self.data_path else default_paths
+            [pathlib.Path(self.data_path)] if self.data_path else self.default_paths
         )
         for path in paths_to_try:
             if path.exists():
