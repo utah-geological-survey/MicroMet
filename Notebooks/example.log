@@ -3691,6 +3691,7 @@
 2025-04-05 22:54:47,558 - ERROR - Error reading file G:\Shared drives\UGS_Flux\Data_Downloads\Phrag\m20250210\8441_Flux_AmeriFluxFormat_1.dat: 'AmerifluxDataProcessor' object has no attribute 'na_values'
 2025-04-05 22:54:48,081 - ERROR - Error reading file G:\Shared drives\UGS_Flux\Data_Downloads\Phrag\m20250210\8441_Flux_AmeriFluxFormat_2.dat: 'AmerifluxDataProcessor' object has no attribute 'na_values'
 2025-04-05 22:54:48,418 - ERROR - Error reading file G:\Shared drives\UGS_Flux\Data_Downloads\Phrag\m20250210\8441_Flux_AmeriFluxFormat_3.dat: 'AmerifluxDataProcessor' object has no attribute 'na_values'
+<<<<<<< HEAD
 2025-04-06 20:45:20,006 - ERROR - Error reading file G:\Shared drives\UGS_Flux\Data_Downloads\Dugout_Ranch\Dugout Ranch_Flux_AmeriFluxFormat.dat: 'AmerifluxDataProcessor' object has no attribute 'na_values'
 2025-04-06 20:45:20,044 - ERROR - Error reading file G:\Shared drives\UGS_Flux\Data_Downloads\Dugout_Ranch\e20240415\21314_Flux_AmeriFluxFormat_4.dat: 'AmerifluxDataProcessor' object has no attribute 'na_values'
 2025-04-06 20:45:20,051 - ERROR - Error reading file G:\Shared drives\UGS_Flux\Data_Downloads\Dugout_Ranch\e20240415\21314_Flux_AmeriFluxFormat_5.dat: 'AmerifluxDataProcessor' object has no attribute 'na_values'
@@ -10737,3 +10738,5 @@
 2025-04-06 21:03:38,687 - ERROR - Error reading file G:\Shared drives\UGS_Flux\Data_Downloads\Phrag\m20250210\8441_Flux_AmeriFluxFormat_1.dat: 'AmerifluxDataProcessor' object has no attribute 'na_values'
 2025-04-06 21:03:38,691 - ERROR - Error reading file G:\Shared drives\UGS_Flux\Data_Downloads\Phrag\m20250210\8441_Flux_AmeriFluxFormat_2.dat: 'AmerifluxDataProcessor' object has no attribute 'na_values'
 2025-04-06 21:03:38,696 - ERROR - Error reading file G:\Shared drives\UGS_Flux\Data_Downloads\Phrag\m20250210\8441_Flux_AmeriFluxFormat_3.dat: 'AmerifluxDataProcessor' object has no attribute 'na_values'
+=======
+>>>>>>> c3a1ed584c80e264697958a3d0bc7441fec1510a

@@ -535,6 +535,7 @@ class Reformatter(object):
             outlier_remove (bool): Whether to remove outliers.
         """
         self.default_paths = [
+        self.default_paths = [
             pathlib.Path("../data/extreme_values.csv"),
             pathlib.Path("data/extreme_values.csv"),
             pathlib.Path("../../data/extreme_values.csv"),
@@ -555,13 +556,16 @@ class Reformatter(object):
         self.DROP_COLS = self.config["drop_cols"]
         self.OTHER_VARS = self.config["othervar"]
         self.MATH_SOILS_V2 = self.config["math_soils_v2"]
+        self.MATH_SOILS_V2 = self.config["math_soils_v2"]
         self.DESPIKEY = self.config["despikey"]
         self.varlimits = None
         self.load_variable_limits()
         self.prepare_et_data(et_data, data_type, drop_soil)
+        self.prepare_et_data(et_data, data_type, drop_soil)
 
     @staticmethod
     def _load_config(config_path):
+
 
         path = pathlib.Path(config_path)
         if not path.exists():
