@@ -20,7 +20,6 @@ import logging
 
 
 class AmerifluxDataProcessor:
-    
 
     def __init__(self, logger=None):
         self.NA_VALUES = {"-9999", "NAN", "NaN", "nan", np.nan, -9999.0}
@@ -392,11 +391,11 @@ class AmerifluxDataProcessor:
 
             if header_type == 1:
                 # Known header with "TIMESTAMP_START"
-                return pd.read_csv(file, na_values=self.na_values)
+                return pd.read_csv(file, na_values=self.NA_VALUES)
 
             elif header_type == 2:
                 # "TOA5" format, skip known metadata lines
-                df = pd.read_csv(file, na_values=self.na_values, skiprows=[0, 2, 3])
+                df = pd.read_csv(file, na_values=self.NA_VALUES, skiprows=[0, 2, 3])
                 df.drop(columns=["TIMESTAMP"], errors="ignore", inplace=True)
 
                 return df
@@ -407,7 +406,7 @@ class AmerifluxDataProcessor:
                 header = self.header_dict.get(col_count)
 
                 if header:
-                    return pd.read_csv(file, names=header, na_values = self.NA_VALUES)
+                    return pd.read_csv(file, names=header, na_values=self.NA_VALUES)
 
                 self.logger.warning(
                     f"Unknown header format ({col_count} columns) in file: {file}"
@@ -731,17 +730,23 @@ class Reformatter(object):
             main_var = collist[0]
 
             # get rid of columns that don't follow the typical pattern
-            if len(collist) > 3 and collist[2] not in ["N", "S"]:
-                depth_var = int(collist[2])
-                if main_var in ["SWC", "TS", "EC", "K"] and (
-                    depth_var >= 1 and int(collist[1]) >= 3
-                ):
+            try:
+                if len(collist) > 3 and collist[2] not in ["N", "S"]:
+                    depth_var = int(collist[2])
+                    if main_var in ["SWC", "TS", "EC", "K"] and (
+                        depth_var >= 1 and int(collist[1]) >= 3
+                    ):
+                        df = df.drop(col, axis=1)
+                # drop cols from a specified list math_soils_v2
+                elif col in self.MATH_SOILS_V2[:-4]:
                     df = df.drop(col, axis=1)
-            # drop cols from a specified list math_soils_v2
-            elif col in self.MATH_SOILS_V2[:-4]:
+                elif main_var in ["VWC", "Ka"] or "cm_N" in col or "cm_S" in col:
+                    df = df.drop(col, axis=1)
+            except ValueError:
+                # Handle cases where conversion to int fails
+                self.logger.warning(f"Skipping column {col} due to ValueError")
                 df = df.drop(col, axis=1)
-            elif main_var in ["VWC", "Ka"] or "cm_N" in col or "cm_S" in col:
-                df = df.drop(col, axis=1)
+                continue
         return df
 
     def drop_extras(self):
@@ -826,26 +831,28 @@ class Reformatter(object):
             .asfreq()  # Establishes a 30-minute frequency grid with NaNs in missing slots
             .interpolate(method="linear", limit=1)  # Fill up to 30-minute gaps
         )
+        try:
+            et_data = et_data.drop(columns=["datetime_start"], errors="ignore")
+            et_data = et_data.drop(columns=["datetime_start"], errors="ignore")
+            et_data = et_data.reset_index()
+            et_data = et_data.dropna(subset=["datetime_start"])
+            et_data = et_data.set_index("datetime_start")
+            # et_data = et_data[et_data.index.notnull()]
 
-        et_data = et_data.drop(columns=["datetime_start"], errors="ignore")
-        et_data = et_data.drop(columns=["datetime_start"], errors="ignore")
-        et_data = et_data.reset_index()
-        et_data = et_data.dropna(subset=["datetime_start"])
-        et_data = et_data.set_index("datetime_start")
-        # et_data = et_data[et_data.index.notnull()]
+            # remake timestamp marks to match datetime index, filling in NA spots
+            et_data["TIMESTAMP_START"] = et_data.index.strftime("%Y%m%d%H%M").astype(
+                np.int64
+            )
 
-        # remake timestamp marks to match datetime index, filling in NA spots
-        et_data["TIMESTAMP_START"] = et_data.index.strftime("%Y%m%d%H%M").astype(
-            np.int64
-        )
+            et_data["TIMESTAMP_END"] = (
+                (et_data.index + pd.Timedelta("30min"))
+                .strftime("%Y%m%d%H%M")
+                .astype(np.int64)
+            )
 
-        et_data["TIMESTAMP_END"] = (
-            (et_data.index + pd.Timedelta("30min"))
-            .strftime("%Y%m%d%H%M")
-            .astype(np.int64)
-        )
-
-        return et_data
+            return et_data
+        except Exception as e:
+            self.logger.error(f"Error in datefixer: {e}")
 
     def update_dataframe_column(self, new_column, old_column):
         """
