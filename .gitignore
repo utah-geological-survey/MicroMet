@@ -46,3 +46,7 @@ station_config/output/US-UTW_monthly_data.csv
 
 /.pytest_cache
 /Notebooks/logs
+/tests/__pycache__
+/tests/.pytest_cache
+/tests_micromet/__pycache__
+/tests_micromet/.pytest_cache

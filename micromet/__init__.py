@@ -13,10 +13,5 @@ from .soil_heat import *
 # from .volk import *
 from .ffp import *
 
-# from .volk import *
-from .ffp import *
-
-# from .volk import *
-from .ffp import *
 
 __version__ = "0.5.0"

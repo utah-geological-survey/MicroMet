@@ -236,4 +236,4 @@ def test_edge_cases():
 
 
 if __name__ == "__main__":
-    pytest.main([__file__])  # Run the tests in this file
+    pytest.main()  # Run the tests in this file
