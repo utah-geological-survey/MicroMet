@@ -535,7 +535,6 @@ class Reformatter(object):
             outlier_remove (bool): Whether to remove outliers.
         """
         self.default_paths = [
-        self.default_paths = [
             pathlib.Path("../data/extreme_values.csv"),
             pathlib.Path("data/extreme_values.csv"),
             pathlib.Path("../../data/extreme_values.csv"),
@@ -565,7 +564,6 @@ class Reformatter(object):
 
     @staticmethod
     def _load_config(config_path):
-
 
         path = pathlib.Path(config_path)
         if not path.exists():
@@ -818,11 +816,9 @@ class Reformatter(object):
             .interpolate(method="linear", limit=1)  # Fill up to 30-minute gaps
         )
 
-        if "datetime_start" in et_data.columns:
-            et_data = et_data.drop("datetime_start", axis=1)
-            et_data = et_data.reset_index()
-        else:
-            et_data = et_data.reset_index()
+        et_data = et_data.drop(columns=["datetime_start"], errors="ignore")
+        et_data = et_data.drop(columns=["datetime_start"], errors="ignore")
+        et_data = et_data.reset_index()
         et_data = et_data.dropna(subset=["datetime_start"])
         et_data = et_data.set_index("datetime_start")
         # et_data = et_data[et_data.index.notnull()]
@@ -1055,178 +1051,6 @@ class Reformatter(object):
         cond_delta = np.abs(np_spikey - np_fbewma) > delta
         np_remove_outliers = np.where(cond_delta, np.nan, np_spikey)
         return np_remove_outliers
-
-
-main_header_part = [
-    "TIMESTAMP_START",
-    "TIMESTAMP_END",
-    "CO2",
-    "CO2_SIGMA",
-    "H2O",
-    "H2O_SIGMA",
-    "FC",
-    "FC_SSITC_TEST",
-    "LE",
-    "LE_SSITC_TEST",
-    "ET",
-    "ET_SSITC_TEST",
-    "H",
-    "H_SSITC_TEST",
-    "G",
-    "SG",
-    "FETCH_MAX",
-    "FETCH_90",
-    "FETCH_55",
-    "FETCH_40",
-    "WD",
-    "WS",
-    "WS_MAX",
-    "USTAR",
-    "ZL",
-    "TAU",
-    "TAU_SSITC_TEST",
-    "MO_LENGTH",
-    "U",
-    "U_SIGMA",
-    "V",
-    "V_SIGMA",
-    "W",
-    "W_SIGMA",
-    "PA",
-    "TA_1_1_1",
-    "RH_1_1_1",
-    "T_DP_1_1_1",
-]
-
-bet_part = [
-    "TA_1_2_1",
-    "RH_1_2_1",
-    "T_DP_1_2_1",
-    "TA_1_3_1",
-    "RH_1_3_1",
-    "T_DP_1_3_1",
-    "VPD",
-    "T_SONIC",
-    "T_SONIC_SIGMA",
-    "PBLH",
-    "TS_1_1_1",
-    "SWC_1_1_1",
-    "ALB",
-    "NETRAD",
-    "SW_IN",
-    "SW_OUT",
-    "LW_IN",
-    "LW_OUT",
-    "P",
-]
-
-bet_header = main_header_part + bet_part
-
-met_headers = [
-    "TIMESTAMP_START",
-    "TIMESTAMP_END",
-    "CO2",
-    "CO2_SIGMA",
-    "H2O",
-    "H2O_SIGMA",
-    "FC",
-    "FC_SSITC_TEST",
-    "LE",
-    "LE_SSITC_TEST",
-    "ET",
-    "ET_SSITC_TEST",
-    "H",
-    "H_SSITC_TEST",
-    "G",
-    "SG",
-    "FETCH_MAX",
-    "FETCH_90",
-    "FETCH_55",
-    "FETCH_40",
-    "WD",
-    "WS",
-    "WS_MAX",
-    "USTAR",
-    "ZL",
-    "TAU",
-    "TAU_SSITC_TEST",
-    "MO_LENGTH",
-    "U",
-    "U_SIGMA",
-    "V",
-    "V_SIGMA",
-    "W",
-    "W_SIGMA",
-    "PA",
-    "TA_1_1_1",
-    "RH_1_1_1",
-    "T_DP_1_1_1",
-    "TA_1_1_2",
-    "RH_1_1_2",
-    "T_DP_1_1_2",
-    "TA_1_1_3",
-    "RH_1_1_3",
-    "T_DP_1_1_3",
-    "VPD",
-    "T_SONIC",
-    "T_SONIC_SIGMA",
-    "PBLH",
-    "TS_1_1_1",
-    "TS_1_1_2",
-    "SWC_1_1_1",
-    "SWC_1_1_2",
-    "ALB",
-    "NETRAD",
-    "SW_IN",
-    "SW_OUT",
-    "LW_IN",
-    "LW_OUT",
-    "P",
-]
-
-bet_spikey = [
-    "CO2",
-    "H2O",
-    "FC",
-    "LE",
-    "ET",
-    "H",
-    "G",
-    "SG",
-    "FETCH_MAX",
-    "FETCH_90",
-    "FETCH_55",
-    "FETCH_40",
-    "WS",
-    "USTAR",
-    "TAU",
-    "MO_LENGTH",
-    "U",
-    "V",
-    "W",
-    "PA",
-    "TA_1_1_1",
-    "RH_1_1_1",
-    "T_DP_1_1_1",
-    "TA_1_2_1",
-    "RH_1_2_1",
-    "T_DP_1_2_1",
-    "TA_1_3_1",
-    "RH_1_3_1",
-    "T_DP_1_3_1",
-    "VPD",
-    "T_SONIC",
-    "T_SONIC_SIGMA",
-    "PBLH_F",
-    "TS_1_1_1",
-    "SWC_1_1_1",
-    "ALB",
-    "NETRAD",
-    "SW_IN",
-    "SW_OUT",
-    "LW_IN",
-    "LW_OUT",
-]
 
 
 def load_data():
