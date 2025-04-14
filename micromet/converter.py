@@ -17,19 +17,13 @@ import logging
 
 # Set up a logger for this module.
 # In production, consider configuring logging at application start-up instead.
-logger = logging.getLogger(__name__)
-logging.basicConfig(
-    filename="example.log",
-    encoding="utf-8",
-    level=logging.WARNING,
-    format="%(asctime)s - %(levelname)s - %(message)s",
-)
 
 
 class AmerifluxDataProcessor:
-    NA_VALUES = {"-9999", "NAN", "NaN", "nan", np.nan, -9999.0}
+    
 
-    def __init__(self):
+    def __init__(self, logger=None):
+        self.NA_VALUES = {"-9999", "NAN", "NaN", "nan", np.nan, -9999.0}
         self.headers = {
             "default": [
                 "TIMESTAMP_START",
@@ -324,6 +318,12 @@ class AmerifluxDataProcessor:
             132: self.headers["big_math_v2_filt"],
         }
 
+        if logger is None:
+            self.logger = logging.getLogger(__name__)
+            self.logger.setLevel(logging.WARNING)
+        else:
+            self.logger = logger
+
     @staticmethod
     def check_header(csv_file: Union[str, Path]) -> int:
         """
@@ -407,17 +407,17 @@ class AmerifluxDataProcessor:
                 header = self.header_dict.get(col_count)
 
                 if header:
-                    return pd.read_csv(file, names=header, na_values=self.NA_VALUES)
+                    return pd.read_csv(file, names=header, na_values = self.NA_VALUES)
 
-                logger.warning(
+                self.logger.warning(
                     f"Unknown header format ({col_count} columns) in file: {file}"
                 )
                 return None
 
         except pd.errors.EmptyDataError:
-            logger.warning(f"No data found in file: {file}")
+            self.logger.warning(f"No data found in file: {file}")
         except Exception as e:
-            logger.error(f"Error reading file {file}: {e}")
+            self.logger.error(f"Error reading file {file}: {e}")
         return None
 
     def _is_int(self, element: any) -> bool:
@@ -454,10 +454,10 @@ class AmerifluxDataProcessor:
         compiled_data = []
         station_folder = raw_fold / station_folder_name
 
-        logger.info(f"Compiling data from {station_folder}")
+        self.logger.info(f"Compiling data from {station_folder}")
 
         for file in station_folder.rglob(search_str):
-            logger.info(f"Processing file: {file}")
+            self.logger.info(f"Processing file: {file}")
             basename = file.stem
 
             try:
@@ -475,7 +475,7 @@ class AmerifluxDataProcessor:
         if compiled_data:
             return pd.concat(compiled_data, ignore_index=True)
         else:
-            logger.warning(f"No valid files found in {station_folder}")
+            self.logger.warning(f"No valid files found in {station_folder}")
             return None
 
 
@@ -521,6 +521,7 @@ class Reformatter(object):
         data_type="eddy",
         spike_threshold=4.5,
         outlier_remove=True,
+        logger=None,
     ):
         """
         Initializes the Reformatter with ET data and configurations.
@@ -534,6 +535,12 @@ class Reformatter(object):
             spike_threshold (float): Threshold for spike removal.
             outlier_remove (bool): Whether to remove outliers.
         """
+        if logger is None:
+            self.logger = logging.getLogger(__name__)
+            self.logger.setLevel(logging.WARNING)
+        else:
+            self.logger = logger
+
         self.default_paths = [
             pathlib.Path("../data/extreme_values.csv"),
             pathlib.Path("data/extreme_values.csv"),
@@ -579,7 +586,7 @@ class Reformatter(object):
         for path in paths_to_try:
             if path.exists():
                 self.varlimits = pd.read_csv(path, index_col="Name")
-                logger.info(f"Loaded variable limits from {path}")
+                self.logger.info(f"Loaded variable limits from {path}")
                 return
         raise FileNotFoundError(
             "Could not locate extreme_values.csv in provided paths."
@@ -588,7 +595,7 @@ class Reformatter(object):
     def clean_columns(self):
         """Cleans and preprocesses columns, handling invalid values and despiking."""
         for col in self.et_data.columns:
-            logger.warning(f"column: {col}")
+            self.logger.warning(f"column: {col}")
 
             if col in ["MO_LENGTH", "RECORD"]:
                 self.et_data[col] = pd.to_numeric(
@@ -605,15 +612,19 @@ class Reformatter(object):
             else:
                 self.et_data[col] = pd.to_numeric(self.et_data[col], errors="coerce")
 
-            logger.debug(f"column {col} range: {np.max(self.et_data[col])}")
-            logger.debug(f"column {col} range numeric: {np.max(self.et_data[col])}")
+            self.logger.debug(f"column {col} range: {np.max(self.et_data[col])}")
+            self.logger.debug(
+                f"column {col} range numeric: {np.max(self.et_data[col])}"
+            )
 
             self.et_data[col] = self.et_data[col].replace(-9999, np.nan)
 
             # remove values that are outside of possible ranges
             self.et_data = self.replace_out_of_range_with_nan(self.et_data, col, np.nan)
 
-            logger.warning(f"column range out of range: {np.max(self.et_data[col])}")
+            self.logger.warning(
+                f"column range out of range: {np.max(self.et_data[col])}"
+            )
 
             if col in self.DESPIKEY:
 
@@ -627,7 +638,7 @@ class Reformatter(object):
                     self.et_data[col] = replace_flat_values(
                         self.et_data, col, replacement_value=np.nan, null_value=-9999
                     )
-            logger.debug(f"column range despike: {np.max(self.et_data[col])}")
+            self.logger.debug(f"column range despike: {np.max(self.et_data[col])}")
 
     def prepare_et_data(self, et_data, data_type="eddy", drop_soil=True):
         """
@@ -638,28 +649,28 @@ class Reformatter(object):
             data_type (str): Dataset type ("eddy" or "met").
             drop_soil (bool): Whether to drop excess soil parameter columns.
         """
-        logger.debug("Starting Processing")
-        logger.debug(f"Reading first line of file: {self.data_path}")
-        logger.debug(f"Variable limits: \n {self.varlimits.head(5)}")
-        logger.debug(f"Variable limits: \n {self.varlimits.tail(5)}")
-        logger.debug(f"ET Data: \n {et_data.head(5)}")
-        logger.debug(f"ET Data: \n {et_data.tail(5)}")
+        self.logger.debug("Starting Processing")
+        self.logger.debug(f"Reading first line of file: {self.data_path}")
+        self.logger.debug(f"Variable limits: \n {self.varlimits.head(5)}")
+        self.logger.debug(f"Variable limits: \n {self.varlimits.tail(5)}")
+        self.logger.debug(f"ET Data: \n {et_data.head(5)}")
+        self.logger.debug(f"ET Data: \n {et_data.tail(5)}")
 
         # fix datetimes
         self.et_data = self.datefixer(et_data)
 
-        logger.debug("Corrected Datetimes:")
-        logger.debug(f"{self.et_data.head(5)}")
-        logger.debug(f"{self.et_data.tail(5)}")
+        self.logger.debug("Corrected Datetimes:")
+        self.logger.debug(f"{self.et_data.head(5)}")
+        self.logger.debug(f"{self.et_data.tail(5)}")
 
         # change variable names
         self.rename_columns(data_type=data_type)
 
-        logger.debug(f"Changed Names: {self.et_data.columns}")
+        self.logger.debug(f"Changed Names: {self.et_data.columns}")
         # despike variables and remove long, flat periods
         self.clean_columns()
-        logger.debug(f"Despiked: {self.et_data.head(5)}")
-        logger.debug(f"Despiked: {self.et_data.tail(5)}")
+        self.logger.debug(f"Despiked: {self.et_data.head(5)}")
+        self.logger.debug(f"Despiked: {self.et_data.tail(5)}")
         # switch tau sign
         self.tau_fixer()
 
@@ -671,36 +682,36 @@ class Reformatter(object):
 
         if "ET_SSITC_TEST" in self.et_data.columns:
 
-            logger.debug(f"SSITC Values: {self.et_data['ET_SSITC_TEST'].unique()}")
+            self.logger.debug(f"SSITC Values: {self.et_data['ET_SSITC_TEST'].unique()}")
 
-            logger.info(f"SSITC Values: {self.et_data['ET_SSITC_TEST'].unique()}")
+            self.logger.info(f"SSITC Values: {self.et_data['ET_SSITC_TEST'].unique()}")
 
-            logger.info(f"SSITC Values: {self.et_data['ET_SSITC_TEST'].unique()}")
+            self.logger.info(f"SSITC Values: {self.et_data['ET_SSITC_TEST'].unique()}")
 
         self.drop_extras()
 
-        logger.debug(f"Extras: {self.et_data.head(5)}")
-        logger.debug(f"Extras: {self.et_data.tail(5)}")
+        self.logger.debug(f"Extras: {self.et_data.head(5)}")
+        self.logger.debug(f"Extras: {self.et_data.tail(5)}")
 
         if drop_soil:
             self.et_data = self.remove_extra_soil_params(self.et_data)
 
         self.et_data = self.et_data.fillna(value=int(-9999))
-        logger.debug(f"Fillna: {self.et_data.head(5)}")
-        logger.debug(f"Fillna: {self.et_data.tail(5)}")
+        self.logger.debug(f"Fillna: {self.et_data.head(5)}")
+        self.logger.debug(f"Fillna: {self.et_data.tail(5)}")
 
         self.et_data = self.et_data.replace(-9999.0, int(-9999))
-        logger.debug(f"Replace: {self.et_data.head(5)}")
-        logger.debug(f"Replace: {self.et_data.tail(5)}")
+        self.logger.debug(f"Replace: {self.et_data.head(5)}")
+        self.logger.debug(f"Replace: {self.et_data.tail(5)}")
 
         if "ET" in self.et_data.columns:
             count_neg_9999 = (self.et_data["ET"] == -9999).sum()
 
-            logger.debug(f"Null Value Count in ET: {count_neg_9999}")
-            logger.debug(f"Length of ET: {len(self.et_data['ET'])}")
+            self.logger.debug(f"Null Value Count in ET: {count_neg_9999}")
+            self.logger.debug(f"Length of ET: {len(self.et_data['ET'])}")
 
-            logger.info(f"Null Value Count in ET: {count_neg_9999}")
-            logger.info(f"Length of ET: {len(self.et_data['ET'])}")
+            self.logger.info(f"Null Value Count in ET: {count_neg_9999}")
+            self.logger.info(f"Length of ET: {len(self.et_data['ET'])}")
 
         self.col_order()
 
@@ -745,9 +756,9 @@ class Reformatter(object):
         for col in first_cols:
             ncol = self.et_data.pop(col)
             self.et_data.insert(0, col, ncol)
-        logger.debug(f"Column Order: {self.et_data.columns}")
-        logger.debug(f"Column Order: {self.et_data.head(5)}")
-        logger.debug(f"Column Order: {self.et_data.tail(5)}")
+        self.logger.debug(f"Column Order: {self.et_data.columns}")
+        self.logger.debug(f"Column Order: {self.et_data.head(5)}")
+        self.logger.debug(f"Column Order: {self.et_data.tail(5)}")
 
     def datefixer(self, et_data):
         """
@@ -858,11 +869,11 @@ class Reformatter(object):
         for old_col, new_col in mappings.items():
             if old_col in self.et_data.columns:
                 if new_col in self.et_data.columns:
-                    logger.debug(f"Updating column: {old_col} to {new_col}")
+                    self.logger.debug(f"Updating column: {old_col} to {new_col}")
                     self.et_data[new_col] = self.et_data[[old_col, new_col]].max(axis=1)
                     self.et_data = self.et_data.drop(old_col, axis=1)
                 else:
-                    logger.debug(f"Renaming column: {old_col} to {new_col}")
+                    self.logger.debug(f"Renaming column: {old_col} to {new_col}")
                     self.et_data = self.et_data.rename(columns={old_col: new_col})
 
     def scale_and_convert(self, column: pd.Series) -> pd.Series:
