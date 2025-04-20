@@ -1,6 +1,7 @@
 {
     "python.testing.pytestArgs": [
-        "tests_micromet"
+        "./tests_micromet",
+        "*test*.py"
     ],
     "python.testing.unittestEnabled": false,
     "python.testing.pytestEnabled": true,

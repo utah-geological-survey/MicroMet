@@ -203,6 +203,21 @@ class StationDataManager:
         df = pd.read_sql(query, con=self.engine)
         return df["max_value"].iloc[0]
 
+    def database_columns(self, dat: str) -> list:
+        """
+        Get the columns of the database table.
+
+        Args:
+            dat: Type of data ('eddy' or 'met')
+
+        Returns:
+            List of column names
+        """
+        table = f"amflux{dat}"
+        query = f"SELECT * FROM {table} LIMIT 0;"
+        df = pd.read_sql(query, con=self.engine)
+        return df.columns.tolist()
+
     def process_station_data(self, site_folders: dict) -> None:
         """
         Process data for all stations.
@@ -217,11 +232,18 @@ class StationDataManager:
                 if dat not in self.config[station]:
                     continue
 
-                stationtime, comptime = self.get_times(station, loggertype=dat)
-                am_df, pack_size = self.get_station_data(station, loggertype=dat)
+                try:
+                    stationtime, comptime = self.get_times(station, loggertype=dat)
+                    am_df, pack_size = self.get_station_data(station, loggertype=dat)
+                except Exception as e:
+                    print(f"Error fetching data for {stationid}: {e}")
+                    continue
 
                 if am_df is None:
+                    print(f"No data for {stationid}")
                     continue
+
+                am_cols = self.database_columns(dat)
 
                 am_df_filt = self.compare_sql_to_station(am_df, station, loggertype=dat)
                 stats = self._prepare_upload_stats(
@@ -237,7 +259,15 @@ class StationDataManager:
 
                 # Upload data
                 am_df_filt = am_df_filt.rename(columns=str.lower)
-                self._upload_to_database(am_df_filt, stats, dat)
+
+                # Check for columns that are not in the database
+                upload_cols = []
+
+                for col in am_df_filt.columns:
+                    if col in am_cols:
+                        upload_cols.append(col)
+
+                self._upload_to_database(am_df_filt[upload_cols], stats, dat)
 
                 self._print_processing_summary(station, stats)
 

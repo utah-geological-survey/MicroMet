@@ -514,7 +514,7 @@ class Reformatter(object):
     def __init__(
         self,
         et_data,
-        config_path="./data/reformatter_vars.yml",
+        config_path="./reformatter_vars.yml",
         drop_soil=True,
         data_path=None,
         data_type="eddy",
@@ -573,7 +573,12 @@ class Reformatter(object):
 
         path = pathlib.Path(config_path)
         if not path.exists():
-            raise FileNotFoundError(f"Config file not found at {path.resolve()}")
+            try:
+                config_path = pathlib.Path(config_path)
+                # Attempt to load from the same directory as this script
+                path = pathlib.Path(__file__).parent / config_path
+            except Exception:
+                raise FileNotFoundError(f"Config file not found at {path.resolve()}")
         with open(path, "r") as file:
             return yaml.safe_load(file)
 

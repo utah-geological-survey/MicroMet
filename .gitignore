@@ -50,3 +50,6 @@ station_config/output/US-UTW_monthly_data.csv
 /tests/.pytest_cache
 /tests_micromet/__pycache__
 /tests_micromet/.pytest_cache
+/Notebooks/8441_aquatroll_30_min_36.dat
+/Notebooks/8441_Statistics_AmeriFlux_3.dat
+/.vscode
