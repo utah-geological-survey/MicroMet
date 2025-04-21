@@ -1,0 +1,18 @@
+{
+  "TIMESTAMP": "TS",
+  "RECORD": "RN",
+  "Ux": "m s-1",
+  "Uy": "m s-1",
+  "Uz": "m s-1",
+  "T_SONIC": "deg C",
+  "diag_sonic": "adimensional",
+  "CO2_density": "mg m-3",
+  "CO2_density_fast_tmpr": "",
+  "H2O_density": "g m-3",
+  "diag_irga": "adimensional",
+  "T_SONIC_corr": "deg C",
+  "TA_1_1_1": "deg C",
+  "PA": "kPa",
+  "CO2_sig_strgth": "fraction",
+  "H2O_sig_strgth": "fraction"
+}
