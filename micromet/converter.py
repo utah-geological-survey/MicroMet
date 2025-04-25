@@ -879,8 +879,8 @@ class Reformatter(object):
             mappings = self.MET_RENAMES
 
         for old_col, new_col in mappings.items():
-            if old_col in self.et_data.columns:
-                if new_col in self.et_data.columns:
+            if str(old_col).lower() in self.et_data.columns.str.lower():
+                if str(new_col).lower() in self.et_data.columns.str.lower():
                     self.logger.debug(f"Updating column: {old_col} to {new_col}")
                     self.et_data[new_col] = self.et_data[[old_col, new_col]].max(axis=1)
                     self.et_data = self.et_data.drop(old_col, axis=1)

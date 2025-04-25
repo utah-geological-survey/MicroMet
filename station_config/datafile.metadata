@@ -6,7 +6,7 @@ file_name=C:/Users/paulinkenbrandt/Documents/GitHub/MicroMet/station_config/data
 sw_version=7.0.9
 ini_version=3.2.2
 creation_date=2022-07-29T03:27:05
-last_change_date=2025-04-20T21:51:20
+last_change_date=2025-04-22T16:33:26
 start_date=
 end_date=
 
@@ -168,7 +168,7 @@ col_10_b_value=0.000000
 col_10_nom_timelag=0.00
 col_10_min_timelag=0.00
 col_10_max_timelag=0.00
-col_11_variable=ts
+col_11_variable=fast_t
 col_11_instrument=csat3_1
 col_11_measure_type=
 col_11_unit_in=celsius
