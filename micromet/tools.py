@@ -7,7 +7,15 @@ from datetime import datetime
 import plotly.graph_objects as go
 from typing import Union, List, Dict
 
-import pandas as pd
+import geopandas as gpd
+import rasterio
+from rasterio.transform import from_origin
+from scipy.stats import gaussian_kde
+
+from sklearn.metrics import mean_squared_error
+import matplotlib.pyplot as plt
+from scipy.stats import linregress
+import statsmodels.api as sm
 
 
 def find_irr_dates(
@@ -489,13 +497,6 @@ def aggregate_to_daily_centroid(
     return daily_centroids
 
 
-import numpy as np
-import geopandas as gpd
-import rasterio
-from rasterio.transform import from_origin
-from scipy.stats import gaussian_kde
-
-
 def generate_density_raster(
     gdf,
     resolution=50,  # Cell size in meters
@@ -549,6 +550,104 @@ def generate_density_raster(
     transform = from_origin(xmin, ymax, resolution, resolution)
 
     return density, transform, (xmin, ymin, xmax, ymax)
+
+
+def scatterplot_instrument_comparison(edmet, compare_dict, station):
+    # Compare two instruments
+    instruments = list(compare_dict.keys())
+    df = edmet[instruments].replace(-9999, np.nan).dropna()
+    df = df.resample("1h").mean().interpolate(method="linear")
+    df = df.dropna()
+
+    x = df[instruments[0]]
+    y = df[instruments[1]]
+
+    xinfo = compare_dict[instruments[0]]
+    yinfo = compare_dict[instruments[1]]
+
+    # one to one line
+    xline = np.arange(df.min().min(), df.max().max(), 0.1)
+    # Perform linear regression
+    slope, intercept, r_value, p_value, std_err = linregress(x, y)
+    # Predict y values
+    y_pred = slope * x + intercept
+    # R-squared
+    r_squared = r_value**2
+
+    fig, ax = plt.subplots(figsize=(10, 8))
+    # Plot
+    ax.scatter(x, y, alpha=0.5, s=1, label="Data points")
+    ax.set_title(f"{xinfo[1]} Comparison: {station}")
+    ax.plot(xline, xline, label="1:1 line", color="green", linestyle="--")
+    ax.plot(
+        x,
+        y_pred,
+        color="red",
+        label=f"Fit: y = {slope:.2f}x + {intercept:.2f}\n$R^2$ = {r_squared:.3f}",
+    )
+    plt.legend()
+    plt.grid(True)
+
+    ax.set_xlabel(f"{xinfo[0]} {xinfo[1]} ({xinfo[2]})")
+    ax.set_ylabel(f"{yinfo[0]} {yinfo[1]} ({yinfo[2]})")
+
+    plt.show()
+
+    # Print results
+    print(f"Slope: {slope:.3f}")
+    print(f"Intercept: {intercept:.3f}")
+    print(f"R-squared: {r_squared:.3f}")
+    return slope, intercept, r_squared, p_value, std_err, fig, ax
+
+
+def bland_alt_plot(edmet, compare_dict, station, alpha=0.5):
+    # Compare two instruments
+    instruments = list(compare_dict.keys())
+    df = edmet[instruments].replace(-9999, np.nan).dropna()
+    df = df.resample("1h").mean().interpolate(method="linear")
+    df = df.dropna()
+
+    x = df[instruments[0]]
+    y = df[instruments[1]]
+    rmse = np.sqrt(mean_squared_error(x, y))
+    print(f"RMSE: {rmse:.3f}")
+
+    mean_vals = df[instruments].mean(axis=1)
+    diff_vals = x - y
+    bias = diff_vals.mean()
+    spread = diff_vals.std()
+    print(f"Bias = {bias:.3f}, Spread = {spread:.3f}")
+    top = diff_vals.mean() + 1.96 * diff_vals.std()
+    bottom = diff_vals.mean() - 1.96 * diff_vals.std()
+
+    f, ax = plt.subplots(1, figsize=(8, 5), alpha=alpha)
+    sm.graphics.mean_diff_plot(x, y, ax=ax)
+    ax.text(
+        mean_vals.mean(),
+        top,
+        s=compare_dict[instruments[0]][0],
+        verticalalignment="top",
+        fontweight="bold",
+    )
+    ax.text(
+        mean_vals.mean(),
+        bottom,
+        s=compare_dict[instruments[1]][0],
+        verticalalignment="bottom",
+        fontweight="bold",
+    )
+    ax.set_title(
+        f"{compare_dict[instruments[0]][0]} vs {compare_dict[instruments[1]][0]} at {station}"
+    )
+    ax.set_xlabel(
+        f"Mean {compare_dict[instruments[0]][1]} ({compare_dict[instruments[0]][2]})"
+    )
+    ax.set_ylabel(
+        f"Difference ({compare_dict[instruments[0]][2]})\n({compare_dict[instruments[0]][0]} - {compare_dict[instruments[1]][0]})",
+        fontsize=10,
+    )
+
+    return f, ax
 
 
 # Example usage:
