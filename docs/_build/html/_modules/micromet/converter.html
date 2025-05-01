@@ -1,0 +1,1080 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>micromet.converter &mdash; micromet 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=01f34227"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            micromet
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <!-- Local TOC -->
+              <div class="local-toc"></div>
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">micromet</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">micromet.converter</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for micromet.converter</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">converter.py</span>
+<span class="sd">Cleaned up version of micromet data processing utilities.</span>
+
+<span class="sd">Provides:</span>
+<span class="sd">- AmerifluxDataProcessor: read AmeriFlux-style csv (TOA5 or AmeriFlux output) into DataFrame.</span>
+<span class="sd">- Reformatter: sanitize, standardize, and resample station data for flux / met processing.</span>
+
+<span class="sd">Immediate cleanup performed:</span>
+<span class="sd">* Removed dead/commented code and duplicate lines.</span>
+<span class="sd">* Fixed duplicate attribute assignments.</span>
+<span class="sd">* Extracted long code blocks into helper methods for clarity.</span>
+<span class="sd">* Updated docstrings and type hints.</span>
+<span class="sd">* Added module-level constants and logger.</span>
+<span class="sd">* Replaced inline magic numbers with named constants.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">yaml</span>
+
+
+<span class="c1"># -----------------------------------------------------------------------------#</span>
+<span class="c1"># Helper functions</span>
+<span class="c1"># -----------------------------------------------------------------------------#</span>
+
+<div class="viewcode-block" id="load_yaml">
+<a class="viewcode-back" href="../../source/micromet.html#micromet.converter.load_yaml">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">load_yaml</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="n">Path</span> <span class="o">|</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Load a YAML file and return as dict.&quot;&quot;&quot;</span>
+    <span class="n">path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+        <span class="k">raise</span> <span class="ne">FileNotFoundError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Config file not found: </span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="k">with</span> <span class="n">path</span><span class="o">.</span><span class="n">open</span><span class="p">()</span> <span class="k">as</span> <span class="n">fp</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">yaml</span><span class="o">.</span><span class="n">safe_load</span><span class="p">(</span><span class="n">fp</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="logger_check">
+<a class="viewcode-back" href="../../source/micromet.html#micromet.converter.logger_check">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">logger_check</span><span class="p">(</span><span class="n">logger</span><span class="p">:</span> <span class="n">logging</span><span class="o">.</span><span class="n">Logger</span> <span class="o">|</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">logging</span><span class="o">.</span><span class="n">Logger</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">logger</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">setLevel</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">WARNING</span><span class="p">)</span>
+        <span class="n">ch</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">StreamHandler</span><span class="p">()</span>
+        <span class="n">ch</span><span class="o">.</span><span class="n">setFormatter</span><span class="p">(</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">Formatter</span><span class="p">(</span>
+                <span class="n">fmt</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">%(levelname)s</span><span class="s2"> [</span><span class="si">%(asctime)s</span><span class="s2">] </span><span class="si">%(name)s</span><span class="s2"> – </span><span class="si">%(message)s</span><span class="s2">&quot;</span><span class="p">,</span>
+                <span class="n">datefmt</span><span class="o">=</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2"> %H:%M:%S&quot;</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">addHandler</span><span class="p">(</span><span class="n">ch</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">logger</span> <span class="o">=</span> <span class="n">logger</span>
+    <span class="k">return</span> <span class="n">logger</span></div>
+
+
+
+<span class="c1"># -----------------------------------------------------------------------------#</span>
+<span class="c1"># AmerifluxDataProcessor</span>
+<span class="c1"># -----------------------------------------------------------------------------#</span>
+<div class="viewcode-block" id="AmerifluxDataProcessor">
+<a class="viewcode-back" href="../../source/micromet.html#micromet.converter.AmerifluxDataProcessor">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">AmerifluxDataProcessor</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Read Campbell Scientific TOA5 or AmeriFlux output CSV into a tidy DataFrame.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    path : str | Path</span>
+<span class="sd">        File path to CSV.</span>
+<span class="sd">    config_path : str | Path</span>
+<span class="sd">        File path to YAML configuration file for header names. Defaults to &#39;reformatter_vars.yml&#39;</span>
+<span class="sd">    logger : logging.Logger</span>
+<span class="sd">        Logger to use.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">_TOA5_PREFIX</span> <span class="o">=</span> <span class="s2">&quot;TOA5&quot;</span>
+    <span class="n">_HEADER_PREFIX</span> <span class="o">=</span> <span class="s2">&quot;TIMESTAMP_START&quot;</span>
+    <span class="n">NA_VALUES</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;-9999&quot;</span><span class="p">,</span> <span class="s2">&quot;NAN&quot;</span><span class="p">,</span> <span class="s2">&quot;NaN&quot;</span><span class="p">,</span> <span class="s2">&quot;nan&quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="o">-</span><span class="mf">9999.0</span><span class="p">]</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="n">config_path</span><span class="p">:</span> <span class="n">Path</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;reformatter_vars.yml&#39;</span><span class="p">,</span>
+                 <span class="n">logger</span><span class="p">:</span> <span class="n">logging</span><span class="o">.</span><span class="n">Logger</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,):</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span> <span class="o">=</span> <span class="n">logger_check</span><span class="p">(</span><span class="n">logger</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">headers</span> <span class="o">=</span> <span class="n">load_yaml</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="n">config_path</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">skip_rows</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="c1"># --------------------------------------------------------------------- #</span>
+    <span class="c1"># Public API</span>
+    <span class="c1"># --------------------------------------------------------------------- #</span>
+<div class="viewcode-block" id="AmerifluxDataProcessor.to_dataframe">
+<a class="viewcode-back" href="../../source/micromet.html#micromet.converter.AmerifluxDataProcessor.to_dataframe">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">to_dataframe</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return parsed CSV as pandas DataFrame.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_determine_header_rows</span><span class="p">(</span><span class="n">file</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Reading </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">file</span><span class="p">)</span>
+        <span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">file</span><span class="p">,</span>
+                         <span class="n">skiprows</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">skip_rows</span><span class="p">,</span>
+                         <span class="n">names</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">names</span><span class="p">,</span>
+                         <span class="n">na_values</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">NA_VALUES</span><span class="p">,</span>
+                         <span class="p">)</span>
+        <span class="k">return</span> <span class="n">df</span></div>
+
+
+    <span class="c1"># --------------------------------------------------------------------- #</span>
+    <span class="c1"># Internal helpers</span>
+    <span class="c1"># --------------------------------------------------------------------- #</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_determine_header_rows</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file</span><span class="p">:</span><span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Examine the first line to decide if file is TOA5 or already processed.</span>
+
+<span class="sd">        TOA5 files begin with literal &#39;TOA5&#39;.</span>
+<span class="sd">        AmeriFlux standard Level‑2 output has no prefix, just column labels.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="n">file</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">fp</span><span class="p">:</span>
+            <span class="n">first_line</span> <span class="o">=</span> <span class="n">fp</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;&quot;&#39;</span><span class="p">,</span><span class="s2">&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;,&quot;</span><span class="p">)</span>
+            <span class="n">second_line</span> <span class="o">=</span> <span class="n">fp</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;&quot;&#39;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;,&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">first_line</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">_HEADER_PREFIX</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Header row detected: </span><span class="si">{</span><span class="n">first_line</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">skip_rows</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">names</span> <span class="o">=</span> <span class="n">first_line</span>
+        <span class="k">elif</span> <span class="n">first_line</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">_TOA5_PREFIX</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">skip_rows</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">names</span> <span class="o">=</span> <span class="n">second_line</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Header line not recognized: </span><span class="si">{</span><span class="n">first_line</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Skip rows for set to </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">skip_rows</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_file_no</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span><span class="nb">int</span><span class="p">]:</span>
+        <span class="n">basename</span> <span class="o">=</span> <span class="n">file</span><span class="o">.</span><span class="n">stem</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">file_number</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">basename</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;_&quot;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+            <span class="n">datalogger_number</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">basename</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;_&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="n">file_number</span> <span class="o">=</span> <span class="n">datalogger_number</span> <span class="o">=</span> <span class="mi">9999</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">file_number</span><span class="si">}</span><span class="s2"> -&gt; </span><span class="si">{</span><span class="n">datalogger_number</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">file_number</span><span class="p">,</span> <span class="n">datalogger_number</span>
+
+    <span class="c1"># --------------------------------------------------------------------- #</span>
+    <span class="c1"># Iterators</span>
+    <span class="c1"># --------------------------------------------------------------------- #</span>
+
+<div class="viewcode-block" id="AmerifluxDataProcessor.raw_file_compile">
+<a class="viewcode-back" href="../../source/micromet.html#micromet.converter.AmerifluxDataProcessor.raw_file_compile">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">raw_file_compile</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">main_dir</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span><span class="n">Path</span><span class="p">],</span>
+        <span class="n">station_folder_name</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">],</span>
+        <span class="n">search_str</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;*Flux_AmeriFluxFormat*.dat&quot;</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Compiles raw AmeriFlux datalogger files into a single dataframe.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        main_dir : str | Path</span>
+<span class="sd">            Name of main directory to search for AmeriFlux datalogger files.</span>
+<span class="sd">        station_folder_name : str</span>
+<span class="sd">            Name of the station folder containing the raw datalogger files.</span>
+<span class="sd">        search_str : str</span>
+<span class="sd">            String to search for; use asterisk (*) for wildcard.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        pandas.DataFrame or None</span>
+<span class="sd">            Dataframe containing compiled AmeriFlux data, or None if no valid files found.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">compiled_data</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">station_folder</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">main_dir</span><span class="p">)</span> <span class="o">/</span> <span class="n">station_folder_name</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Compiling data from </span><span class="si">{</span><span class="n">station_folder</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">file</span> <span class="ow">in</span> <span class="n">station_folder</span><span class="o">.</span><span class="n">rglob</span><span class="p">(</span><span class="n">search_str</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Processing file: </span><span class="si">{</span><span class="n">file</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+            <span class="n">file_no</span><span class="p">,</span> <span class="n">datalogger_number</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_file_no</span><span class="p">(</span><span class="n">file</span><span class="p">)</span>
+
+            <span class="n">df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">to_dataframe</span><span class="p">(</span><span class="n">file</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">df</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">df</span><span class="p">[</span><span class="s2">&quot;file_no&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">file_no</span>
+                <span class="n">df</span><span class="p">[</span><span class="s2">&quot;datalogger_no&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">datalogger_number</span>
+                <span class="n">compiled_data</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
+
+
+        <span class="k">if</span> <span class="n">compiled_data</span><span class="p">:</span>
+            <span class="n">compiled_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">compiled_data</span><span class="p">,</span> <span class="n">ignore_index</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">compiled_df</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;No valid files found in </span><span class="si">{</span><span class="n">station_folder</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">None</span></div>
+
+
+<div class="viewcode-block" id="AmerifluxDataProcessor.iterate_through_stations">
+<a class="viewcode-back" href="../../source/micromet.html#micromet.converter.AmerifluxDataProcessor.iterate_through_stations">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">iterate_through_stations</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Iterate through all stations.&quot;&quot;&quot;</span>
+        <span class="n">site_folders</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;US-UTD&#39;</span><span class="p">:</span> <span class="s1">&#39;Dugout_Ranch&#39;</span><span class="p">,</span>
+                        <span class="s1">&#39;US-UTB&#39;</span><span class="p">:</span> <span class="s1">&#39;BSF&#39;</span><span class="p">,</span>
+                        <span class="s1">&#39;US-UTJ&#39;</span><span class="p">:</span> <span class="s1">&#39;Bluff&#39;</span><span class="p">,</span>
+                        <span class="s1">&#39;US-UTW&#39;</span><span class="p">:</span> <span class="s1">&#39;Wellington&#39;</span><span class="p">,</span>
+                        <span class="s1">&#39;US-UTE&#39;</span><span class="p">:</span> <span class="s1">&#39;Escalante&#39;</span><span class="p">,</span>
+                        <span class="s1">&#39;US-UTM&#39;</span><span class="p">:</span> <span class="s1">&#39;Matheson&#39;</span><span class="p">,</span>
+                        <span class="s1">&#39;US-UTP&#39;</span><span class="p">:</span> <span class="s1">&#39;Phrag&#39;</span><span class="p">,</span>
+                        <span class="s1">&#39;US-CdM&#39;</span><span class="p">:</span> <span class="s1">&#39;Cedar_mesa&#39;</span><span class="p">,</span>
+                        <span class="s1">&#39;US-UTV&#39;</span><span class="p">:</span> <span class="s1">&#39;Desert_View_Myton&#39;</span><span class="p">,</span>
+                        <span class="s1">&#39;US-UTN&#39;</span><span class="p">:</span> <span class="s1">&#39;Juab&#39;</span><span class="p">,</span>
+                        <span class="s1">&#39;US-UTG&#39;</span><span class="p">:</span> <span class="s1">&#39;Green_River&#39;</span>
+                        <span class="p">}</span>
+        <span class="k">for</span> <span class="n">stationid</span><span class="p">,</span><span class="n">folder</span> <span class="ow">in</span> <span class="n">site_folders</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">for</span> <span class="n">datatype</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;met&#39;</span><span class="p">,</span><span class="s1">&#39;eddy&#39;</span><span class="p">]:</span>
+                <span class="k">if</span> <span class="n">datatype</span> <span class="o">==</span> <span class="s1">&#39;met&#39;</span><span class="p">:</span>
+                    <span class="n">search_str</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;*Statistics_Ameriflux*.dat&quot;</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">search_str</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;*AmeriFluxFormat*.dat&quot;</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">raw_file_compile</span><span class="p">(</span><span class="n">stationid</span><span class="p">,</span>
+                                      <span class="n">folder</span><span class="p">,</span>
+                                      <span class="n">search_str</span><span class="p">)</span></div>
+</div>
+
+
+
+
+<span class="c1"># ----------------------------------------------------------------------------</span>
+<span class="c1"># Reformatter</span>
+<span class="c1"># ----------------------------------------------------------------------------</span>
+<div class="viewcode-block" id="Reformatter">
+<a class="viewcode-back" href="../../source/micromet.html#micromet.converter.Reformatter">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">Reformatter</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Clean and standardize station data.</span>
+
+<span class="sd">    Steps (all configurable):</span>
+
+<span class="sd">    1. Fix and align timestamps (`_fix_timestamps`).</span>
+<span class="sd">    2. Rename columns (`_rename_columns`).</span>
+<span class="sd">    3. Remove obvious outliers and redundant columns (`clean_columns`).</span>
+<span class="sd">    4. Adjust derived values (`apply_fixes`).</span>
+<span class="sd">    5. Optionally, drop extra soil sensor channels (`_drop_extra_soil_columns`).</span>
+<span class="sd">    6. Finalize column order and missing value representation.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    config_path : str | Path</span>
+<span class="sd">        File Path to YAML configuration file governing renames, drops, etc.</span>
+<span class="sd">    var_limits_csv : str | Path, optional</span>
+<span class="sd">        CSV file containing per‑variable hard min/max limits.</span>
+<span class="sd">    drop_soil : bool, default True</span>
+<span class="sd">        Whether to remove soil columns deemed redundant (see config).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># SoilVUE Depth/orientation conversion tables --------------------------------</span>
+    <span class="n">_DEPTH_MAP</span> <span class="o">=</span> <span class="p">{</span><span class="mi">5</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">10</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">20</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">30</span><span class="p">:</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">40</span><span class="p">:</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">50</span><span class="p">:</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">60</span><span class="p">:</span> <span class="mi">7</span><span class="p">,</span> <span class="mi">75</span><span class="p">:</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">100</span><span class="p">:</span> <span class="mi">9</span><span class="p">}</span>
+    <span class="n">_ORIENT_MAP</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;N&quot;</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span> <span class="s2">&quot;S&quot;</span><span class="p">:</span> <span class="mi">4</span><span class="p">}</span>
+    <span class="n">_LEGACY_RE</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span>
+        <span class="sa">r</span><span class="s2">&quot;^(?P&lt;prefix&gt;(SWC|TS|EC|K|T))_(?P&lt;depth&gt;\d{1,3})cm_(?P&lt;orient&gt;[NS])_.*$&quot;</span><span class="p">,</span>
+        <span class="n">re</span><span class="o">.</span><span class="n">IGNORECASE</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">_PREFIX_PATTERNS</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="n">re</span><span class="o">.</span><span class="n">Pattern</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;^BulkEC_&quot;</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">IGNORECASE</span><span class="p">):</span> <span class="s2">&quot;EC_&quot;</span><span class="p">,</span>
+        <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;^VWC_&quot;</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">IGNORECASE</span><span class="p">):</span> <span class="s2">&quot;SWC_&quot;</span><span class="p">,</span>
+        <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;^Ka_&quot;</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">IGNORECASE</span><span class="p">):</span> <span class="s2">&quot;K_&quot;</span><span class="p">,</span>
+    <span class="p">}</span>
+
+    <span class="c1"># Constants ------------------------------</span>
+    <span class="n">MISSING_VALUE</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="o">-</span><span class="mi">9999</span>
+    <span class="n">SOIL_SENSOR_SKIP_INDEX</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">3</span>  <span class="c1"># Drop SWC_/TS_/EC_/K_ where second segment &gt;= 3</span>
+    <span class="n">DEFAULT_SOIL_DROP_LIMIT</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span>  <span class="c1"># keep last 4 items in math_soils_v2 list</span>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="n">config_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">,</span>
+            <span class="n">var_limits_csv</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">drop_soil</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+            <span class="n">logger</span><span class="p">:</span> <span class="n">logging</span><span class="o">.</span><span class="n">Logger</span> <span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span> <span class="o">=</span> <span class="n">logger_check</span><span class="p">(</span><span class="n">logger</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">config</span> <span class="o">=</span> <span class="n">load_yaml</span><span class="p">(</span><span class="n">config_path</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">varlimits</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">var_limits_csv</span><span class="p">)</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="s2">&quot;Name&quot;</span><span class="p">)</span> <span class="k">if</span> <span class="n">var_limits_csv</span> <span class="k">else</span> <span class="kc">None</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">drop_soil</span> <span class="o">=</span> <span class="n">drop_soil</span>
+
+    <span class="c1"># ------------------------------------------------------------------</span>
+    <span class="c1"># Pipeline entry</span>
+    <span class="c1"># ------------------------------------------------------------------</span>
+<div class="viewcode-block" id="Reformatter.prepare">
+<a class="viewcode-back" href="../../source/micromet.html#micromet.converter.Reformatter.prepare">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">prepare</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">data_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;eddy&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Starting reformat (</span><span class="si">%s</span><span class="s2"> rows)&quot;</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">df</span><span class="p">))</span>
+
+        <span class="n">df</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">df</span><span class="o">.</span><span class="n">pipe</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_fix_timestamps</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">pipe</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rename_columns</span><span class="p">,</span> <span class="n">data_type</span><span class="o">=</span><span class="n">data_type</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">pipe</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">set_number_types</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">pipe</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">resample_timestamps</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">pipe</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">timestamp_reset</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">pipe</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">clean_columns</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">pipe</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">apply_fixes</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">drop_soil</span><span class="p">:</span>
+            <span class="n">df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_drop_extra_soil_columns</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
+
+        <span class="n">df</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">df</span><span class="o">.</span><span class="n">pipe</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_drop_extras</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">MISSING_VALUE</span><span class="p">)</span>
+
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Done; final shape: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">df</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">df</span></div>
+
+
+
+
+    <span class="c1"># ------------------------------------------------------------------</span>
+    <span class="c1"># 1. Timestamp handling</span>
+    <span class="c1"># ------------------------------------------------------------------</span>
+<div class="viewcode-block" id="Reformatter.infer_datetime_col">
+<a class="viewcode-back" href="../../source/micromet.html#micromet.converter.Reformatter.infer_datetime_col">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">infer_datetime_col</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="o">|</span><span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return the name of the TIMESTAMP column.&quot;&quot;&quot;</span>
+        <span class="n">datetime_col_options</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;TIMESTAMP_START&quot;</span><span class="p">,</span> <span class="s2">&quot;TIMESTAMP_START_1&quot;</span><span class="p">]</span>
+        <span class="n">datetime_col_options</span> <span class="o">+=</span> <span class="p">[</span><span class="n">col</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">datetime_col_options</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">cand</span> <span class="ow">in</span> <span class="n">datetime_col_options</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">cand</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">cand</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;No TIMESTAMP column in dataframe&quot;</span><span class="p">)</span>
+                <span class="k">return</span> <span class="n">df</span><span class="o">.</span><span class="n">iloc</span><span class="p">[:,</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">name</span>
+        <span class="k">return</span> <span class="kc">None</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_fix_timestamps</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+        <span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="k">if</span> <span class="s2">&quot;TIMESTAMP&quot;</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+            <span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">drop</span><span class="p">([</span><span class="s2">&quot;TIMESTAMP&quot;</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">ts_col</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">infer_datetime_col</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;TS col </span><span class="si">{</span><span class="n">ts_col</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;TIMESTAMP_START col </span><span class="si">{</span><span class="n">df</span><span class="p">[</span><span class="n">ts_col</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">ts_format</span> <span class="o">=</span> <span class="s2">&quot;%Y%m</span><span class="si">%d</span><span class="s2">%H%M&quot;</span>
+        <span class="n">df</span><span class="p">[</span><span class="s2">&quot;datetime_start&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_datetime</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="n">ts_col</span><span class="p">],</span> <span class="nb">format</span><span class="o">=</span><span class="n">ts_format</span><span class="p">,</span> <span class="n">errors</span><span class="o">=</span><span class="s2">&quot;coerce&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Len of unfixed timestamps </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">df</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">dropna</span><span class="p">(</span><span class="n">subset</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;datetime_start&quot;</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Len of fixed timestamps </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">df</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">df</span>
+
+<div class="viewcode-block" id="Reformatter.resample_timestamps">
+<a class="viewcode-back" href="../../source/micromet.html#micromet.converter.Reformatter.resample_timestamps">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">resample_timestamps</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Resample a DataFrame to 30-minute intervals based on the &#39;datetime_start&#39; column.</span>
+
+<span class="sd">        The method performs the following steps:</span>
+<span class="sd">        - Filters out future timestamps beyond the current date.</span>
+<span class="sd">        - Removes duplicate entries based on &#39;datetime_start&#39;.</span>
+<span class="sd">        - Sets &#39;datetime_start&#39; as the index and sorts the DataFrame.</span>
+<span class="sd">        - Resamples the data to 30-minute intervals using the first valid observation.</span>
+<span class="sd">        - Linearly interpolates missing values with a maximum gap of one interval.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        df : pd.DataFrame</span>
+<span class="sd">            Input DataFrame containing a &#39;datetime_start&#39; column of timestamp values.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        pd.DataFrame</span>
+<span class="sd">            Resampled and interpolated DataFrame indexed by &#39;datetime_start&#39;.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">today</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">(</span><span class="s2">&quot;today&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="s2">&quot;D&quot;</span><span class="p">)</span>
+        <span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">df</span><span class="p">[</span><span class="s2">&quot;datetime_start&quot;</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="n">today</span><span class="p">]</span>
+        <span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">drop_duplicates</span><span class="p">(</span><span class="n">subset</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;datetime_start&quot;</span><span class="p">])</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="s2">&quot;datetime_start&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">sort_index</span><span class="p">()</span>
+        <span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">resample</span><span class="p">(</span><span class="s2">&quot;30min&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">first</span><span class="p">()</span><span class="o">.</span><span class="n">interpolate</span><span class="p">(</span><span class="n">limit</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Len of resampled timestamps </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">df</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">df</span></div>
+
+
+<div class="viewcode-block" id="Reformatter.timestamp_reset">
+<a class="viewcode-back" href="../../source/micromet.html#micromet.converter.Reformatter.timestamp_reset">[docs]</a>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">timestamp_reset</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">minutes</span><span class="o">=</span><span class="mi">30</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Reset TIMESTAMP_START and TIMESTAMP_END columns based on the DataFrame index.</span>
+
+<span class="sd">        This method assumes the DataFrame index is a datetime-like index and sets</span>
+<span class="sd">        the &#39;TIMESTAMP_START&#39; column to match the index formatted as an integer</span>
+<span class="sd">        in &#39;YYYYMMDDHHMM&#39; format. The &#39;TIMESTAMP_END&#39; column is set to the timestamp</span>
+<span class="sd">        `minutes` ahead of the index.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        df : pd.DataFrame</span>
+<span class="sd">            Input DataFrame with a datetime-like index.</span>
+<span class="sd">        minutes : int, optional</span>
+<span class="sd">            Number of minutes to add for TIMESTAMP_END calculation, by default 30.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        pd.DataFrame</span>
+<span class="sd">            Modified DataFrame with updated &#39;TIMESTAMP_START&#39; and &#39;TIMESTAMP_END&#39; columns.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">df</span><span class="p">[</span><span class="s2">&quot;TIMESTAMP_START&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y%m</span><span class="si">%d</span><span class="s2">%H%M&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
+        <span class="n">df</span><span class="p">[</span><span class="s2">&quot;TIMESTAMP_END&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">df</span><span class="o">.</span><span class="n">index</span> <span class="o">+</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timedelta</span><span class="p">(</span><span class="n">minutes</span><span class="o">=</span><span class="n">minutes</span><span class="p">))</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y%m</span><span class="si">%d</span><span class="s2">%H%M&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">df</span></div>
+
+
+    <span class="c1"># ------------------------------------------------------------------</span>
+    <span class="c1"># 2. Column renaming &amp; legacy conversions</span>
+    <span class="c1"># ------------------------------------------------------------------</span>
+<div class="viewcode-block" id="Reformatter.rename_columns">
+<a class="viewcode-back" href="../../source/micromet.html#micromet.converter.Reformatter.rename_columns">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">rename_columns</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">data_type</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Rename DataFrame columns based on configuration and standardize column names.</span>
+
+<span class="sd">        This method selects a column rename mapping based on the `data_type` parameter</span>
+<span class="sd">        (&#39;eddy&#39; or &#39;met&#39;) from the internal configuration dictionary. It then renames</span>
+<span class="sd">        the DataFrame columns accordingly and applies additional normalization routines:</span>
+<span class="sd">        - `normalize_prefixes`: standardizes common prefix formats</span>
+<span class="sd">        - `modernize_soil_legacy`: updates legacy soil column naming conventions</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        df : pd.DataFrame</span>
+<span class="sd">            Input DataFrame with original column names to be renamed.</span>
+<span class="sd">        data_type : str</span>
+<span class="sd">            Type of data used to determine the appropriate rename mapping.</span>
+<span class="sd">            Must be either &#39;eddy&#39; or &#39;met&#39;.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        pd.DataFrame</span>
+<span class="sd">            DataFrame with renamed and standardized column names.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">mapping</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;renames_eddy&quot;</span> <span class="k">if</span> <span class="n">data_type</span> <span class="o">==</span> <span class="s2">&quot;eddy&quot;</span> <span class="k">else</span> <span class="s2">&quot;renames_met&quot;</span><span class="p">,</span> <span class="p">{})</span>
+        <span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="n">mapping</span><span class="p">)</span>
+        <span class="n">df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">normalize_prefixes</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
+        <span class="n">df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">modernize_soil_legacy</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Len of renamed cols </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">df</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">df</span></div>
+
+
+<div class="viewcode-block" id="Reformatter.normalize_prefixes">
+<a class="viewcode-back" href="../../source/micromet.html#micromet.converter.Reformatter.normalize_prefixes">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">normalize_prefixes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Normalize column name prefixes related to soil and temperature measurements.</span>
+
+<span class="sd">        This method renames columns in the input DataFrame based on predefined prefix</span>
+<span class="sd">        replacement rules. It performs the following operations:</span>
+
+<span class="sd">        - Replaces known prefixes such as &#39;BulkEC_&#39;, &#39;VWC_&#39;, and &#39;Ka_&#39; using compiled regex patterns.</span>
+<span class="sd">        - Replaces &#39;T_&#39; with &#39;Ts_&#39; if the column name matches the pattern &#39;T_&lt;depth&gt;cm_&#39;.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        df : pandas.DataFrame</span>
+<span class="sd">            Input DataFrame with original column names to be normalized.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        pandas.DataFrame</span>
+<span class="sd">            DataFrame with column names updated to follow normalized prefix conventions.</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+<span class="sd">        The method uses regex patterns defined in `self._PREFIX_PATTERNS` to perform</span>
+<span class="sd">        most substitutions. Logging statements are used to report which columns were renamed.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">rename_map</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+            <span class="c1"># Simple prefix swaps</span>
+            <span class="k">for</span> <span class="n">patt</span><span class="p">,</span> <span class="n">repl</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_PREFIX_PATTERNS</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="k">if</span> <span class="n">patt</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">col</span><span class="p">):</span>
+                    <span class="n">rename_map</span><span class="p">[</span><span class="n">col</span><span class="p">]</span> <span class="o">=</span> <span class="n">patt</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="n">repl</span><span class="p">,</span> <span class="n">col</span><span class="p">)</span>
+                    <span class="k">break</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># Conditional T_ rule – only if immediately followed by depthcm_</span>
+                <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;^T_\d{1,3}cm_&quot;</span><span class="p">,</span> <span class="n">col</span><span class="p">,</span> <span class="n">flags</span><span class="o">=</span><span class="n">re</span><span class="o">.</span><span class="n">IGNORECASE</span><span class="p">):</span>
+                    <span class="n">rename_map</span><span class="p">[</span><span class="n">col</span><span class="p">]</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;^T_&quot;</span><span class="p">,</span> <span class="s2">&quot;Ts_&quot;</span><span class="p">,</span> <span class="n">col</span><span class="p">,</span> <span class="n">flags</span><span class="o">=</span><span class="n">re</span><span class="o">.</span><span class="n">IGNORECASE</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">rename_map</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Prefix normalisation: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">rename_map</span><span class="p">)</span>
+            <span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="n">rename_map</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Len of normalized prefix cols </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">df</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">df</span></div>
+
+
+<div class="viewcode-block" id="Reformatter.modernize_soil_legacy">
+<a class="viewcode-back" href="../../source/micromet.html#micromet.converter.Reformatter.modernize_soil_legacy">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">modernize_soil_legacy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Update legacy soil sensor column names to a standardized format.</span>
+
+<span class="sd">        This method parses column names from legacy SoilVUE or similar output formats</span>
+<span class="sd">        and renames them according to a modern schema using orientation, depth, and</span>
+<span class="sd">        sensor type mappings. Columns that do not match the expected legacy format</span>
+<span class="sd">        are left unchanged.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        df : pandas.DataFrame</span>
+<span class="sd">            DataFrame containing soil sensor data with potentially outdated column names.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        pandas.DataFrame</span>
+<span class="sd">            DataFrame with updated column names reflecting modern naming conventions.</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+<span class="sd">        - Legacy column names are parsed using a regular expression defined by `self._LEGACY_RE`.</span>
+<span class="sd">        - Depth values are mapped to indices via `self._DEPTH_MAP`.</span>
+<span class="sd">        - Orientation characters (e.g., &#39;N&#39;, &#39;S&#39;) are mapped via `self._ORIENT_MAP`.</span>
+<span class="sd">        - &#39;T&#39; prefix is interpreted as &#39;TS&#39; due to prior normalization.</span>
+<span class="sd">        - Logging records renamed columns if any were modernized.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">rename_map</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+            <span class="n">m</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_LEGACY_RE</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">col</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">m</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="n">prefix</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="s2">&quot;prefix&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">prefix</span> <span class="o">==</span> <span class="s2">&quot;T&quot;</span><span class="p">:</span>  <span class="c1"># became Ts in previous step</span>
+                <span class="n">prefix</span> <span class="o">=</span> <span class="s2">&quot;TS&quot;</span>
+            <span class="n">depth_cm</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">m</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="s2">&quot;depth&quot;</span><span class="p">))</span>
+            <span class="n">orient</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="s2">&quot;orient&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+            <span class="n">depth_idx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_DEPTH_MAP</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">depth_cm</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">depth_idx</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="n">replic</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ORIENT_MAP</span><span class="p">[</span><span class="n">orient</span><span class="p">]</span>
+            <span class="n">new_name</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">prefix</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">replic</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">depth_idx</span><span class="si">}</span><span class="s2">_1&quot;</span>
+            <span class="n">rename_map</span><span class="p">[</span><span class="n">col</span><span class="p">]</span> <span class="o">=</span> <span class="n">new_name</span>
+        <span class="k">if</span> <span class="n">rename_map</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Legacy soil columns modernised: </span><span class="si">{</span><span class="n">rename_map</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="n">rename_map</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">df</span></div>
+
+
+    <span class="c1"># ------------------------------------------------------------------ #</span>
+    <span class="c1"># Stage 3 – general clean</span>
+    <span class="c1"># ------------------------------------------------------------------ #</span>
+
+<div class="viewcode-block" id="Reformatter.clean_columns">
+<a class="viewcode-back" href="../../source/micromet.html#micromet.converter.Reformatter.clean_columns">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">clean_columns</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">df</span><span class="p">,</span> <span class="n">replace_w</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Replace out-of-range values in float64 columns with a specified placeholder.</span>
+
+<span class="sd">        For each float64 column in the DataFrame that has a defined limit in `self.varlimits`,</span>
+<span class="sd">        this method replaces values that fall outside the [Min, Max] range with a specified</span>
+<span class="sd">        replacement value (default is `np.nan`).</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        df : pandas.DataFrame</span>
+<span class="sd">            Input DataFrame containing the data to be cleaned.</span>
+<span class="sd">        replace_w : scalar, optional</span>
+<span class="sd">            Value to replace out-of-range entries with. Default is `np.nan`.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        pandas.DataFrame</span>
+<span class="sd">            A copy of the input DataFrame with out-of-range values replaced.</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+<span class="sd">        - The method only processes columns present in both the DataFrame and `self.varlimits`.</span>
+<span class="sd">        - Only columns of type `float64` are cleaned.</span>
+<span class="sd">        - Limit values must be stored in a DataFrame `self.varlimits` with columns &quot;Min&quot; and &quot;Max&quot;.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">varlimits</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="nb">set</span><span class="p">(</span><span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">)</span> <span class="o">&amp;</span> <span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">varlimits</span><span class="o">.</span><span class="n">index</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">df</span><span class="o">.</span><span class="n">dtypes</span><span class="p">[</span><span class="n">col</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;float64&quot;</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Examining column </span><span class="si">{</span><span class="n">col</span><span class="si">}</span><span class="s2"> limits&quot;</span><span class="p">)</span>
+                    <span class="n">limits</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">varlimits</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">col</span><span class="p">]</span>
+                    <span class="n">valid_mask</span> <span class="o">=</span> <span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="n">col</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">limits</span><span class="p">[</span><span class="s2">&quot;Min&quot;</span><span class="p">])</span> <span class="o">&amp;</span> <span class="p">(</span>
+                        <span class="n">df</span><span class="p">[</span><span class="n">col</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">limits</span><span class="p">[</span><span class="s2">&quot;Max&quot;</span><span class="p">]</span>
+                    <span class="p">)</span>
+                    <span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="o">~</span><span class="n">valid_mask</span><span class="p">,</span> <span class="n">col</span><span class="p">]</span> <span class="o">=</span> <span class="n">replace_w</span>
+                    <span class="c1"># df[variable] = df[variable].apply(</span>
+                    <span class="c1">#    lambda x: replace_w if x &lt; lower_bound or x &gt; upper_bound else x</span>
+                    <span class="c1"># )</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Cleaned rows: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">df</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">df</span></div>
+
+
+    <span class="c1"># ------------------------------------------------------------------ #</span>
+    <span class="c1"># Stage 4 – variable‑specific fixes</span>
+    <span class="c1"># ------------------------------------------------------------------ #</span>
+<div class="viewcode-block" id="Reformatter.apply_fixes">
+<a class="viewcode-back" href="../../source/micromet.html#micromet.converter.Reformatter.apply_fixes">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">apply_fixes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Apply a set of minor, variable-specific data corrections.</span>
+
+<span class="sd">        This method applies a sequence of small fixes to the input DataFrame,</span>
+<span class="sd">        including adjustments to `Tau`, scaling of SSITC values, and unit conversions</span>
+<span class="sd">        for soil water content. These operations are encapsulated in internal helper</span>
+<span class="sd">        methods.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        df : pandas.DataFrame</span>
+<span class="sd">            Input DataFrame containing raw or intermediate data.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        pandas.DataFrame</span>
+<span class="sd">            DataFrame with variable-specific fixes applied.</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+<span class="sd">        The following fixes are applied in order:</span>
+<span class="sd">        - `tau_fixer`: Handles edge cases and invalid values in the Tau variable.</span>
+<span class="sd">        - `fix_swc_percent`: Converts volumetric water content values from percent to fraction, if needed.</span>
+<span class="sd">        - `ssitc_scale`: Scales SSITC variable values according to predefined rules.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tau_fixer</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
+        <span class="n">df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fix_swc_percent</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
+        <span class="n">df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ssitc_scale</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">df</span></div>
+
+
+<div class="viewcode-block" id="Reformatter.tau_fixer">
+<a class="viewcode-back" href="../../source/micromet.html#micromet.converter.Reformatter.tau_fixer">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">tau_fixer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Replace zero values in the &#39;Tau&#39; column with NaN.</span>
+
+<span class="sd">        This method identifies entries in the &#39;Tau&#39; column that are exactly zero</span>
+<span class="sd">        and replaces them with `np.nan`, but only if both &#39;Tau&#39; and &#39;u_star&#39; columns</span>
+<span class="sd">        are present in the DataFrame.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        df : pandas.DataFrame</span>
+<span class="sd">            Input DataFrame containing turbulent flux variables, including &#39;Tau&#39; and &#39;u_star&#39;.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        pandas.DataFrame</span>
+<span class="sd">            DataFrame with zero values in &#39;Tau&#39; replaced by NaN.</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+<span class="sd">        This fix targets an artifact where Tau may be reported as zero when</span>
+<span class="sd">        it is invalid or unmeasured.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="s2">&quot;Tau&quot;</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span> <span class="ow">and</span> <span class="s2">&quot;u_star&quot;</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+            <span class="n">bad_idx</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;Tau&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span>
+            <span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">bad_idx</span><span class="p">,</span> <span class="s2">&quot;Tau&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+        <span class="k">return</span> <span class="n">df</span></div>
+
+
+<div class="viewcode-block" id="Reformatter.fix_swc_percent">
+<a class="viewcode-back" href="../../source/micromet.html#micromet.converter.Reformatter.fix_swc_percent">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">fix_swc_percent</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Convert fractional soil water content values to percent if applicable.</span>
+
+<span class="sd">        This method scans for columns with names starting with &quot;SWC_&quot; and checks</span>
+<span class="sd">        whether their maximum values are below or equal to 1.5. If so, the column</span>
+<span class="sd">        is assumed to be in volumetric fraction (0–1) and is converted to percent (0–100)</span>
+<span class="sd">        by multiplying by 100.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        df : pandas.DataFrame</span>
+<span class="sd">            Input DataFrame containing soil water content (SWC) columns.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        pandas.DataFrame</span>
+<span class="sd">            DataFrame with updated SWC columns, where applicable.</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+<span class="sd">        - This heuristic assumes that volumetric soil water content should not exceed 1.5.</span>
+<span class="sd">        - Columns are modified in place within a copy of the DataFrame.</span>
+<span class="sd">        - A debug log entry is created for each column that is converted.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">swc_cols</span> <span class="o">=</span> <span class="p">[</span><span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span> <span class="k">if</span> <span class="n">c</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;SWC_&quot;</span><span class="p">)]</span>
+        <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">swc_cols</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">df</span><span class="p">[</span><span class="n">col</span><span class="p">]</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">skipna</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="mf">1.5</span><span class="p">:</span>  <span class="c1"># likely 0–1 volumetric</span>
+                <span class="n">df</span><span class="p">[</span><span class="n">col</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">col</span><span class="p">]</span> <span class="o">*</span> <span class="mf">100.0</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Fixed soil percent </span><span class="si">{</span><span class="n">col</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">df</span></div>
+
+
+<div class="viewcode-block" id="Reformatter.ssitc_scale">
+<a class="viewcode-back" href="../../source/micromet.html#micromet.converter.Reformatter.ssitc_scale">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">ssitc_scale</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Scale SSITC test columns if values exceed expected thresholds.</span>
+
+<span class="sd">        This method checks for the presence of known SSITC test columns in the input</span>
+<span class="sd">        DataFrame and applies scaling and unit conversion if the maximum value in</span>
+<span class="sd">        a column exceeds 3. The transformation is performed using `self.scale_and_convert`.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        df : pandas.DataFrame</span>
+<span class="sd">            Input DataFrame that may contain SSITC test variables.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        pandas.DataFrame</span>
+<span class="sd">            DataFrame with scaled SSITC columns where applicable.</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+<span class="sd">        - Only the following columns are considered:</span>
+<span class="sd">          &#39;FC_SSITC_TEST&#39;, &#39;LE_SSITC_TEST&#39;, &#39;ET_SSITC_TEST&#39;, &#39;H_SSITC_TEST&#39;, &#39;TAU_SSITC_TEST&#39;.</span>
+<span class="sd">        - Scaling is applied only if the column exists and its maximum value exceeds 3.</span>
+<span class="sd">        - A debug message is logged for each column that is scaled.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">ssitc_columns</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="s2">&quot;FC_SSITC_TEST&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;LE_SSITC_TEST&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;ET_SSITC_TEST&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;H_SSITC_TEST&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;TAU_SSITC_TEST&quot;</span><span class="p">,</span>
+        <span class="p">]</span>
+        <span class="k">for</span> <span class="n">column</span> <span class="ow">in</span> <span class="n">ssitc_columns</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">column</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">df</span><span class="p">[</span><span class="n">column</span><span class="p">]</span><span class="o">.</span><span class="n">max</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mi">3</span><span class="p">:</span>
+                    <span class="n">df</span><span class="p">[</span><span class="n">column</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">scale_and_convert</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="n">column</span><span class="p">])</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Scaled SSITC </span><span class="si">{</span><span class="n">column</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Scaled SSITC len: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">df</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">df</span></div>
+
+
+<div class="viewcode-block" id="Reformatter.scale_and_convert">
+<a class="viewcode-back" href="../../source/micromet.html#micromet.converter.Reformatter.scale_and_convert">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">scale_and_convert</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">column</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Apply a rating transformation and convert values to float.</span>
+
+<span class="sd">        This method maps values in the input Series using the `self.rating` function</span>
+<span class="sd">        and returns the transformed result. The transformation is intended to rescale</span>
+<span class="sd">        categorical or ordinal values to a standardized float representation.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        column : pandas.Series</span>
+<span class="sd">            Input Series containing values to be scaled and converted.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        pandas.Series</span>
+<span class="sd">            Series with values transformed using the rating function.</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+<span class="sd">        - The `self.rating` function is applied element-wise via `.apply()`.</span>
+<span class="sd">        - The output Series retains the same index and is returned as float-compatible values.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># match rating to new rating</span>
+        <span class="n">column</span> <span class="o">=</span> <span class="n">column</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rating</span><span class="p">)</span>
+        <span class="c1"># output at integer</span>
+        <span class="k">return</span> <span class="n">column</span></div>
+
+
+<div class="viewcode-block" id="Reformatter.rating">
+<a class="viewcode-back" href="../../source/micromet.html#micromet.converter.Reformatter.rating">[docs]</a>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">rating</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Categorize a numeric value into a discrete rating level.</span>
+
+<span class="sd">        This method assigns an integer rating category based on the input value:</span>
+
+<span class="sd">        - 0 if 0 ≤ x ≤ 3</span>
+<span class="sd">        - 1 if 4 ≤ x ≤ 6</span>
+<span class="sd">        - 2 otherwise</span>
+
+<span class="sd">        If the input is None, it is treated as 0.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        x : int or float or None</span>
+<span class="sd">            The numeric value to be converted into a rating category.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        int</span>
+<span class="sd">            An integer rating in the range {0, 1, 2}, based on predefined thresholds.</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+<span class="sd">        This is a simple classification utility used for scaling SSITC-related test scores.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">x</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">x</span> <span class="o">&lt;=</span> <span class="mi">3</span><span class="p">:</span>
+                <span class="n">x</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="k">elif</span> <span class="mi">4</span> <span class="o">&lt;=</span> <span class="n">x</span> <span class="o">&lt;=</span> <span class="mi">6</span><span class="p">:</span>
+                <span class="n">x</span> <span class="o">=</span> <span class="mi">1</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">x</span> <span class="o">=</span> <span class="mi">2</span>
+        <span class="k">return</span> <span class="n">x</span></div>
+
+
+    <span class="c1"># ------------------------------------------------------------------ #</span>
+    <span class="c1"># Stage 5 – soil columns</span>
+    <span class="c1"># ------------------------------------------------------------------ #</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_drop_extra_soil_columns</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Drop redundant or unused soil probe columns based on configuration and naming conventions.</span>
+
+<span class="sd">        This method identifies and removes soil sensor columns that exceed expected depth</span>
+<span class="sd">        indices, match deprecated patterns, or are listed in the configured math soil list.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        df : pandas.DataFrame</span>
+<span class="sd">            Input DataFrame containing soil sensor columns (e.g., SWC, TS, EC, K).</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        pandas.DataFrame</span>
+<span class="sd">            DataFrame with redundant soil columns removed.</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+<span class="sd">        - Columns with prefixes &#39;SWC&#39;, &#39;TS&#39;, &#39;EC&#39;, or &#39;K&#39; and a numeric index equal to or</span>
+<span class="sd">          greater than `self.SOIL_SENSOR_SKIP_INDEX` are dropped.</span>
+<span class="sd">        - Columns listed in `self.config[&quot;math_soils_v2&quot;]` beyond the last `DEFAULT_SOIL_DROP_LIMIT`</span>
+<span class="sd">          entries are also removed.</span>
+<span class="sd">        - Columns with prefixes &#39;VWC&#39; or &#39;Ka&#39; or those ending in &#39;cm_N&#39; or &#39;cm_S&#39; are considered legacy</span>
+<span class="sd">          or malformed and are dropped as well.</span>
+<span class="sd">        - Logging reports the number of columns removed.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">math_soils</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;math_soils_v2&quot;</span><span class="p">,</span> <span class="p">[])</span>
+        <span class="n">to_drop</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+            <span class="n">parts</span> <span class="o">=</span> <span class="n">col</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;_&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">parts</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">3</span> <span class="ow">and</span> <span class="n">parts</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">&quot;SWC&quot;</span><span class="p">,</span> <span class="s2">&quot;TS&quot;</span><span class="p">,</span> <span class="s2">&quot;EC&quot;</span><span class="p">,</span> <span class="s2">&quot;K&quot;</span><span class="p">}:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="nb">int</span><span class="p">(</span><span class="n">parts</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">SOIL_SENSOR_SKIP_INDEX</span><span class="p">:</span>
+                        <span class="n">to_drop</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">col</span><span class="p">)</span>
+                        <span class="k">continue</span>
+                <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+                    <span class="k">pass</span>  <span class="c1"># non‑numeric, ignore</span>
+            <span class="k">if</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">math_soils</span><span class="p">[:</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">DEFAULT_SOIL_DROP_LIMIT</span><span class="p">]:</span>
+                <span class="n">to_drop</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">col</span><span class="p">)</span>
+                <span class="k">continue</span>
+            <span class="k">if</span> <span class="p">(</span>
+                <span class="n">parts</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">&quot;VWC&quot;</span><span class="p">,</span> <span class="s2">&quot;Ka&quot;</span><span class="p">}</span>
+                <span class="ow">or</span> <span class="n">col</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;cm_N&quot;</span><span class="p">)</span>
+                <span class="ow">or</span> <span class="n">col</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;cm_S&quot;</span><span class="p">)</span>
+            <span class="p">):</span>
+                <span class="n">to_drop</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">col</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">to_drop</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Dropping </span><span class="si">%d</span><span class="s2"> redundant soil columns&quot;</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">to_drop</span><span class="p">))</span>
+            <span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="n">to_drop</span><span class="p">,</span> <span class="n">errors</span><span class="o">=</span><span class="s2">&quot;ignore&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">df</span>
+
+    <span class="c1"># ------------------------------------------------------------------</span>
+    <span class="c1"># 6. Final housekeeping</span>
+    <span class="c1"># ------------------------------------------------------------------</span>
+<div class="viewcode-block" id="Reformatter.set_number_types">
+<a class="viewcode-back" href="../../source/micromet.html#micromet.converter.Reformatter.set_number_types">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_number_types</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Convert columns in the DataFrame to numeric types where appropriate.</span>
+
+<span class="sd">        This method attempts to cast each column to a numeric type using `pandas.to_numeric`.</span>
+<span class="sd">        Specific columns are downcast to integers to save memory, while all others are coerced</span>
+<span class="sd">        to floats if needed. Non-numeric values are set to NaN.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        df : pandas.DataFrame</span>
+<span class="sd">            Input DataFrame with columns to be type-cast.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        pandas.DataFrame</span>
+<span class="sd">            DataFrame with numeric types applied where possible.</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+<span class="sd">        - &#39;MO_LENGTH&#39; and &#39;RECORD&#39; columns are downcast to integer.</span>
+<span class="sd">        - &#39;TIMESTAMP_START&#39;, &#39;TIMESTAMP_END&#39;, and &#39;SSITC&#39; are also downcast to integer.</span>
+<span class="sd">        - &#39;datetime_start&#39; is left unchanged.</span>
+<span class="sd">        - All other columns are converted to numeric (float) with `errors=&#39;coerce&#39;`.</span>
+<span class="sd">        - Logging reports the number of rows processed.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">col</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;MO_LENGTH&quot;</span><span class="p">,</span> <span class="s2">&quot;RECORD&quot;</span><span class="p">]:</span>
+                <span class="n">df</span><span class="p">[</span><span class="n">col</span><span class="p">]</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_numeric</span><span class="p">(</span>
+                    <span class="n">df</span><span class="p">[</span><span class="n">col</span><span class="p">],</span> <span class="n">downcast</span><span class="o">=</span><span class="s2">&quot;integer&quot;</span><span class="p">,</span> <span class="n">errors</span><span class="o">=</span><span class="s2">&quot;coerce&quot;</span>
+                <span class="p">)</span>
+
+            <span class="k">elif</span> <span class="n">col</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;datetime_start&quot;</span><span class="p">]:</span>
+                <span class="n">df</span><span class="p">[</span><span class="n">col</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">col</span><span class="p">]</span>
+
+            <span class="k">elif</span> <span class="n">col</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;TIMESTAMP_START&quot;</span><span class="p">,</span> <span class="s2">&quot;TIMESTAMP_END&quot;</span><span class="p">,</span><span class="s2">&quot;SSITC&quot;</span><span class="p">]:</span>
+                <span class="n">df</span><span class="p">[</span><span class="n">col</span><span class="p">]</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_numeric</span><span class="p">(</span>
+                    <span class="n">df</span><span class="p">[</span><span class="n">col</span><span class="p">],</span> <span class="n">downcast</span><span class="o">=</span><span class="s2">&quot;integer&quot;</span><span class="p">,</span> <span class="n">errors</span><span class="o">=</span><span class="s2">&quot;coerce&quot;</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">df</span><span class="p">[</span><span class="n">col</span><span class="p">]</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_numeric</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="n">col</span><span class="p">],</span> <span class="n">errors</span><span class="o">=</span><span class="s2">&quot;coerce&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Set number types: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">df</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">df</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_drop_extras</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Drop extra or unwanted columns from the DataFrame based on configuration.</span>
+
+<span class="sd">        This method removes columns listed under the &#39;drop_cols&#39; key in the configuration</span>
+<span class="sd">        dictionary. Columns not found in the DataFrame are ignored.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        df : pandas.DataFrame</span>
+<span class="sd">            Input DataFrame potentially containing extra columns.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        pandas.DataFrame</span>
+<span class="sd">            DataFrame with specified columns removed.</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+<span class="sd">        - The columns to drop are retrieved from `self.config[&quot;drop_cols&quot;]`.</span>
+<span class="sd">        - Uses `errors=&#39;ignore&#39;` to skip missing columns without raising an error.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">df</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;drop_cols&quot;</span><span class="p">,</span> <span class="p">[]),</span> <span class="n">errors</span><span class="o">=</span><span class="s2">&quot;ignore&quot;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Reformatter.col_order">
+<a class="viewcode-back" href="../../source/micromet.html#micromet.converter.Reformatter.col_order">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">col_order</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Reorder DataFrame columns to place priority columns first.</span>
+
+<span class="sd">        This method ensures that &#39;TIMESTAMP_END&#39; and &#39;TIMESTAMP_START&#39; appear as the</span>
+<span class="sd">        first columns in the DataFrame, in that order. If these columns exist, they</span>
+<span class="sd">        are moved to the front without altering the order of the remaining columns.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        df : pandas.DataFrame</span>
+<span class="sd">            Input DataFrame with timestamp and other data columns.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        pandas.DataFrame</span>
+<span class="sd">            DataFrame with reordered columns.</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+<span class="sd">        - Columns are moved using `.pop()` and `.insert()` to preserve data.</span>
+<span class="sd">        - A debug message logs the final column order.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">first_cols</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;TIMESTAMP_END&quot;</span><span class="p">,</span> <span class="s2">&quot;TIMESTAMP_START&quot;</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">first_cols</span><span class="p">:</span>
+            <span class="n">ncol</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">col</span><span class="p">)</span>
+            <span class="n">df</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">col</span><span class="p">,</span> <span class="n">ncol</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Column Order: </span><span class="si">{</span><span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">df</span></div>
+
+
+    <span class="c1"># Re‑export key classes -------------------------------------------------------</span>
+    <span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;AmerifluxDataProcessor&quot;</span><span class="p">,</span> <span class="s2">&quot;Reformatter&quot;</span><span class="p">]</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Paul Inkenbrandt &amp; Kathryn Ladig.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

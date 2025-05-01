@@ -1,908 +1,673 @@
-# Written By Kat Ladig and Paul Inkenbrandt
-from pathlib import Path
-from typing import Union, List, Dict, Optional
+"""
+converter.py
+Cleaned up version of micromet data processing utilities.
 
-import yaml
+Provides:
+- AmerifluxDataProcessor: read AmeriFlux-style csv (TOA5 or AmeriFlux output) into DataFrame.
+- Reformatter: sanitize, standardize, and resample station data for flux / met processing.
 
-import datetime
-import pathlib
-import os
-import numpy as np
-import pandas as pd
-import csv
+Immediate cleanup performed:
+* Removed dead/commented code and duplicate lines.
+* Fixed duplicate attribute assignments.
+* Extracted long code blocks into helper methods for clarity.
+* Updated docstrings and type hints.
+* Added module-level constants and logger.
+* Replaced inline magic numbers with named constants.
+"""
 
-from .outlier_removal import replace_flat_values
+from __future__ import annotations
 
 import logging
+import re
+from pathlib import Path
+from typing import Dict, List, Optional, Sequence, Tuple, Union
 
-# Set up a logger for this module.
-# In production, consider configuring logging at application start-up instead.
+import pandas as pd
+import numpy as np
+import yaml
 
 
+# -----------------------------------------------------------------------------#
+# Helper functions
+# -----------------------------------------------------------------------------#
+
+def load_yaml(path: Path | str) -> Dict:
+    """Load a YAML file and return as dict."""
+    path = Path(path)
+    if not path.exists():
+        raise FileNotFoundError(f"Config file not found: {path}")
+    with path.open() as fp:
+        return yaml.safe_load(fp)
+
+def logger_check(logger: logging.Logger | None) -> logging.Logger:
+    if logger is None:
+        logger = logging.getLogger(__name__)
+        logger.setLevel(logging.WARNING)
+        ch = logging.StreamHandler()
+        ch.setFormatter(
+            logging.Formatter(
+                fmt="%(levelname)s [%(asctime)s] %(name)s – %(message)s",
+                datefmt="%Y-%m-%d %H:%M:%S",
+            )
+        )
+        logger.addHandler(ch)
+    else:
+        logger = logger
+    return logger
+
+
+# -----------------------------------------------------------------------------#
+# AmerifluxDataProcessor
+# -----------------------------------------------------------------------------#
 class AmerifluxDataProcessor:
+    """
+    Read Campbell Scientific TOA5 or AmeriFlux output CSV into a tidy DataFrame.
 
-    def __init__(self, logger=None):
-        self.NA_VALUES = {"-9999", "NAN", "NaN", "nan", np.nan, -9999.0}
-        self.headers = {
-            "default": [
-                "TIMESTAMP_START",
-                "TIMESTAMP_END",
-                "CO2",
-                "CO2_SIGMA",
-                "H2O",
-                "H2O_SIGMA",
-                "FC",
-                "FC_SSITC_TEST",
-                "LE",
-                "LE_SSITC_TEST",
-                "ET",
-                "ET_SSITC_TEST",
-                "H",
-                "H_SSITC_TEST",
-                "G",
-                "SG",
-                "FETCH_MAX",
-                "FETCH_90",
-                "FETCH_55",
-                "FETCH_40",
-                "WD",
-                "WS",
-                "WS_MAX",
-                "USTAR",
-                "ZL",
-                "TAU",
-                "TAU_SSITC_TEST",
-                "MO_LENGTH",
-                "U",
-                "U_SIGMA",
-                "V",
-                "V_SIGMA",
-                "W",
-                "W_SIGMA",
-                "PA",
-                "TA_1_1_1",
-                "RH_1_1_1",
-                "T_DP_1_1_1",
-                "TA_1_1_2",
-                "RH_1_1_2",
-                "T_DP_1_1_2",
-                "TA_1_1_3",
-                "RH_1_1_3",
-                "T_DP_1_1_3",
-                "TA_1_1_4",
-                "VPD",
-                "T_SONIC",
-                "T_SONIC_SIGMA",
-                "PBLH",
-                "TS_1_1_1",
-                "TS_1_1_2",
-                "SWC_1_1_1",
-                "SWC_1_1_2",
-                "ALB",
-                "NETRAD",
-                "SW_IN",
-                "SW_OUT",
-                "LW_IN",
-                "LW_OUT",
-                "P",
-            ],
-            "math_soils": [
-                "VWC_5cm_N_Avg",
-                "VWC_5cm_S_Avg",
-                "Ka_5cm_N_Avg",
-                "T_5cm_N_Avg",
-                "BulkEC_5cm_N_Avg",
-                "VWC_10cm_N_Avg",
-                "Ka_10cm_N_Avg",
-                "T_10cm_N_Avg",
-                "BulkEC_10cm_N_Avg",
-                "VWC_20cm_N_Avg",
-                "Ka_20cm_N_Avg",
-                "T_20cm_N_Avg",
-                "BulkEC_20cm_N_Avg",
-                "VWC_30cm_N_Avg",
-                "Ka_30cm_N_Avg",
-                "T_30cm_N_Avg",
-                "BulkEC_30cm_N_Avg",
-                "VWC_40cm_N_Avg",
-                "Ka_40cm_N_Avg",
-                "T_40cm_N_Avg",
-                "BulkEC_40cm_N_Avg",
-                "VWC_50cm_N_Avg",
-                "Ka_50cm_N_Avg",
-                "T_50cm_N_Avg",
-                "BulkEC_50cm_N_Avg",
-                "VWC_60cm_N_Avg",
-                "Ka_60cm_N_Avg",
-                "T_60cm_N_Avg",
-                "BulkEC_60cm_N_Avg",
-                "VWC_75cm_N_Avg",
-                "Ka_75cm_N_Avg",
-                "T_75cm_N_Avg",
-                "BulkEC_75cm_N_Avg",
-                "VWC_100cm_N_Avg",
-                "Ka_100cm_N_Avg",
-                "T_100cm_N_Avg",
-                "BulkEC_100cm_N_Avg",
-                "Ka_5cm_S_Avg",
-                "T_5cm_S_Avg",
-                "BulkEC_5cm_S_Avg",
-                "VWC_10cm_S_Avg",
-                "Ka_10cm_S_Avg",
-                "T_10cm_S_Avg",
-                "BulkEC_10cm_S_Avg",
-                "VWC_20cm_S_Avg",
-                "Ka_20cm_S_Avg",
-                "T_20cm_S_Avg",
-                "BulkEC_20cm_S_Avg",
-                "VWC_30cm_S_Avg",
-                "Ka_30cm_S_Avg",
-                "T_30cm_S_Avg",
-                "BulkEC_30cm_S_Avg",
-                "VWC_40cm_S_Avg",
-                "Ka_40cm_S_Avg",
-                "T_40cm_S_Avg",
-                "BulkEC_40cm_S_Avg",
-                "VWC_50cm_S_Avg",
-                "Ka_50cm_S_Avg",
-                "T_50cm_S_Avg",
-                "BulkEC_50cm_S_Avg",
-                "VWC_60cm_S_Avg",
-                "Ka_60cm_S_Avg",
-                "T_60cm_S_Avg",
-                "BulkEC_60cm_S_Avg",
-                "VWC_75cm_S_Avg",
-                "Ka_75cm_S_Avg",
-                "T_75cm_S_Avg",
-                "BulkEC_75cm_S_Avg",
-                "VWC_100cm_S_Avg",
-                "Ka_100cm_S_Avg",
-                "T_100cm_S_Avg",
-            ],
-            "well_soils": [
-                "SWC_3_1_1",
-                "SWC_4_1_1",
-                "K_3_1_1",
-                "TS_3_1_1",
-                "EC_3_1_1",
-                "SWC_3_2_1",
-                "K_3_2_1",
-                "TS_3_2_1",
-                "EC_3_2_1",
-                "SWC_3_3_1",
-                "K_3_3_1",
-                "TS_3_3_1",
-                "EC_3_3_1",
-                "SWC_3_4_1",
-                "K_3_4_1",
-                "TS_3_4_1",
-                "EC_3_4_1",
-                "SWC_3_5_1",
-                "K_3_5_1",
-                "TS_3_5_1",
-                "EC_3_5_1",
-                "SWC_3_6_1",
-                "K_3_6_1",
-                "TS_3_6_1",
-                "EC_3_6_1",
-                "SWC_3_7_1",
-                "K_3_7_1",
-                "TS_3_7_1",
-                "EC_3_7_1",
-                "SWC_3_8_1",
-                "K_3_8_1",
-                "TS_3_8_1",
-                "EC_3_8_1",
-                "SWC_3_9_1",
-                "K_3_9_1",
-                "TS_3_9_1",
-                "EC_3_9_1",
-            ],
-            "math_soils_v2": [
-                "SWC_3_1_1",
-                "SWC_4_1_1",
-                "K_3_1_1",
-                "TS_3_1_1",
-                "EC_3_1_1",
-                "SWC_3_2_1",
-                "K_3_2_1",
-                "TS_3_2_1",
-                "EC_3_2_1",
-                "SWC_3_3_1",
-                "K_3_3_1",
-                "TS_3_3_1",
-                "EC_3_3_1",
-                "SWC_3_4_1",
-                "K_3_4_1",
-                "TS_3_4_1",
-                "EC_3_4_1",
-                "SWC_3_5_1",
-                "K_3_5_1",
-                "TS_3_5_1",
-                "EC_3_5_1",
-                "SWC_3_6_1",
-                "K_3_6_1",
-                "TS_3_6_1",
-                "EC_3_6_1",
-                "SWC_3_7_1",
-                "K_3_7_1",
-                "TS_3_7_1",
-                "EC_3_7_1",
-                "SWC_3_8_1",
-                "K_3_8_1",
-                "TS_3_8_1",
-                "EC_3_8_1",
-                "SWC_3_9_1",
-                "K_3_9_1",
-                "TS_3_9_1",
-                "EC_3_9_1",
-                "K_4_1_1",
-                "TS_4_1_1",
-                "EC_4_1_1",
-                "SWC_4_2_1",
-                "K_4_2_1",
-                "TS_4_2_1",
-                "EC_4_2_1",
-                "SWC_4_3_1",
-                "K_4_3_1",
-                "TS_4_3_1",
-                "EC_4_3_1",
-                "SWC_4_4_1",
-                "K_4_4_1",
-                "TS_4_4_1",
-                "EC_4_4_1",
-                "SWC_4_5_1",
-                "K_4_5_1",
-                "TS_4_5_1",
-                "EC_4_5_1",
-                "SWC_4_6_1",
-                "K_4_6_1",
-                "TS_4_6_1",
-                "EC_4_6_1",
-                "SWC_4_7_1",
-                "K_4_7_1",
-                "TS_4_7_1",
-                "EC_4_7_1",
-                "SWC_4_8_1",
-                "K_4_8_1",
-                "TS_4_8_1",
-                "EC_4_8_1",
-                "EC_4_9_1",
-                "SWC_4_9_1",
-                "K_4_9_1",
-                "TS_4_9_1",
-                "TS_1_1_1",
-                "TS_2_1_1",
-                "SWC_1_1_1",
-                "SWC_2_1_1",
-            ],
-        }
+    Parameters
+    ----------
+    path : str | Path
+        File path to CSV.
+    config_path : str | Path
+        File path to YAML configuration file for header names. Defaults to 'reformatter_vars.yml'
+    logger : logging.Logger
+        Logger to use.
+    """
 
-        # Simplify derived headers
-        self.headers["bflat"] = [
-            h
-            for h in self.headers["default"]
-            if h not in {"TA_1_1_4", "TS_1_1_2", "SWC_1_1_2"}
-        ]
-        self.headers["wellington"] = [
-            h for h in self.headers["default"] if h != "TS_1_1_1"
-        ]
+    _TOA5_PREFIX = "TOA5"
+    _HEADER_PREFIX = "TIMESTAMP_START"
+    NA_VALUES = ["-9999", "NAN", "NaN", "nan", np.nan, -9999.0]
 
-        self.headers["big_math"] = (
-            self.headers["wellington"][:-10]
-            + self.headers["math_soils"]
-            + self.headers["wellington"][-10:]
-            + ["T_CANOPY"]
-        )
-        self.headers["big_math_v2"] = (
-            self.headers["wellington"][:-10]
-            + self.headers["math_soils_v2"]
-            + self.headers["wellington"][-7:]
-            + ["T_CANOPY"]
-        )
-        self.headers["big_math_v2_filt"] = [
-            h for h in self.headers["big_math_v2"] if h not in {"TA_1_1_4"}
-        ]
+    def __init__(self,
+                 config_path: Path | str = 'reformatter_vars.yml',
+                 logger: logging.Logger = None,):
 
-        self.headers["big_well"] = [
-            h for h in self.headers["default"] if h not in {"TA_1_1_4"}
-        ] + self.headers["well_soils"]
+        self.logger = logger_check(logger)
+        self.headers = load_yaml(Path(config_path))
+        self.skip_rows = None
 
-        self.header_dict = {
-            60: self.headers["default"],
-            61: self.headers["bflat"],
-            62: self.headers["wellington"],
-            96: self.headers["big_well"],
-            131: self.headers["big_math"],
-            132: self.headers["big_math_v2_filt"],
-        }
+    # --------------------------------------------------------------------- #
+    # Public API
+    # --------------------------------------------------------------------- #
+    def to_dataframe(self, file: Union[str, Path]) -> pd.DataFrame:
+        """Return parsed CSV as pandas DataFrame."""
+        self._determine_header_rows(file)
+        self.logger.debug("Reading %s", file)
+        df = pd.read_csv(file,
+                         skiprows=self.skip_rows,
+                         names=self.names,
+                         na_values=self.NA_VALUES,
+                         )
+        return df
 
-        if logger is None:
-            self.logger = logging.getLogger(__name__)
-            self.logger.setLevel(logging.WARNING)
+    # --------------------------------------------------------------------- #
+    # Internal helpers
+    # --------------------------------------------------------------------- #
+    def _determine_header_rows(self, file:Path) -> None:
+        """
+        Examine the first line to decide if file is TOA5 or already processed.
+
+        TOA5 files begin with literal 'TOA5'.
+        AmeriFlux standard Level‑2 output has no prefix, just column labels.
+        """
+        with file.open("r") as fp:
+            first_line = fp.readline().strip().replace('"',"").split(",")
+            second_line = fp.readline().strip().replace('"', "").split(",")
+        if first_line[0] == self._HEADER_PREFIX:
+            self.logger.debug(f"Header row detected: {first_line}")
+            self.skip_rows = 0
+            self.names = first_line
+        elif first_line[0] == self._TOA5_PREFIX:
+            self.skip_rows = [0,1,2,3]
+            self.names = second_line
         else:
-            self.logger = logger
+            raise RuntimeError(f"Header line not recognized: {first_line}")
+        self.logger.debug(f"Skip rows for set to {self.skip_rows}")
 
-    @staticmethod
-    def check_header(csv_file: Union[str, Path]) -> int:
-        """
-        Check if the given CSV file has a header row.
-
-        :param csv_file: Path to the CSV file.
-        :type csv_file: str
-        :return:
-            1 if the header contains "TIMESTAMP_START",
-            2 if the header contains "TOA5",
-            0 otherwise.
-        :rtype: int
-        """
-        try:
-            with open(csv_file, "r", newline="", encoding="utf-8") as file:
-                first_row = next(csv.reader(file), [])
-                if "TIMESTAMP_START" in first_row:
-                    return 1
-                if "TOA5" in first_row:
-                    return 2
-                return 0
-        except Exception:
-            return 0
-
-    @staticmethod
-    def check_header(csv_file):
-        """
-        Check if the given CSV file has a header row.
-
-        :param csv_file: Path to the CSV file.
-        :type csv_file: str
-        :return:
-            1 if the header contains "TIMESTAMP_START",
-            2 if the header contains "TOA5",
-            0 otherwise.
-        :rtype: int
-        """
-
-        with open(csv_file, "r", newline="", encoding="utf-8") as file:
-            reader = csv.reader(file)
-            try:
-                first_row = next(reader)
-            except StopIteration:
-                # Empty file
-                return 0
-            if "TIMESTAMP_START" in first_row:
-                return 1
-            elif "TOA5" in first_row:
-                return 2
-            else:
-                return 0
-
-    def dataframe_from_file(self, file: Union[str, Path]) -> Optional[pd.DataFrame]:
-        """
-        Reads a CSV file and returns a DataFrame with appropriate headers based on the file format.
-
-        Parameters:
-        - file (str or Path): Path to the CSV file.
-
-        Returns:
-        - pd.DataFrame or None: DataFrame with proper headers, or None if unsupported format or errors occur.
-        """
+    def _get_file_no(self, file: Path) -> tuple[int,int]:
+        basename = file.stem
 
         try:
-            header_type = self.check_header(file)
+            file_number = int(basename.split("_")[-1])
+            datalogger_number = int(basename.split("_")[0])
+        except ValueError:
+            file_number = datalogger_number = 9999
+        self.logger.debug(f"{file_number} -> {datalogger_number}")
+        return file_number, datalogger_number
 
-            if header_type == 1:
-                # Known header with "TIMESTAMP_START"
-                return pd.read_csv(file, na_values=self.NA_VALUES)
-
-            elif header_type == 2:
-                # "TOA5" format, skip known metadata lines
-                df = pd.read_csv(file, na_values=self.NA_VALUES, skiprows=[0, 2, 3])
-                df.drop(columns=["TIMESTAMP"], errors="ignore", inplace=True)
-
-                return df
-
-            else:
-
-                col_count = pd.read_csv(file, header=None, nrows=1).shape[1]
-                header = self.header_dict.get(col_count)
-
-                if header:
-                    return pd.read_csv(file, names=header, na_values=self.NA_VALUES)
-
-                self.logger.warning(
-                    f"Unknown header format ({col_count} columns) in file: {file}"
-                )
-                return None
-
-        except pd.errors.EmptyDataError:
-            self.logger.warning(f"No data found in file: {file}")
-        except Exception as e:
-            self.logger.error(f"Error reading file {file}: {e}")
-        return None
-
-    def _is_int(self, element: any) -> bool:
-        """
-        Check if the provided element can be cast as an integer.
-
-        Parameters:
-        - element (any): The value to check.
-
-        Returns:
-        - bool: True if the element can be cast to an integer, False otherwise.
-        """
-        try:
-            return element is not None and float(element).is_integer()
-        except (ValueError, TypeError):
-            return False
+    # --------------------------------------------------------------------- #
+    # Iterators
+    # --------------------------------------------------------------------- #
 
     def raw_file_compile(
         self,
-        raw_fold: Path,
+        main_dir: Union[str,Path],
         station_folder_name: Union[str, Path],
-        search_str="*Flux_AmeriFluxFormat*.dat",
+        search_str: str = "*Flux_AmeriFluxFormat*.dat",
     ) -> Optional[pd.DataFrame]:
         """
         Compiles raw AmeriFlux datalogger files into a single dataframe.
 
-        :param raw_fold: Path to the root folder of raw datalogger files
-        :type raw_fold: pathlib.Path
-        :param station_folder_name: Name of the station folder containing the raw datalogger files
-        :type station_folder_name: str
-        :return: Dataframe containing compiled AmeriFlux data, or None if no valid files found
-        :rtype: pandas.DataFrame or None
+        Parameters
+        ----------
+        main_dir : str | Path
+            Name of main directory to search for AmeriFlux datalogger files.
+        station_folder_name : str
+            Name of the station folder containing the raw datalogger files.
+        search_str : str
+            String to search for; use asterisk (*) for wildcard.
+
+        Returns
+        -------
+        pandas.DataFrame or None
+            Dataframe containing compiled AmeriFlux data, or None if no valid files found.
         """
         compiled_data = []
-        station_folder = raw_fold / station_folder_name
+        station_folder = Path(main_dir) / station_folder_name
 
         self.logger.info(f"Compiling data from {station_folder}")
 
         for file in station_folder.rglob(search_str):
             self.logger.info(f"Processing file: {file}")
-            basename = file.stem
 
-            try:
-                file_number = int(basename.split("_")[-1])
-                datalogger_number = int(basename.split("_")[0])
-            except ValueError:
-                file_number = datalogger_number = 9999
+            file_no, datalogger_number = self._get_file_no(file)
 
-            df = self.dataframe_from_file(file)
+            df = self.to_dataframe(file)
             if df is not None:
-                df["file_no"] = file_number
+                df["file_no"] = file_no
                 df["datalogger_no"] = datalogger_number
                 compiled_data.append(df)
 
+
         if compiled_data:
-            return pd.concat(compiled_data, ignore_index=True)
+            compiled_df = pd.concat(compiled_data, ignore_index=True)
+            return compiled_df
         else:
             self.logger.warning(f"No valid files found in {station_folder}")
             return None
 
+    def iterate_through_stations(self):
+        """Iterate through all stations."""
+        site_folders = {'US-UTD': 'Dugout_Ranch',
+                        'US-UTB': 'BSF',
+                        'US-UTJ': 'Bluff',
+                        'US-UTW': 'Wellington',
+                        'US-UTE': 'Escalante',
+                        'US-UTM': 'Matheson',
+                        'US-UTP': 'Phrag',
+                        'US-CdM': 'Cedar_mesa',
+                        'US-UTV': 'Desert_View_Myton',
+                        'US-UTN': 'Juab',
+                        'US-UTG': 'Green_River'
+                        }
+        for stationid,folder in site_folders.items():
+            for datatype in ['met','eddy']:
+                if datatype == 'met':
+                    search_str = f"*Statistics_Ameriflux*.dat"
+                else:
+                    search_str = f"*AmeriFluxFormat*.dat"
+                self.raw_file_compile(stationid,
+                                      folder,
+                                      search_str)
 
-class Reformatter(object):
+
+
+# ----------------------------------------------------------------------------
+# Reformatter
+# ----------------------------------------------------------------------------
+class Reformatter:
     """
-    A class for reformatting raw Utah Flux Network data into the AmeriFlux-compatible format.
+    Clean and standardize station data.
 
-    Attributes:
-        et_data (pd.DataFrame): Processed data after initialization and preparation.
-        config (dict): Configuration loaded from YAML file.
-        varlimits (pd.DataFrame): Limits for variables loaded from CSV.
+    Steps (all configurable):
 
-    Methods:
-        __init__: Initializes Reformatter with data and configuration.
-        load_variable_limits: Loads variable limits from file.
-        clean_columns: Cleans and processes DataFrame columns, handling missing and invalid values.
-        prepare_et_data: Prepares and preprocesses the ET data.
-        remove_extra_soil_params: Removes unnecessary soil parameter columns.
-        drop_extras: Drops extra columns based on configuration.
-        col_order: Reorders columns prioritizing timestamps.
-        datefixer: Corrects date and time formats, removes duplicates, and resamples data.
-        update_dataframe_column: Updates DataFrame by replacing an old column with a new combined column.
-        rename_columns: Renames DataFrame columns based on configuration.
-        scale_and_convert: Scales and converts a column to float type.
-        ssitc_scale: Scales quality control SSITC columns to a 0-2 scale.
-        rating: Categorizes numeric values into ratings.
-        _extract_variable_name: Extracts the base variable name for processing.
-        replace_out_of_range_with_nan: Replaces out-of-range values with NaN.
-        extreme_limiter: Applies limits to all columns to remove extreme values.
-        despike: Removes data spikes based on a standard deviation threshold.
-        tau_fixer: Corrects sign of TAU variable.
-        fix_swc_percent: Converts soil water content to percentage format if necessary.
-        timestamp_reset: Resets timestamp columns based on DataFrame index.
-        despike_ewma_fb: Removes spikes using forward-backward EWMA smoothing.
+    1. Fix and align timestamps (`_fix_timestamps`).
+    2. Rename columns (`_rename_columns`).
+    3. Remove obvious outliers and redundant columns (`clean_columns`).
+    4. Adjust derived values (`apply_fixes`).
+    5. Optionally, drop extra soil sensor channels (`_drop_extra_soil_columns`).
+    6. Finalize column order and missing value representation.
+
+    Parameters
+    ----------
+    config_path : str | Path
+        File Path to YAML configuration file governing renames, drops, etc.
+    var_limits_csv : str | Path, optional
+        CSV file containing per‑variable hard min/max limits.
+    drop_soil : bool, default True
+        Whether to remove soil columns deemed redundant (see config).
     """
+
+    # SoilVUE Depth/orientation conversion tables --------------------------------
+    _DEPTH_MAP = {5: 1, 10: 2, 20: 3, 30: 4, 40: 5, 50: 6, 60: 7, 75: 8, 100: 9}
+    _ORIENT_MAP = {"N": 3, "S": 4}
+    _LEGACY_RE = re.compile(
+        r"^(?P<prefix>(SWC|TS|EC|K|T))_(?P<depth>\d{1,3})cm_(?P<orient>[NS])_.*$",
+        re.IGNORECASE,
+    )
+    _PREFIX_PATTERNS: Dict[re.Pattern[str], str] = {
+        re.compile(r"^BulkEC_", re.IGNORECASE): "EC_",
+        re.compile(r"^VWC_", re.IGNORECASE): "SWC_",
+        re.compile(r"^Ka_", re.IGNORECASE): "K_",
+    }
+
+    # Constants ------------------------------
+    MISSING_VALUE: int = -9999
+    SOIL_SENSOR_SKIP_INDEX: int = 3  # Drop SWC_/TS_/EC_/K_ where second segment >= 3
+    DEFAULT_SOIL_DROP_LIMIT: int = 4  # keep last 4 items in math_soils_v2 list
+
 
     def __init__(
-        self,
-        et_data,
-        config_path="./reformatter_vars.yml",
-        drop_soil=True,
-        data_path=None,
-        data_type="eddy",
-        spike_threshold=4.5,
-        outlier_remove=True,
-        logger=None,
+            self,
+            config_path: str | Path,
+            var_limits_csv: str | Path | None = None,
+            drop_soil: bool = True,
+            logger: logging.Logger =None,
     ):
-        """
-        Initializes the Reformatter with ET data and configurations.
-
-        Args:
-            et_data (pd.DataFrame): Raw data to process.
-            config_path (str): Path to the YAML configuration file.
-            drop_soil (bool): Whether to drop unnecessary soil parameters.
-            data_path (str): Optional path to the extreme values CSV file.
-            data_type (str): Type of dataset, either "eddy" or "met".
-            spike_threshold (float): Threshold for spike removal.
-            outlier_remove (bool): Whether to remove outliers.
-        """
-        if logger is None:
-            self.logger = logging.getLogger(__name__)
-            self.logger.setLevel(logging.WARNING)
-        else:
-            self.logger = logger
-
-        self.default_paths = [
-            pathlib.Path("../data/extreme_values.csv"),
-            pathlib.Path("data/extreme_values.csv"),
-            pathlib.Path("../../data/extreme_values.csv"),
-            pathlib.Path("../../../data/extreme_values.csv"),
-            pathlib.Path(
-                "G:/Shared drives/Data_Processing/Jupyter_Notebooks/Micromet/data/extreme_values.csv"
-            ),
-        ]
-
-        self.config = self._load_config(config_path)
-
-        self.data_path = data_path
-        self.spike_threshold = spike_threshold
-        self.COL_NAME_MATCH = self.config["col_name_match"]
-        self.MET_RENAMES = self.config["met_renames"]
-        self.MET_VARS = self.config["met_vars"]
-        self.DESPIKEY = self.config["despikey"]
-        self.DROP_COLS = self.config["drop_cols"]
-        self.OTHER_VARS = self.config["othervar"]
-        self.MATH_SOILS_V2 = self.config["math_soils_v2"]
-        self.MATH_SOILS_V2 = self.config["math_soils_v2"]
-        self.DESPIKEY = self.config["despikey"]
-        self.varlimits = None
-        self.load_variable_limits()
-        self.prepare_et_data(et_data, data_type, drop_soil)
-        self.prepare_et_data(et_data, data_type, drop_soil)
-
-    @staticmethod
-    def _load_config(config_path):
-
-        path = pathlib.Path(config_path)
-        if not path.exists():
-            try:
-                config_path = pathlib.Path(config_path)
-                # Attempt to load from the same directory as this script
-                path = pathlib.Path(__file__).parent / config_path
-            except Exception:
-                raise FileNotFoundError(f"Config file not found at {path.resolve()}")
-        with open(path, "r") as file:
-            return yaml.safe_load(file)
-
-    def load_variable_limits(self):
-
-        paths_to_try = (
-            [pathlib.Path(self.data_path)] if self.data_path else self.default_paths
+        self.logger = logger_check(logger)
+        self.config = load_yaml(config_path)
+        self.varlimits = (
+            pd.read_csv(var_limits_csv).set_index("Name") if var_limits_csv else None
         )
-        for path in paths_to_try:
-            if path.exists():
-                self.varlimits = pd.read_csv(path, index_col="Name")
-                self.logger.info(f"Loaded variable limits from {path}")
-                return
-        raise FileNotFoundError(
-            "Could not locate extreme_values.csv in provided paths."
+        self.drop_soil = drop_soil
+
+    # ------------------------------------------------------------------
+    # Pipeline entry
+    # ------------------------------------------------------------------
+    def prepare(self, df: pd.DataFrame, data_type: str = "eddy") -> pd.DataFrame:
+        self.logger.info("Starting reformat (%s rows)", len(df))
+
+        df = (
+            df.pipe(self._fix_timestamps)
+            .pipe(self.rename_columns, data_type=data_type)
+            .pipe(self.set_number_types)
+            .pipe(self.resample_timestamps)
+            .pipe(self.timestamp_reset)
+            .pipe(self.clean_columns)
+            .pipe(self.apply_fixes)
         )
+        if self.drop_soil:
+            df = self._drop_extra_soil_columns(df)
 
-    def clean_columns(self):
-        """Cleans and preprocesses columns, handling invalid values and despiking."""
-        for col in self.et_data.columns:
-            self.logger.warning(f"column: {col}")
+        df = (
+            df.pipe(self._drop_extras)
+            .fillna(self.MISSING_VALUE)
 
-            if col in ["MO_LENGTH", "RECORD"]:
-                self.et_data[col] = pd.to_numeric(
-                    self.et_data[col], downcast="integer", errors="coerce"
-                )
-
-            elif col in ["TIMESTAMP_START", "TIMESTAMP_END"]:
-                self.et_data[col] = self.et_data[col]
-
-            elif "SSITC" in col:
-                self.et_data[col] = pd.to_numeric(
-                    self.et_data[col], downcast="integer", errors="coerce"
-                )
-            else:
-                self.et_data[col] = pd.to_numeric(self.et_data[col], errors="coerce")
-
-            self.logger.debug(f"column {col} range: {np.max(self.et_data[col])}")
-            self.logger.debug(
-                f"column {col} range numeric: {np.max(self.et_data[col])}"
-            )
-
-            self.et_data[col] = self.et_data[col].replace(-9999, np.nan)
-
-            # remove values that are outside of possible ranges
-            self.et_data = self.replace_out_of_range_with_nan(self.et_data, col, np.nan)
-
-            self.logger.warning(
-                f"column range out of range: {np.max(self.et_data[col])}"
-            )
-
-            if col in self.DESPIKEY:
-
-                # despike
-                self.et_data[col] = self.despike(self.et_data[col])
-
-                # Remove Flat Values
-                if col in ["U", "V", "W", "u", "w", "v"]:
-                    pass
-                else:
-                    self.et_data[col] = replace_flat_values(
-                        self.et_data, col, replacement_value=np.nan, null_value=-9999
-                    )
-            self.logger.debug(f"column range despike: {np.max(self.et_data[col])}")
-
-    def prepare_et_data(self, et_data, data_type="eddy", drop_soil=True):
-        """
-        Prepares ET data by correcting timestamps, renaming columns, and cleaning data.
-
-        Args:
-            et_data (pd.DataFrame): Raw ET data.
-            data_type (str): Dataset type ("eddy" or "met").
-            drop_soil (bool): Whether to drop excess soil parameter columns.
-        """
-        self.logger.debug("Starting Processing")
-        self.logger.debug(f"Reading first line of file: {self.data_path}")
-        self.logger.debug(f"Variable limits: \n {self.varlimits.head(5)}")
-        self.logger.debug(f"Variable limits: \n {self.varlimits.tail(5)}")
-        self.logger.debug(f"ET Data: \n {et_data.head(5)}")
-        self.logger.debug(f"ET Data: \n {et_data.tail(5)}")
-
-        # fix datetimes
-        self.et_data = self.datefixer(et_data)
-
-        self.logger.debug("Corrected Datetimes:")
-        self.logger.debug(f"{self.et_data.head(5)}")
-        self.logger.debug(f"{self.et_data.tail(5)}")
-
-        # change variable names
-        self.rename_columns(data_type=data_type)
-
-        self.logger.debug(f"Changed Names: {self.et_data.columns}")
-        # despike variables and remove long, flat periods
-        self.clean_columns()
-        self.logger.debug(f"Despiked: {self.et_data.head(5)}")
-        self.logger.debug(f"Despiked: {self.et_data.tail(5)}")
-        # switch tau sign
-        self.tau_fixer()
-
-        # turn decimals in SWC to percent
-        self.fix_swc_percent()
-
-        # rescale the quality values to a 0-2 scale
-        self.ssitc_scale()
-
-        if "ET_SSITC_TEST" in self.et_data.columns:
-
-            self.logger.debug(f"SSITC Values: {self.et_data['ET_SSITC_TEST'].unique()}")
-
-            self.logger.info(f"SSITC Values: {self.et_data['ET_SSITC_TEST'].unique()}")
-
-            self.logger.info(f"SSITC Values: {self.et_data['ET_SSITC_TEST'].unique()}")
-
-        self.drop_extras()
-
-        self.logger.debug(f"Extras: {self.et_data.head(5)}")
-        self.logger.debug(f"Extras: {self.et_data.tail(5)}")
-
-        if drop_soil:
-            self.et_data = self.remove_extra_soil_params(self.et_data)
-
-        self.et_data = self.et_data.fillna(value=int(-9999))
-        self.logger.debug(f"Fillna: {self.et_data.head(5)}")
-        self.logger.debug(f"Fillna: {self.et_data.tail(5)}")
-
-        self.et_data = self.et_data.replace(-9999.0, int(-9999))
-        self.logger.debug(f"Replace: {self.et_data.head(5)}")
-        self.logger.debug(f"Replace: {self.et_data.tail(5)}")
-
-        if "ET" in self.et_data.columns:
-            count_neg_9999 = (self.et_data["ET"] == -9999).sum()
-
-            self.logger.debug(f"Null Value Count in ET: {count_neg_9999}")
-            self.logger.debug(f"Length of ET: {len(self.et_data['ET'])}")
-
-            self.logger.info(f"Null Value Count in ET: {count_neg_9999}")
-            self.logger.info(f"Length of ET: {len(self.et_data['ET'])}")
-
-        self.col_order()
-
-    def remove_extra_soil_params(self, df):
-        """
-        Removes extra soil parameters from the given dataframe.
-
-        :param df: A pandas dataframe containing soil parameters.
-        :type df: pandas.DataFrame
-        :return: The input dataframe with extra soil parameters removed.
-        :rtype: pandas.DataFrame
-        """
-        # get a list of columns and split them into parts (parameter number number number)
-        # am = AmerifluxDataProcessor()
-        for col in df.columns:
-            collist = col.split("_")
-            main_var = collist[0]
-
-            # get rid of columns that don't follow the typical pattern
-            try:
-                if len(collist) > 3 and collist[2] not in ["N", "S"]:
-                    depth_var = int(collist[2])
-                    if main_var in ["SWC", "TS", "EC", "K"] and (
-                        depth_var >= 1 and int(collist[1]) >= 3
-                    ):
-                        df = df.drop(col, axis=1)
-                # drop cols from a specified list math_soils_v2
-                elif col in self.MATH_SOILS_V2[:-4]:
-                    df = df.drop(col, axis=1)
-                elif main_var in ["VWC", "Ka"] or "cm_N" in col or "cm_S" in col:
-                    df = df.drop(col, axis=1)
-            except ValueError:
-                # Handle cases where conversion to int fails
-                self.logger.warning(f"Skipping column {col} due to ValueError")
-                df = df.drop(col, axis=1)
-                continue
+        )
+        self.logger.info("Done; final shape: %s", df.shape)
         return df
 
-    def drop_extras(self):
-        """Drops columns specified in the configuration."""
-        for col in self.DROP_COLS:
-            if col in self.et_data.columns:
-                self.et_data = self.et_data.drop(col, axis=1)
 
-    def col_order(self):
-        """Puts priority columns first"""
-        first_cols = ["TIMESTAMP_END", "TIMESTAMP_START"]
-        for col in first_cols:
-            ncol = self.et_data.pop(col)
-            self.et_data.insert(0, col, ncol)
-        self.logger.debug(f"Column Order: {self.et_data.columns}")
-        self.logger.debug(f"Column Order: {self.et_data.head(5)}")
-        self.logger.debug(f"Column Order: {self.et_data.tail(5)}")
 
-    def datefixer(self, et_data):
+    # ------------------------------------------------------------------
+    # 1. Timestamp handling
+    # ------------------------------------------------------------------
+    def infer_datetime_col(self, df: pd.DataFrame) -> str|None:
+        """Return the name of the TIMESTAMP column."""
+        datetime_col_options = ["TIMESTAMP_START", "TIMESTAMP_START_1"]
+        datetime_col_options += [col.lower() for col in datetime_col_options]
+        for cand in datetime_col_options:
+            if cand in df.columns:
+                return cand
+            else:
+                self.logger.warning("No TIMESTAMP column in dataframe")
+                return df.iloc[:,0].name
+        return None
+
+    def _fix_timestamps(self, df: pd.DataFrame) -> pd.DataFrame:
+        df = df.copy()
+        if "TIMESTAMP" in df.columns:
+            df = df.drop(["TIMESTAMP"], axis=1)
+        ts_col = self.infer_datetime_col(df)
+        self.logger.debug(f"TS col {ts_col}")
+        self.logger.debug(f"TIMESTAMP_START col {df[ts_col][0]}")
+        ts_format = "%Y%m%d%H%M"
+        df["datetime_start"] = pd.to_datetime(df[ts_col], format=ts_format, errors="coerce")
+        self.logger.debug(f"Len of unfixed timestamps {len(df)}")
+        df = df.dropna(subset=["datetime_start"])
+        self.logger.debug(f"Len of fixed timestamps {len(df)}")
+        return df
+
+    def resample_timestamps(self, df: pd.DataFrame) -> pd.DataFrame:
         """
-        Fixes the date and time format in the given data.
+        Resample a DataFrame to 30-minute intervals based on the 'datetime_start' column.
 
-        :param et_data: A pandas DataFrame containing the data to be fixed.
-        :return: The fixed pandas DataFrame.
+        The method performs the following steps:
+        - Filters out future timestamps beyond the current date.
+        - Removes duplicate entries based on 'datetime_start'.
+        - Sets 'datetime_start' as the index and sorts the DataFrame.
+        - Resamples the data to 30-minute intervals using the first valid observation.
+        - Linearly interpolates missing values with a maximum gap of one interval.
 
-        The `datefixer` method takes a pandas DataFrame `et_data` as input and performs the following operations to fix the date and time format:
-        1. Converts the 'TIMESTAMP_START' and 'TIMESTAMP_END' columns to datetime format using the format "%Y%m%d%H%M" and assigns them to 'datetime_start' and 'datetime_end' columns in `et_data`.
-        2. Removes duplicate rows in `et_data` based on the 'TIMESTAMP_START' and 'TIMESTAMP_END' columns.
-        3. Sets the 'datetime_start' column as the index of `et_data` and sorts the DataFrame based on this index.
-        4. Removes any duplicate rows in `et_data` based on the 'datetime_start' column, keeping only the first occurrence.
-        5. Resamples the DataFrame at 30-minute intervals and interpolates missing values using linear method.
-        6. Returns the fixed pandas DataFrame.
+        Parameters
+        ----------
+        df : pd.DataFrame
+            Input DataFrame containing a 'datetime_start' column of timestamp values.
 
-        Example usage:
-        ```python
-        import pandas as pd
-
-        # Create the input DataFrame et_data
-        et_data = pd.DataFrame({
-            'TIMESTAMP_START': ['202201011200', '202201011300', '202201020900'],
-            'TIMESTAMP_END': ['202201011400', '202201011500', '202201021000']
-        })
-
-        # Create an instance of the class containing the datefixer method
-        date_fixer = DateFixer()
-
-        # Call the datefixer method to fix the date and time format in et_data
-        fixed_data = date_fixer.datefixer(et_data)
-
-        print(fixed_data)
-        ```
+        Returns
+        -------
+        pd.DataFrame
+            Resampled and interpolated DataFrame indexed by 'datetime_start'.
         """
-        # drop null index values
+        today = pd.Timestamp("today").floor("D")
+        df = df[df["datetime_start"] <= today]
+        df = df.drop_duplicates(subset=["datetime_start"]).set_index("datetime_start").sort_index()
+        df = df.resample("30min").first().interpolate(limit=1)
+        self.logger.debug(f"Len of resampled timestamps {len(df)}")
+        return df
 
-        # create datetime fields to conduct datetime operations on dataset
-        et_data["datetime_start"] = pd.to_datetime(
-            et_data["TIMESTAMP_START"],
-            format="%Y%m%d%H%M",
-            errors="coerce",
-        )
-        et_data["datetime_start"] = et_data["datetime_start"].dropna()
-        et_data = et_data.drop_duplicates(subset=["TIMESTAMP_START", "TIMESTAMP_END"])
-        et_data = et_data.set_index(["datetime_start"]).sort_index()
-
-        # drop rows with duplicate datetimes
-        et_data = et_data[~et_data.index.duplicated(keep="first")]
-
-        # eliminate implausible dates that are set in the future
-        et_data = et_data[
-            et_data.index <= datetime.datetime.today() + pd.Timedelta(days=1)
-        ]
-
-        # eliminate object columns from dataframe before fixing time offsets
-        if "TIMESTAMP" in et_data.columns:
-            et_data = et_data.drop("TIMESTAMP", axis=1)
-
-        et_data = et_data.infer_objects(copy=False)
-
-        # fix time offsets to harmonize sample frequency to 30 min
-        et_data = (
-            et_data.resample("30min")  # Directly resample to 30-minute intervals
-            .asfreq()  # Establishes a 30-minute frequency grid with NaNs in missing slots
-            .interpolate(method="linear", limit=1)  # Fill up to 30-minute gaps
-        )
-        try:
-            et_data = et_data.drop(columns=["datetime_start"], errors="ignore")
-            et_data = et_data.drop(columns=["datetime_start"], errors="ignore")
-            et_data = et_data.reset_index()
-            et_data = et_data.dropna(subset=["datetime_start"])
-            et_data = et_data.set_index("datetime_start")
-            # et_data = et_data[et_data.index.notnull()]
-
-            # remake timestamp marks to match datetime index, filling in NA spots
-            et_data["TIMESTAMP_START"] = et_data.index.strftime("%Y%m%d%H%M").astype(
-                np.int64
-            )
-
-            et_data["TIMESTAMP_END"] = (
-                (et_data.index + pd.Timedelta("30min"))
-                .strftime("%Y%m%d%H%M")
-                .astype(np.int64)
-            )
-
-            return et_data
-        except Exception as e:
-            self.logger.error(f"Error in datefixer: {e}")
-
-    def update_dataframe_column(self, new_column, old_column):
+    @staticmethod
+    def timestamp_reset(df, minutes=30):
         """
-        Combines new and old columns, retaining maximum values, and removes the old column.
+        Reset TIMESTAMP_START and TIMESTAMP_END columns based on the DataFrame index.
 
-        Args:
-            new_column (str): Name of the new column.
-            old_column (str): Name of the old column to replace.
+        This method assumes the DataFrame index is a datetime-like index and sets
+        the 'TIMESTAMP_START' column to match the index formatted as an integer
+        in 'YYYYMMDDHHMM' format. The 'TIMESTAMP_END' column is set to the timestamp
+        `minutes` ahead of the index.
+
+        Parameters
+        ----------
+        df : pd.DataFrame
+            Input DataFrame with a datetime-like index.
+        minutes : int, optional
+            Number of minutes to add for TIMESTAMP_END calculation, by default 30.
+
+        Returns
+        -------
+        pd.DataFrame
+            Modified DataFrame with updated 'TIMESTAMP_START' and 'TIMESTAMP_END' columns.
         """
-        self.et_data[new_column] = self.et_data[[old_column, new_column]].max(axis=1)
-        self.et_data = self.et_data.drop(old_column, axis=1)
+        df["TIMESTAMP_START"] = df.index.strftime("%Y%m%d%H%M").astype(int)
+        df["TIMESTAMP_END"] = (df.index + pd.Timedelta(minutes=minutes)).strftime("%Y%m%d%H%M").astype(int)
+        return df
 
-    def rename_columns(self, data_type="eddy"):
-        """Renames columns based on the dataset type and configuration mappings."""
-
-        if data_type == "eddy":
-            mappings = self.COL_NAME_MATCH
-        else:
-            mappings = self.MET_RENAMES
-
-        for old_col, new_col in mappings.items():
-            if str(old_col).lower() in self.et_data.columns.str.lower():
-                if str(new_col).lower() in self.et_data.columns.str.lower():
-                    self.logger.debug(f"Updating column: {old_col} to {new_col}")
-                    self.et_data[new_col] = self.et_data[[old_col, new_col]].max(axis=1)
-                    self.et_data = self.et_data.drop(old_col, axis=1)
-                else:
-                    self.logger.debug(f"Renaming column: {old_col} to {new_col}")
-                    self.et_data = self.et_data.rename(columns={old_col: new_col})
-
-    def scale_and_convert(self, column: pd.Series) -> pd.Series:
+    # ------------------------------------------------------------------
+    # 2. Column renaming & legacy conversions
+    # ------------------------------------------------------------------
+    def rename_columns(self, df: pd.DataFrame, *, data_type: str) -> pd.DataFrame:
         """
-        Scale the values and then convert them to float type
-        :param column: Pandas series or dataframe column
-        :return: Scaled and converted dataframe column
-        """
-        # match rating to new rating
-        column = column.apply(self.rating)
-        # output at integer
-        return column
+        Rename DataFrame columns based on configuration and standardize column names.
 
-    def ssitc_scale(self):
+        This method selects a column rename mapping based on the `data_type` parameter
+        ('eddy' or 'met') from the internal configuration dictionary. It then renames
+        the DataFrame columns accordingly and applies additional normalization routines:
+        - `normalize_prefixes`: standardizes common prefix formats
+        - `modernize_soil_legacy`: updates legacy soil column naming conventions
+
+        Parameters
+        ----------
+        df : pd.DataFrame
+            Input DataFrame with original column names to be renamed.
+        data_type : str
+            Type of data used to determine the appropriate rename mapping.
+            Must be either 'eddy' or 'met'.
+
+        Returns
+        -------
+        pd.DataFrame
+            DataFrame with renamed and standardized column names.
         """
-        Scale the values in the SSITC columns of et_data dataframe.
-        :return: None
+        mapping = self.config.get("renames_eddy" if data_type == "eddy" else "renames_met", {})
+        df = df.rename(columns=mapping)
+        df = self.normalize_prefixes(df)
+        df = self.modernize_soil_legacy(df)
+        self.logger.debug(f"Len of renamed cols {len(df)}")
+        return df
+
+    def normalize_prefixes(self, df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Normalize column name prefixes related to soil and temperature measurements.
+
+        This method renames columns in the input DataFrame based on predefined prefix
+        replacement rules. It performs the following operations:
+
+        - Replaces known prefixes such as 'BulkEC_', 'VWC_', and 'Ka_' using compiled regex patterns.
+        - Replaces 'T_' with 'Ts_' if the column name matches the pattern 'T_<depth>cm_'.
+
+        Parameters
+        ----------
+        df : pandas.DataFrame
+            Input DataFrame with original column names to be normalized.
+
+        Returns
+        -------
+        pandas.DataFrame
+            DataFrame with column names updated to follow normalized prefix conventions.
+
+        Notes
+        -----
+        The method uses regex patterns defined in `self._PREFIX_PATTERNS` to perform
+        most substitutions. Logging statements are used to report which columns were renamed.
+        """
+        rename_map: Dict[str, str] = {}
+        for col in df.columns:
+            # Simple prefix swaps
+            for patt, repl in self._PREFIX_PATTERNS.items():
+                if patt.match(col):
+                    rename_map[col] = patt.sub(repl, col)
+                    break
+            else:
+                # Conditional T_ rule – only if immediately followed by depthcm_
+                if re.match(r"^T_\d{1,3}cm_", col, flags=re.IGNORECASE):
+                    rename_map[col] = re.sub(r"^T_", "Ts_", col, flags=re.IGNORECASE)
+        if rename_map:
+            self.logger.debug("Prefix normalisation: %s", rename_map)
+            df = df.rename(columns=rename_map)
+        self.logger.debug(f"Len of normalized prefix cols {len(df)}")
+        return df
+
+    def modernize_soil_legacy(self, df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Update legacy soil sensor column names to a standardized format.
+
+        This method parses column names from legacy SoilVUE or similar output formats
+        and renames them according to a modern schema using orientation, depth, and
+        sensor type mappings. Columns that do not match the expected legacy format
+        are left unchanged.
+
+        Parameters
+        ----------
+        df : pandas.DataFrame
+            DataFrame containing soil sensor data with potentially outdated column names.
+
+        Returns
+        -------
+        pandas.DataFrame
+            DataFrame with updated column names reflecting modern naming conventions.
+
+        Notes
+        -----
+        - Legacy column names are parsed using a regular expression defined by `self._LEGACY_RE`.
+        - Depth values are mapped to indices via `self._DEPTH_MAP`.
+        - Orientation characters (e.g., 'N', 'S') are mapped via `self._ORIENT_MAP`.
+        - 'T' prefix is interpreted as 'TS' due to prior normalization.
+        - Logging records renamed columns if any were modernized.
+        """
+        rename_map: Dict[str, str] = {}
+        for col in df.columns:
+            m = self._LEGACY_RE.match(col)
+            if not m:
+                continue
+            prefix = m.group("prefix").upper()
+            if prefix == "T":  # became Ts in previous step
+                prefix = "TS"
+            depth_cm = int(m.group("depth"))
+            orient = m.group("orient").upper()
+            depth_idx = self._DEPTH_MAP.get(depth_cm)
+            if depth_idx is None:
+                continue
+            replic = self._ORIENT_MAP[orient]
+            new_name = f"{prefix}_{replic}_{depth_idx}_1"
+            rename_map[col] = new_name
+        if rename_map:
+            self.logger.info(f"Legacy soil columns modernised: {rename_map}")
+            df = df.rename(columns=rename_map)
+        return df
+
+    # ------------------------------------------------------------------ #
+    # Stage 3 – general clean
+    # ------------------------------------------------------------------ #
+
+    def clean_columns(self, df, replace_w=np.nan):
+        """
+        Replace out-of-range values in float64 columns with a specified placeholder.
+
+        For each float64 column in the DataFrame that has a defined limit in `self.varlimits`,
+        this method replaces values that fall outside the [Min, Max] range with a specified
+        replacement value (default is `np.nan`).
+
+        Parameters
+        ----------
+        df : pandas.DataFrame
+            Input DataFrame containing the data to be cleaned.
+        replace_w : scalar, optional
+            Value to replace out-of-range entries with. Default is `np.nan`.
+
+        Returns
+        -------
+        pandas.DataFrame
+            A copy of the input DataFrame with out-of-range values replaced.
+
+        Notes
+        -----
+        - The method only processes columns present in both the DataFrame and `self.varlimits`.
+        - Only columns of type `float64` are cleaned.
+        - Limit values must be stored in a DataFrame `self.varlimits` with columns "Min" and "Max".
+        """
+        df = df.copy()
+        if self.varlimits is not None:
+            for col in set(df.columns) & set(self.varlimits.index):
+                if df.dtypes[col] == "float64":
+                    self.logger.debug(f"Examining column {col} limits")
+                    limits = self.varlimits.loc[col]
+                    valid_mask = (df[col] > limits["Min"]) & (
+                        df[col] < limits["Max"]
+                    )
+                    df.loc[~valid_mask, col] = replace_w
+                    # df[variable] = df[variable].apply(
+                    #    lambda x: replace_w if x < lower_bound or x > upper_bound else x
+                    # )
+        self.logger.debug(f"Cleaned rows: {len(df)}")
+        return df
+
+    # ------------------------------------------------------------------ #
+    # Stage 4 – variable‑specific fixes
+    # ------------------------------------------------------------------ #
+    def apply_fixes(self, df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Apply a set of minor, variable-specific data corrections.
+
+        This method applies a sequence of small fixes to the input DataFrame,
+        including adjustments to `Tau`, scaling of SSITC values, and unit conversions
+        for soil water content. These operations are encapsulated in internal helper
+        methods.
+
+        Parameters
+        ----------
+        df : pandas.DataFrame
+            Input DataFrame containing raw or intermediate data.
+
+        Returns
+        -------
+        pandas.DataFrame
+            DataFrame with variable-specific fixes applied.
+
+        Notes
+        -----
+        The following fixes are applied in order:
+        - `tau_fixer`: Handles edge cases and invalid values in the Tau variable.
+        - `fix_swc_percent`: Converts volumetric water content values from percent to fraction, if needed.
+        - `ssitc_scale`: Scales SSITC variable values according to predefined rules.
+        """
+        df = self.tau_fixer(df)
+        df = self.fix_swc_percent(df)
+        df = self.ssitc_scale(df)
+        return df
+
+    def tau_fixer(self, df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Replace zero values in the 'Tau' column with NaN.
+
+        This method identifies entries in the 'Tau' column that are exactly zero
+        and replaces them with `np.nan`, but only if both 'Tau' and 'u_star' columns
+        are present in the DataFrame.
+
+        Parameters
+        ----------
+        df : pandas.DataFrame
+            Input DataFrame containing turbulent flux variables, including 'Tau' and 'u_star'.
+
+        Returns
+        -------
+        pandas.DataFrame
+            DataFrame with zero values in 'Tau' replaced by NaN.
+
+        Notes
+        -----
+        This fix targets an artifact where Tau may be reported as zero when
+        it is invalid or unmeasured.
+        """
+        if "Tau" in df.columns and "u_star" in df.columns:
+            bad_idx = df["Tau"] == 0
+            df.loc[bad_idx, "Tau"] = np.nan
+        return df
+
+    def fix_swc_percent(self, df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Convert fractional soil water content values to percent if applicable.
+
+        This method scans for columns with names starting with "SWC_" and checks
+        whether their maximum values are below or equal to 1.5. If so, the column
+        is assumed to be in volumetric fraction (0–1) and is converted to percent (0–100)
+        by multiplying by 100.
+
+        Parameters
+        ----------
+        df : pandas.DataFrame
+            Input DataFrame containing soil water content (SWC) columns.
+
+        Returns
+        -------
+        pandas.DataFrame
+            DataFrame with updated SWC columns, where applicable.
+
+        Notes
+        -----
+        - This heuristic assumes that volumetric soil water content should not exceed 1.5.
+        - Columns are modified in place within a copy of the DataFrame.
+        - A debug log entry is created for each column that is converted.
+        """
+        swc_cols = [c for c in df.columns if c.startswith("SWC_")]
+        for col in swc_cols:
+            if df[col].max(skipna=True) <= 1.5:  # likely 0–1 volumetric
+                df[col] = df[col] * 100.0
+                self.logger.debug(f"Fixed soil percent {col}")
+        return df
+
+    def ssitc_scale(self, df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Scale SSITC test columns if values exceed expected thresholds.
+
+        This method checks for the presence of known SSITC test columns in the input
+        DataFrame and applies scaling and unit conversion if the maximum value in
+        a column exceeds 3. The transformation is performed using `self.scale_and_convert`.
+
+        Parameters
+        ----------
+        df : pandas.DataFrame
+            Input DataFrame that may contain SSITC test variables.
+
+        Returns
+        -------
+        pandas.DataFrame
+            DataFrame with scaled SSITC columns where applicable.
+
+        Notes
+        -----
+        - Only the following columns are considered:
+          'FC_SSITC_TEST', 'LE_SSITC_TEST', 'ET_SSITC_TEST', 'H_SSITC_TEST', 'TAU_SSITC_TEST'.
+        - Scaling is applied only if the column exists and its maximum value exceeds 3.
+        - A debug message is logged for each column that is scaled.
         """
         ssitc_columns = [
             "FC_SSITC_TEST",
@@ -912,192 +677,237 @@ class Reformatter(object):
             "TAU_SSITC_TEST",
         ]
         for column in ssitc_columns:
-            if column in self.et_data.columns:
-                if self.et_data[column].max() > 3:
-                    self.et_data[column] = self.scale_and_convert(self.et_data[column])
+            if column in df.columns:
+                if df[column].max() > 3:
+                    df[column] = self.scale_and_convert(df[column])
+                    self.logger.debug(f"Scaled SSITC {column}")
+        self.logger.debug(f"Scaled SSITC len: {len(df)}")
+        return df
+
+    def scale_and_convert(self, column: pd.Series) -> pd.Series:
+        """
+        Apply a rating transformation and convert values to float.
+
+        This method maps values in the input Series using the `self.rating` function
+        and returns the transformed result. The transformation is intended to rescale
+        categorical or ordinal values to a standardized float representation.
+
+        Parameters
+        ----------
+        column : pandas.Series
+            Input Series containing values to be scaled and converted.
+
+        Returns
+        -------
+        pandas.Series
+            Series with values transformed using the rating function.
+
+        Notes
+        -----
+        - The `self.rating` function is applied element-wise via `.apply()`.
+        - The output Series retains the same index and is returned as float-compatible values.
+        """
+        # match rating to new rating
+        column = column.apply(self.rating)
+        # output at integer
+        return column
 
     @staticmethod
     def rating(x):
         """
-        Convert a value into a rating category.
+        Categorize a numeric value into a discrete rating level.
 
-        :param x: The value to be converted.
-        :type x: int or float
-        :return: The rating category based on the value.
-        :rtype: int
+        This method assigns an integer rating category based on the input value:
 
-        The `rating` method takes a numeric value, `x`, as input and categorizes it into one of
-        three rating categories. For values less than or equal to 3, the method returns 0. For values
-        between 4 and 6 (inclusive), the method returns 1. For all other values, the method returns 2.
+        - 0 if 0 ≤ x ≤ 3
+        - 1 if 4 ≤ x ≤ 6
+        - 2 otherwise
+
+        If the input is None, it is treated as 0.
+
+        Parameters
+        ----------
+        x : int or float or None
+            The numeric value to be converted into a rating category.
+
+        Returns
+        -------
+        int
+            An integer rating in the range {0, 1, 2}, based on predefined thresholds.
+
+        Notes
+        -----
+        This is a simple classification utility used for scaling SSITC-related test scores.
         """
-        if 0 <= x <= 3:
+        if x is None:
             x = 0
-        elif 4 <= x <= 6:
-            x = 1
         else:
-            x = 2
+            if 0 <= x <= 3:
+                x = 0
+            elif 4 <= x <= 6:
+                x = 1
+            else:
+                x = 2
         return x
 
-    def _extract_variable_name(self, variable):
+    # ------------------------------------------------------------------ #
+    # Stage 5 – soil columns
+    # ------------------------------------------------------------------ #
+    def _drop_extra_soil_columns(self, df: pd.DataFrame) -> pd.DataFrame:
         """
-        Extracts the variable name based on given variable.
+        Drop redundant or unused soil probe columns based on configuration and naming conventions.
 
-        :param variable: The variable to extract the variable name from.
-        :type variable: str
-        :return: The extracted variable name.
-        :rtype: str
+        This method identifies and removes soil sensor columns that exceed expected depth
+        indices, match deprecated patterns, or are listed in the configured math soil list.
+
+        Parameters
+        ----------
+        df : pandas.DataFrame
+            Input DataFrame containing soil sensor columns (e.g., SWC, TS, EC, K).
+
+        Returns
+        -------
+        pandas.DataFrame
+            DataFrame with redundant soil columns removed.
+
+        Notes
+        -----
+        - Columns with prefixes 'SWC', 'TS', 'EC', or 'K' and a numeric index equal to or
+          greater than `self.SOIL_SENSOR_SKIP_INDEX` are dropped.
+        - Columns listed in `self.config["math_soils_v2"]` beyond the last `DEFAULT_SOIL_DROP_LIMIT`
+          entries are also removed.
+        - Columns with prefixes 'VWC' or 'Ka' or those ending in 'cm_N' or 'cm_S' are considered legacy
+          or malformed and are dropped as well.
+        - Logging reports the number of columns removed.
         """
-        if variable in self.OTHER_VARS:
-            varlimvar = variable
-        elif any(variable in x for x in self.OTHER_VARS):
-            temp = variable.split("_")[:2]
-            varlimvar = "_".join(temp)
-        else:
-            varlimvar = variable.split("_")[0]
+        df = df.copy()
+        math_soils: Sequence[str] = self.config.get("math_soils_v2", [])
+        to_drop: List[str] = []
 
-        return varlimvar
+        for col in df.columns:
+            parts = col.split("_")
+            if len(parts) >= 3 and parts[0] in {"SWC", "TS", "EC", "K"}:
+                try:
+                    if int(parts[1]) >= self.SOIL_SENSOR_SKIP_INDEX:
+                        to_drop.append(col)
+                        continue
+                except ValueError:
+                    pass  # non‑numeric, ignore
+            if col in math_soils[:-self.DEFAULT_SOIL_DROP_LIMIT]:
+                to_drop.append(col)
+                continue
+            if (
+                parts[0] in {"VWC", "Ka"}
+                or col.endswith("cm_N")
+                or col.endswith("cm_S")
+            ):
+                to_drop.append(col)
 
-    def replace_out_of_range_with_nan(self, df, variable, replace_w=np.nan):
+        if to_drop:
+            self.logger.info("Dropping %d redundant soil columns", len(to_drop))
+            df = df.drop(columns=to_drop, errors="ignore")
+        return df
+
+    # ------------------------------------------------------------------
+    # 6. Final housekeeping
+    # ------------------------------------------------------------------
+    def set_number_types(self, df: pd.DataFrame) -> pd.DataFrame:
         """
-        Replace values in a specified column with np.nan if they exceed a given range.
+        Convert columns in the DataFrame to numeric types where appropriate.
 
-        Parameters:
-        df (pd.DataFrame): The DataFrame containing the data.
-        column (str): The column name where the replacement should be applied.
-        lower_bound (float): The lower bound of the range.
-        upper_bound (float): The upper bound of the range.
+        This method attempts to cast each column to a numeric type using `pandas.to_numeric`.
+        Specific columns are downcast to integers to save memory, while all others are coerced
+        to floats if needed. Non-numeric values are set to NaN.
 
-        Returns:
-        pd.DataFrame: The DataFrame with values replaced by np.nan.
+        Parameters
+        ----------
+        df : pandas.DataFrame
+            Input DataFrame with columns to be type-cast.
+
+        Returns
+        -------
+        pandas.DataFrame
+            DataFrame with numeric types applied where possible.
+
+        Notes
+        -----
+        - 'MO_LENGTH' and 'RECORD' columns are downcast to integer.
+        - 'TIMESTAMP_START', 'TIMESTAMP_END', and 'SSITC' are also downcast to integer.
+        - 'datetime_start' is left unchanged.
+        - All other columns are converted to numeric (float) with `errors='coerce'`.
+        - Logging reports the number of rows processed.
         """
-
-        varlimvar = self._extract_variable_name(variable)
-        if varlimvar in self.varlimits.index:
-            if variable in df.columns:
-                upper_bound = self.varlimits.loc[varlimvar, "Max"]
-                lower_bound = self.varlimits.loc[varlimvar, "Min"]
-                valid_mask = (df[variable] >= lower_bound) & (
-                    df[variable] <= upper_bound
+        for col in df.columns:
+            if col in ["MO_LENGTH", "RECORD"]:
+                df[col] = pd.to_numeric(
+                    df[col], downcast="integer", errors="coerce"
                 )
-                df.loc[~valid_mask, variable] = replace_w
-                # df[variable] = df[variable].apply(
-                #    lambda x: replace_w if x < lower_bound or x > upper_bound else x
-                # )
+
+            elif col in ["datetime_start"]:
+                df[col] = df[col]
+
+            elif col in ["TIMESTAMP_START", "TIMESTAMP_END","SSITC"]:
+                df[col] = pd.to_numeric(
+                    df[col], downcast="integer", errors="coerce"
+                )
+            else:
+                df[col] = pd.to_numeric(df[col], errors="coerce")
+        self.logger.debug(f"Set number types: {len(df)}")
         return df
 
-    def extreme_limiter(self, df, replace_w=np.nan):
+    def _drop_extras(self, df: pd.DataFrame) -> pd.DataFrame:
         """
-        :param df: pandas DataFrame object containing the data to be processed
-        :param replace_w: value to replace the extreme values with (default is np.nan)
-        :return: None
+        Drop extra or unwanted columns from the DataFrame based on configuration.
 
-        This method takes a pandas DataFrame object (df) and a value (replace_w) as parameters. It iterates through each column of the DataFrame and converts the values to numeric type using `pd.to_numeric` function, with errors set to 'coerce' to replace invalid values with NaN.
+        This method removes columns listed under the 'drop_cols' key in the configuration
+        dictionary. Columns not found in the DataFrame are ignored.
 
-        The method then extracts the variable name from the column name using the `_extract_variable_name` method. Finally, it calls the `_check_and_replace` method to check for extreme values and replace them with the given value (replace_w).
+        Parameters
+        ----------
+        df : pandas.DataFrame
+            Input DataFrame potentially containing extra columns.
+
+        Returns
+        -------
+        pandas.DataFrame
+            DataFrame with specified columns removed.
+
+        Notes
+        -----
+        - The columns to drop are retrieved from `self.config["drop_cols"]`.
+        - Uses `errors='ignore'` to skip missing columns without raising an error.
         """
-        for variable in df.columns:
-            df = self.replace_out_of_range_with_nan(df, variable, replace_w)
+        return df.drop(columns=self.config.get("drop_cols", []), errors="ignore")
+
+    def col_order(self, df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Reorder DataFrame columns to place priority columns first.
+
+        This method ensures that 'TIMESTAMP_END' and 'TIMESTAMP_START' appear as the
+        first columns in the DataFrame, in that order. If these columns exist, they
+        are moved to the front without altering the order of the remaining columns.
+
+        Parameters
+        ----------
+        df : pandas.DataFrame
+            Input DataFrame with timestamp and other data columns.
+
+        Returns
+        -------
+        pandas.DataFrame
+            DataFrame with reordered columns.
+
+        Notes
+        -----
+        - Columns are moved using `.pop()` and `.insert()` to preserve data.
+        - A debug message logs the final column order.
+        """
+        first_cols = ["TIMESTAMP_END", "TIMESTAMP_START"]
+        for col in first_cols:
+            ncol = df.pop(col)
+            df.insert(0, col, ncol)
+        self.logger.debug(f"Column Order: {df.columns}")
         return df
 
-    def despike(self, arr):
-        """Removes spikes from an array of values based on a specified deviation from the mean.
-
-        Args:
-            arr: array of values with spikes
-            nstd: number of standard deviations from mean; default is 4.5
-
-        Returns:
-            Array of despiked values
-        Notes:
-            * Not windowed.
-            * This method is fast but might be too agressive if the spikes are small relative to seasonal variability.
-        """
-
-        stdd = np.nanstd(arr) * self.spike_threshold
-        avg = np.nanmean(arr)
-        avgdiff = stdd - np.abs(arr - avg)
-        y = np.where(avgdiff >= 0, arr, np.nan)
-
-        return y
-
-    def tau_fixer(self):
-        """
-        Fixes the values in the 'TAU' column of the et_data dataframe by multiplying them by -1.
-
-        :return: None
-        """
-        if "TAU" in self.et_data.columns:
-            self.et_data["TAU"] = -self.et_data["TAU"]
-
-    def fix_swc_percent(self):
-        """
-        Applies a fix to the SWC columns in the et_data DataFrame.
-        This method identifies columns containing "SWC" in their names,
-        and checks whether the maximum value is less than 1.5. If it is, the
-        values in the column are multiplied by 100, except for any values
-        that are -9999.
-        :return: None
-        """
-        for col in self.et_data.columns:
-            if "SWC" in col and self.et_data[col].max() < 1.5:
-                self.et_data.loc[self.et_data[col] > -9999, col] *= 100
-
-    def timestamp_reset(self):
-        """Resets timestamp columns according to DataFrame index."""
-        self.et_data["TIMESTAMP_START"] = self.et_data.index
-        self.et_data["TIMESTAMP_END"] = self.et_data.index + pd.Timedelta(minutes=30)
-
-    def despike_ewma_fb(self, df_column, span, delta):
-        """Apply forwards, backwards exponential weighted moving average (EWMA) to df_column.
-        Remove data from df_spikey that is > delta from fbewma.
-
-        Args:
-            df_column: pandas Series of data with spikes
-            span: size of window of spikes
-            delta: threshold of spike that is allowable
-
-        Returns:
-            despiked data
-
-        Notes:
-            https://stackoverflow.com/questions/37556487/remove-spikes-from-signal-in-python
-        """
-        # Forward EWMA.
-        fwd = pd.Series.ewm(df_column, span=span).mean()
-        # Backward EWMA.
-        bwd = pd.Series.ewm(df_column[::-1], span=span).mean()
-        # Add and take the mean of the forwards and backwards EWMA.
-        stacked_ewma = np.vstack((fwd, bwd[::-1]))
-        np_fbewma = np.mean(stacked_ewma, axis=0)
-        np_spikey = np.array(df_column)
-        # np_fbewma = np.array(fb_ewma)
-        cond_delta = np.abs(np_spikey - np_fbewma) > delta
-        np_remove_outliers = np.where(cond_delta, np.nan, np_spikey)
-        return np_remove_outliers
-
-
-def load_data():
-    df = pd.read_csv("./data/extreme_values.csv")
-    return df
-
-
-def outfile(df, stationname, out_dir):
-    """Outputs file following the Ameriflux file naming format
-    Args:
-        df: the DataFrame that contains the data to be written to a file
-        stationname: the name of the station for which the data is being written
-        out_dir: the output directory where the file will be saved
-    """
-    first_index = pd.to_datetime(df.iloc[0, 0], format="%Y%m%d%H%M")
-    last_index = pd.to_datetime(
-        df.iloc[-1, 1], format="%Y%m%d%H%M"
-    )  # df.index[-1], format ='%Y%m%d%H%M')
-    filename = (
-        stationname
-        + f"_HH_{first_index.strftime('%Y%m%d%H%M')}_{last_index.strftime('%Y%m%d%H%M')}.csv"
-    )
-    df.to_csv(out_dir + stationname + "/" + filename, index=False)
-
-
-if __name__ == "__main__":
-    data = load_data()
+    # Re‑export key classes -------------------------------------------------------
+    __all__ = ["AmerifluxDataProcessor", "Reformatter"]

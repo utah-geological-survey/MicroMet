@@ -1,0 +1,12 @@
+sphinx
+sphinx-autodoc-typehints
+sphinx-rtd-theme
+pandas
+numpy
+plotly
+matplotlib
+scipy
+statsmodels
+scikit-learn
+pyyaml
+pytest

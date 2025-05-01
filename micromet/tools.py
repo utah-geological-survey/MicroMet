@@ -1,37 +1,55 @@
-import matplotlib.pyplot as plt
 from scipy.signal import find_peaks
 import pandas as pd
 import numpy as np
-import plotly.figure_factory as ff
-from datetime import datetime
+
 import plotly.graph_objects as go
 from typing import Union, List, Dict
 
-import geopandas as gpd
-import rasterio
 from rasterio.transform import from_origin
 from scipy.stats import gaussian_kde
-
-from sklearn.metrics import mean_squared_error
 import matplotlib.pyplot as plt
-from scipy.stats import linregress
-import statsmodels.api as sm
+
 
 
 def find_irr_dates(
     df, swc_col="SWC_1_1_1", do_plot=False, dist=20, height=30, prom=0.6
 ):
     """
-    Finds irrigation dates within a DataFrame.
+    Detect irrigation events from soil water content time series.
 
-    :param df: A pandas DataFrame containing the data.
-    :param swc_col: String. The column name in 'df' containing the soil water content data. Should be in units of percent and not a decimal; Default is 'SWC_1_1_1'.
-    :param do_plot: Boolean. Whether to plot the irrigation dates on a graph. Default is False.
-    :param dist: Integer. The minimum number of time steps between peaks in 'swc_col'. Default is 20.
-    :param height: Integer. The minimum height (vertical distance) of the peaks in 'swc_col'. Default is 30(%).
-    :param prom: Float. The minimum prominence of the peaks in 'swc_col'. Default is 0.6.
+    Identifies peaks in soil water content (SWC) data that are likely associated
+    with irrigation events. Detection is based on peak prominence, height, and distance.
+    Optionally plots the full time series with detected events highlighted.
 
-    :return: A tuple containing the irrigation dates and the corresponding soil water content values.
+    Parameters
+    ----------
+    df : pandas.DataFrame
+        Input DataFrame containing time-indexed soil water content data.
+    swc_col : str, optional
+        Column name containing soil water content values in percent
+        (not fractional). Default is 'SWC_1_1_1'.
+    do_plot : bool, optional
+        If True, generates a plot showing SWC time series and identified peaks.
+        Default is False.
+    dist : int, optional
+        Minimum number of time steps between detected peaks. Default is 20.
+    height : float, optional
+        Minimum height of peaks to be considered irrigation events. Default is 30 (%).
+    prom : float, optional
+        Minimum prominence of the peaks. Default is 0.6.
+
+    Returns
+    -------
+    dates_of_irr : pandas.DatetimeIndex
+        Timestamps corresponding to detected irrigation events.
+    swc_during_irr : pandas.Series
+        Soil water content values at the detected peaks.
+
+    Notes
+    -----
+    - Only data from April through October (inclusive) is considered as the irrigation season.
+    - Uses `scipy.signal.find_peaks` for peak detection.
+    - Intended for use with SWC data measured in percent, not fractional values.
     """
     df_irr_season = df[df.index.month.isin([4, 5, 6, 7, 8, 9, 10])]
     peaks, _ = find_peaks(

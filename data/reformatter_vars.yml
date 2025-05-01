@@ -142,7 +142,7 @@ col_name_match:
   BulkEC_75cm_Avg: EC_3_8_1
   BulkEC_100cm_Avg: EC_3_9_1
 
-met_renames:
+renames_met:
   ALB: ALB_1_1_2
   NETRAD: NETRAD_1_1_2
   SW_IN: SW_IN_1_1_2
@@ -221,15 +221,6 @@ met_renames:
   Ka_1_7_1: K_3_7_1
   Ka_1_8_1: K_3_8_1
   Ka_1_9_1: K_3_9_1
-  K_1_1_1: K_3_1_1
-  K_1_2_1: K_3_2_1
-  K_1_3_1: K_3_3_1
-  K_1_4_1: K_3_4_1
-  K_1_5_1: K_3_5_1
-  K_1_6_1: K_3_6_1
-  K_1_7_1: K_3_7_1
-  K_1_8_1: K_3_8_1
-  K_1_9_1: K_3_9_1
   TS_3_1_1: TS_3_1_1
   TS_3_2_1: TS_3_2_1
   TS_3_3_1: TS_3_3_1

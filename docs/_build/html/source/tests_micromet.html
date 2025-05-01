@@ -1,0 +1,264 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>tests_micromet package &mdash; micromet 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=01f34227"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            micromet
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <!-- Local TOC -->
+              <div class="local-toc"><ul>
+<li><a class="reference internal" href="#">tests_micromet package</a><ul>
+<li><a class="reference internal" href="#submodules">Submodules</a></li>
+<li><a class="reference internal" href="#tests-micromet-meteolib-tests-module">tests_micromet.meteolib_tests module</a></li>
+<li><a class="reference internal" href="#module-tests_micromet.test_converter">tests_micromet.test_converter module</a><ul>
+<li><a class="reference internal" href="#tests_micromet.test_converter.cfg_dict"><code class="docutils literal notranslate"><span class="pre">cfg_dict()</span></code></a></li>
+<li><a class="reference internal" href="#tests_micromet.test_converter.mod"><code class="docutils literal notranslate"><span class="pre">mod()</span></code></a></li>
+<li><a class="reference internal" href="#tests_micromet.test_converter.monkeypatched_reformatter"><code class="docutils literal notranslate"><span class="pre">monkeypatched_reformatter()</span></code></a></li>
+<li><a class="reference internal" href="#tests_micromet.test_converter.patch_infer_datetime_col"><code class="docutils literal notranslate"><span class="pre">patch_infer_datetime_col()</span></code></a></li>
+<li><a class="reference internal" href="#tests_micromet.test_converter.test_fix_timestamps_resample_and_interpolate"><code class="docutils literal notranslate"><span class="pre">test_fix_timestamps_resample_and_interpolate()</span></code></a></li>
+<li><a class="reference internal" href="#tests_micromet.test_converter.test_header_rows_tidy_file"><code class="docutils literal notranslate"><span class="pre">test_header_rows_tidy_file()</span></code></a></li>
+<li><a class="reference internal" href="#tests_micromet.test_converter.test_header_rows_toa5"><code class="docutils literal notranslate"><span class="pre">test_header_rows_toa5()</span></code></a></li>
+<li><a class="reference internal" href="#tests_micromet.test_converter.test_prefix_and_legacy_conversion"><code class="docutils literal notranslate"><span class="pre">test_prefix_and_legacy_conversion()</span></code></a></li>
+<li><a class="reference internal" href="#tests_micromet.test_converter.test_ssitc_rating"><code class="docutils literal notranslate"><span class="pre">test_ssitc_rating()</span></code></a></li>
+<li><a class="reference internal" href="#tests_micromet.test_converter.test_ssitc_scale_and_rating"><code class="docutils literal notranslate"><span class="pre">test_ssitc_scale_and_rating()</span></code></a></li>
+<li><a class="reference internal" href="#tests_micromet.test_converter.test_swc_scaled_to_percent"><code class="docutils literal notranslate"><span class="pre">test_swc_scaled_to_percent()</span></code></a></li>
+<li><a class="reference internal" href="#tests_micromet.test_converter.test_tau_fixer_sets_zero_to_missing"><code class="docutils literal notranslate"><span class="pre">test_tau_fixer_sets_zero_to_missing()</span></code></a></li>
+<li><a class="reference internal" href="#tests_micromet.test_converter.test_to_dataframe_sorted_and_coerced"><code class="docutils literal notranslate"><span class="pre">test_to_dataframe_sorted_and_coerced()</span></code></a></li>
+<li><a class="reference internal" href="#tests_micromet.test_converter.test_varlimits_clipping"><code class="docutils literal notranslate"><span class="pre">test_varlimits_clipping()</span></code></a></li>
+<li><a class="reference internal" href="#tests_micromet.test_converter.tmp_cfg"><code class="docutils literal notranslate"><span class="pre">tmp_cfg()</span></code></a></li>
+<li><a class="reference internal" href="#tests_micromet.test_converter.var_limits_csv"><code class="docutils literal notranslate"><span class="pre">var_limits_csv()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#tests-micromet-test-ffp-module">tests_micromet.test_ffp module</a></li>
+<li><a class="reference internal" href="#tests-micromet-test-outlier-removal-module">tests_micromet.test_outlier_removal module</a></li>
+<li><a class="reference internal" href="#tests-micromet-test-soil-heat-module">tests_micromet.test_soil_heat module</a></li>
+<li><a class="reference internal" href="#module-tests_micromet">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</div>
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">micromet</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">tests_micromet package</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/source/tests_micromet.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="tests-micromet-package">
+<h1>tests_micromet package<a class="headerlink" href="#tests-micromet-package" title="Link to this heading"></a></h1>
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Link to this heading"></a></h2>
+</section>
+<section id="tests-micromet-meteolib-tests-module">
+<h2>tests_micromet.meteolib_tests module<a class="headerlink" href="#tests-micromet-meteolib-tests-module" title="Link to this heading"></a></h2>
+</section>
+<section id="module-tests_micromet.test_converter">
+<span id="tests-micromet-test-converter-module"></span><h2>tests_micromet.test_converter module<a class="headerlink" href="#module-tests_micromet.test_converter" title="Link to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="tests_micromet.test_converter.cfg_dict">
+<span class="sig-prename descclassname"><span class="pre">tests_micromet.test_converter.</span></span><span class="sig-name descname"><span class="pre">cfg_dict</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tests_micromet/test_converter.html#cfg_dict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tests_micromet.test_converter.cfg_dict" title="Link to this definition"></a></dt>
+<dd><p>A minimal YAML config that exercises every pipeline branch.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tests_micromet.test_converter.mod">
+<span class="sig-prename descclassname"><span class="pre">tests_micromet.test_converter.</span></span><span class="sig-name descname"><span class="pre">mod</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tests_micromet/test_converter.html#mod"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tests_micromet.test_converter.mod" title="Link to this definition"></a></dt>
+<dd><p>Import the module that contains <cite>Reformatter</cite> once for all tests.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tests_micromet.test_converter.monkeypatched_reformatter">
+<span class="sig-prename descclassname"><span class="pre">tests_micromet.test_converter.</span></span><span class="sig-name descname"><span class="pre">monkeypatched_reformatter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">monkeypatch</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mod</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tmp_cfg</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tests_micromet/test_converter.html#monkeypatched_reformatter"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tests_micromet.test_converter.monkeypatched_reformatter" title="Link to this definition"></a></dt>
+<dd><p>Create a Reformatter instance with external helpers &amp; constants patched so
+the tests do not rely on any other project files.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tests_micromet.test_converter.patch_infer_datetime_col">
+<span class="sig-prename descclassname"><span class="pre">tests_micromet.test_converter.</span></span><span class="sig-name descname"><span class="pre">patch_infer_datetime_col</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">monkeypatch</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tests_micromet/test_converter.html#patch_infer_datetime_col"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tests_micromet.test_converter.patch_infer_datetime_col" title="Link to this definition"></a></dt>
+<dd><p>Replace _infer_datetime_col with a trivial implementation that always
+returns ‘timestamp’.  This keeps the test focused on DataFrame handling
+instead of column-detection logic (which is tested separately).</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tests_micromet.test_converter.test_fix_timestamps_resample_and_interpolate">
+<span class="sig-prename descclassname"><span class="pre">tests_micromet.test_converter.</span></span><span class="sig-name descname"><span class="pre">test_fix_timestamps_resample_and_interpolate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">monkeypatched_reformatter</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tests_micromet/test_converter.html#test_fix_timestamps_resample_and_interpolate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tests_micromet.test_converter.test_fix_timestamps_resample_and_interpolate" title="Link to this definition"></a></dt>
+<dd><p>_fix_timestamps should:</p>
+<ol class="arabic simple">
+<li><p>Parse TIMESTAMP strings → datetime_start.</p></li>
+<li><p>Drop rows with bad / future timestamps.</p></li>
+<li><p>Deduplicate on datetime_start (first wins).</p></li>
+<li><p>Resample to 30-min regular grid.</p></li>
+<li><p>Interpolate a single missing step (limit=1).</p></li>
+</ol>
+<p>Expected grid for our sample: 00:00, 00:30, 01:00 on 1 Jan 2025.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tests_micromet.test_converter.test_header_rows_tidy_file">
+<span class="sig-prename descclassname"><span class="pre">tests_micromet.test_converter.</span></span><span class="sig-name descname"><span class="pre">test_header_rows_tidy_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tmp_path</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tests_micromet/test_converter.html#test_header_rows_tidy_file"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tests_micromet.test_converter.test_header_rows_tidy_file" title="Link to this definition"></a></dt>
+<dd><p>A tidy (non-TOA5) file should yield header_rows == 0.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tests_micromet.test_converter.test_header_rows_toa5">
+<span class="sig-prename descclassname"><span class="pre">tests_micromet.test_converter.</span></span><span class="sig-name descname"><span class="pre">test_header_rows_toa5</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tmp_path</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tests_micromet/test_converter.html#test_header_rows_toa5"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tests_micromet.test_converter.test_header_rows_toa5" title="Link to this definition"></a></dt>
+<dd><p>A TOA5 file must keep the default four header rows.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tests_micromet.test_converter.test_prefix_and_legacy_conversion">
+<span class="sig-prename descclassname"><span class="pre">tests_micromet.test_converter.</span></span><span class="sig-name descname"><span class="pre">test_prefix_and_legacy_conversion</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">monkeypatched_reformatter</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tests_micromet/test_converter.html#test_prefix_and_legacy_conversion"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tests_micromet.test_converter.test_prefix_and_legacy_conversion" title="Link to this definition"></a></dt>
+<dd><p><a href="#id1"><span class="problematic" id="id2">BulkEC_</span></a>, <a href="#id3"><span class="problematic" id="id4">VWC_</span></a>, <a href="#id5"><span class="problematic" id="id6">Ka_</span></a>, and T_*cm_* must be normalised AND converted to the
+modern soil naming scheme.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tests_micromet.test_converter.test_ssitc_rating">
+<span class="sig-prename descclassname"><span class="pre">tests_micromet.test_converter.</span></span><span class="sig-name descname"><span class="pre">test_ssitc_rating</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">monkeypatched_reformatter</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tests_micromet/test_converter.html#test_ssitc_rating"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tests_micromet.test_converter.test_ssitc_rating" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tests_micromet.test_converter.test_ssitc_scale_and_rating">
+<span class="sig-prename descclassname"><span class="pre">tests_micromet.test_converter.</span></span><span class="sig-name descname"><span class="pre">test_ssitc_scale_and_rating</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">monkeypatched_reformatter</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tests_micromet/test_converter.html#test_ssitc_scale_and_rating"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tests_micromet.test_converter.test_ssitc_scale_and_rating" title="Link to this definition"></a></dt>
+<dd><dl class="simple">
+<dt>FC_SSITC_TEST values should be re-rated:</dt><dd><p>0–3   → 0
+4–6   → 1
+≥7    → 2</p>
+</dd>
+</dl>
+<p>The conversion happens only when the column’s max() &gt; 3.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tests_micromet.test_converter.test_swc_scaled_to_percent">
+<span class="sig-prename descclassname"><span class="pre">tests_micromet.test_converter.</span></span><span class="sig-name descname"><span class="pre">test_swc_scaled_to_percent</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">monkeypatched_reformatter</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tests_micromet/test_converter.html#test_swc_scaled_to_percent"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tests_micromet.test_converter.test_swc_scaled_to_percent" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tests_micromet.test_converter.test_tau_fixer_sets_zero_to_missing">
+<span class="sig-prename descclassname"><span class="pre">tests_micromet.test_converter.</span></span><span class="sig-name descname"><span class="pre">test_tau_fixer_sets_zero_to_missing</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">monkeypatched_reformatter</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tests_micromet/test_converter.html#test_tau_fixer_sets_zero_to_missing"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tests_micromet.test_converter.test_tau_fixer_sets_zero_to_missing" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tests_micromet.test_converter.test_to_dataframe_sorted_and_coerced">
+<span class="sig-prename descclassname"><span class="pre">tests_micromet.test_converter.</span></span><span class="sig-name descname"><span class="pre">test_to_dataframe_sorted_and_coerced</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tmp_path</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tests_micromet/test_converter.html#test_to_dataframe_sorted_and_coerced"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tests_micromet.test_converter.test_to_dataframe_sorted_and_coerced" title="Link to this definition"></a></dt>
+<dd><p>The returned DataFrame should
+* contain parsed, coerced <cite>datetime64[ns]</cite> values
+* be sorted in ascending time order
+* preserve other columns as-is</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tests_micromet.test_converter.test_varlimits_clipping">
+<span class="sig-prename descclassname"><span class="pre">tests_micromet.test_converter.</span></span><span class="sig-name descname"><span class="pre">test_varlimits_clipping</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">monkeypatch</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mod</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tmp_cfg</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">var_limits_csv</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tests_micromet/test_converter.html#test_varlimits_clipping"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tests_micromet.test_converter.test_varlimits_clipping" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tests_micromet.test_converter.tmp_cfg">
+<span class="sig-prename descclassname"><span class="pre">tests_micromet.test_converter.</span></span><span class="sig-name descname"><span class="pre">tmp_cfg</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tmp_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cfg_dict</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tests_micromet/test_converter.html#tmp_cfg"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tests_micromet.test_converter.tmp_cfg" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tests_micromet.test_converter.var_limits_csv">
+<span class="sig-prename descclassname"><span class="pre">tests_micromet.test_converter.</span></span><span class="sig-name descname"><span class="pre">var_limits_csv</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tmp_path</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tests_micromet/test_converter.html#var_limits_csv"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tests_micromet.test_converter.var_limits_csv" title="Link to this definition"></a></dt>
+<dd><p>Provide hard min/max limits for one variable to test clipping.</p>
+</dd></dl>
+
+</section>
+<section id="tests-micromet-test-ffp-module">
+<h2>tests_micromet.test_ffp module<a class="headerlink" href="#tests-micromet-test-ffp-module" title="Link to this heading"></a></h2>
+</section>
+<section id="tests-micromet-test-outlier-removal-module">
+<h2>tests_micromet.test_outlier_removal module<a class="headerlink" href="#tests-micromet-test-outlier-removal-module" title="Link to this heading"></a></h2>
+</section>
+<section id="tests-micromet-test-soil-heat-module">
+<h2>tests_micromet.test_soil_heat module<a class="headerlink" href="#tests-micromet-test-soil-heat-module" title="Link to this heading"></a></h2>
+</section>
+<section id="module-tests_micromet">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-tests_micromet" title="Link to this heading"></a></h2>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Paul Inkenbrandt &amp; Kathryn Ladig.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

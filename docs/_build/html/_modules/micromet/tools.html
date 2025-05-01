@@ -1,0 +1,716 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>micromet.tools &mdash; micromet 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=01f34227"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            micromet
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <!-- Local TOC -->
+              <div class="local-toc"></div>
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">micromet</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">micromet.tools</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for micromet.tools</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">scipy.signal</span><span class="w"> </span><span class="kn">import</span> <span class="n">find_peaks</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">plotly.graph_objects</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">go</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Union</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Dict</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">rasterio.transform</span><span class="w"> </span><span class="kn">import</span> <span class="n">from_origin</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">scipy.stats</span><span class="w"> </span><span class="kn">import</span> <span class="n">gaussian_kde</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+
+
+
+<div class="viewcode-block" id="find_irr_dates">
+<a class="viewcode-back" href="../../source/micromet.html#micromet.tools.find_irr_dates">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">find_irr_dates</span><span class="p">(</span>
+    <span class="n">df</span><span class="p">,</span> <span class="n">swc_col</span><span class="o">=</span><span class="s2">&quot;SWC_1_1_1&quot;</span><span class="p">,</span> <span class="n">do_plot</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">dist</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span> <span class="n">prom</span><span class="o">=</span><span class="mf">0.6</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Detect irrigation events from soil water content time series.</span>
+
+<span class="sd">    Identifies peaks in soil water content (SWC) data that are likely associated</span>
+<span class="sd">    with irrigation events. Detection is based on peak prominence, height, and distance.</span>
+<span class="sd">    Optionally plots the full time series with detected events highlighted.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    df : pandas.DataFrame</span>
+<span class="sd">        Input DataFrame containing time-indexed soil water content data.</span>
+<span class="sd">    swc_col : str, optional</span>
+<span class="sd">        Column name containing soil water content values in percent</span>
+<span class="sd">        (not fractional). Default is &#39;SWC_1_1_1&#39;.</span>
+<span class="sd">    do_plot : bool, optional</span>
+<span class="sd">        If True, generates a plot showing SWC time series and identified peaks.</span>
+<span class="sd">        Default is False.</span>
+<span class="sd">    dist : int, optional</span>
+<span class="sd">        Minimum number of time steps between detected peaks. Default is 20.</span>
+<span class="sd">    height : float, optional</span>
+<span class="sd">        Minimum height of peaks to be considered irrigation events. Default is 30 (%).</span>
+<span class="sd">    prom : float, optional</span>
+<span class="sd">        Minimum prominence of the peaks. Default is 0.6.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    dates_of_irr : pandas.DatetimeIndex</span>
+<span class="sd">        Timestamps corresponding to detected irrigation events.</span>
+<span class="sd">    swc_during_irr : pandas.Series</span>
+<span class="sd">        Soil water content values at the detected peaks.</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    - Only data from April through October (inclusive) is considered as the irrigation season.</span>
+<span class="sd">    - Uses `scipy.signal.find_peaks` for peak detection.</span>
+<span class="sd">    - Intended for use with SWC data measured in percent, not fractional values.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">df_irr_season</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">df</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">month</span><span class="o">.</span><span class="n">isin</span><span class="p">([</span><span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">7</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">9</span><span class="p">,</span> <span class="mi">10</span><span class="p">])]</span>
+    <span class="n">peaks</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">find_peaks</span><span class="p">(</span>
+        <span class="n">df_irr_season</span><span class="p">[</span><span class="n">swc_col</span><span class="p">],</span> <span class="n">distance</span><span class="o">=</span><span class="n">dist</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="n">height</span><span class="p">,</span> <span class="n">prominence</span><span class="o">=</span><span class="p">(</span><span class="n">prom</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="p">)</span>
+    <span class="n">dates_of_irr</span> <span class="o">=</span> <span class="n">df_irr_season</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">peaks</span><span class="p">]</span><span class="o">.</span><span class="n">index</span>
+    <span class="n">swc_during_irr</span> <span class="o">=</span> <span class="n">df_irr_season</span><span class="p">[</span><span class="n">swc_col</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">peaks</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">do_plot</span><span class="p">:</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">df</span><span class="o">.</span><span class="n">index</span><span class="p">,</span> <span class="n">df</span><span class="p">[</span><span class="n">swc_col</span><span class="p">])</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">dates_of_irr</span><span class="p">,</span> <span class="n">swc_during_irr</span><span class="p">,</span> <span class="s2">&quot;x&quot;</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">dates_of_irr</span><span class="p">,</span> <span class="n">swc_during_irr</span></div>
+
+
+
+<div class="viewcode-block" id="find_gaps">
+<a class="viewcode-back" href="../../source/micromet.html#micromet.tools.find_gaps">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">find_gaps</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">columns</span><span class="p">,</span> <span class="n">missing_value</span><span class="o">=-</span><span class="mi">9999</span><span class="p">,</span> <span class="n">min_gap_periods</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Find gaps in time series data where values are either NaN or equal to missing_value</span>
+<span class="sd">    for longer than min_gap_periods.</span>
+
+<span class="sd">    Parameters:</span>
+<span class="sd">    -----------</span>
+<span class="sd">    df : pandas.DataFrame</span>
+<span class="sd">        DataFrame with a time series index of regular frequency</span>
+<span class="sd">    columns : str or list of str</span>
+<span class="sd">        Column(s) to check for gaps</span>
+<span class="sd">    missing_value : numeric, default -9999</span>
+<span class="sd">        Value to consider as missing data alongside NaN</span>
+<span class="sd">    min_gap_periods : int, default 1</span>
+<span class="sd">        Minimum number of consecutive missing periods to be considered a gap</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">    --------</span>
+<span class="sd">    pandas.DataFrame</span>
+<span class="sd">        DataFrame containing gap information with columns:</span>
+<span class="sd">        - gap_start: start datetime of gap</span>
+<span class="sd">        - gap_end: end datetime of gap</span>
+<span class="sd">        - duration_hours: duration of gap in hours</span>
+<span class="sd">        - missing_records: number of missing records in gap</span>
+<span class="sd">        - column: name of column where gap was found</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">columns</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="n">columns</span> <span class="o">=</span> <span class="p">[</span><span class="n">columns</span><span class="p">]</span>
+
+    <span class="c1"># Initialize list to store gap information</span>
+    <span class="n">gaps</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">columns</span><span class="p">:</span>
+        <span class="c1"># Create boolean mask for missing values</span>
+        <span class="n">is_missing</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">col</span><span class="p">]</span><span class="o">.</span><span class="n">isna</span><span class="p">()</span> <span class="o">|</span> <span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="n">col</span><span class="p">]</span> <span class="o">==</span> <span class="n">missing_value</span><span class="p">)</span>
+
+        <span class="c1"># Get the frequency of the time series as a pandas timedelta</span>
+        <span class="n">freq</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">tseries</span><span class="o">.</span><span class="n">frequencies</span><span class="o">.</span><span class="n">to_offset</span><span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">infer_freq</span><span class="p">(</span><span class="n">df</span><span class="o">.</span><span class="n">index</span><span class="p">))</span>
+
+        <span class="c1"># Find runs of missing values</span>
+        <span class="n">missing_runs</span> <span class="o">=</span> <span class="p">(</span><span class="n">is_missing</span> <span class="o">!=</span> <span class="n">is_missing</span><span class="o">.</span><span class="n">shift</span><span class="p">())</span><span class="o">.</span><span class="n">cumsum</span><span class="p">()[</span><span class="n">is_missing</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">missing_runs</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">continue</span>
+
+        <span class="c1"># Group consecutive missing values</span>
+        <span class="k">for</span> <span class="n">run_id</span> <span class="ow">in</span> <span class="n">missing_runs</span><span class="o">.</span><span class="n">unique</span><span class="p">():</span>
+            <span class="n">run_mask</span> <span class="o">=</span> <span class="n">missing_runs</span> <span class="o">==</span> <span class="n">run_id</span>
+            <span class="n">run_indices</span> <span class="o">=</span> <span class="n">missing_runs</span><span class="p">[</span><span class="n">run_mask</span><span class="p">]</span><span class="o">.</span><span class="n">index</span>
+
+            <span class="c1"># Only consider runs longer than min_gap_periods</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">run_indices</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">min_gap_periods</span><span class="p">:</span>
+                <span class="n">gap_start</span> <span class="o">=</span> <span class="n">run_indices</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="n">gap_end</span> <span class="o">=</span> <span class="n">run_indices</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+
+                <span class="c1"># Calculate duration in hours</span>
+                <span class="n">duration_hours</span> <span class="o">=</span> <span class="p">(</span><span class="n">gap_end</span> <span class="o">-</span> <span class="n">gap_start</span><span class="p">)</span><span class="o">.</span><span class="n">total_seconds</span><span class="p">()</span> <span class="o">/</span> <span class="mi">3600</span>
+
+                <span class="n">gaps</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                    <span class="p">{</span>
+                        <span class="s2">&quot;gap_start&quot;</span><span class="p">:</span> <span class="n">gap_start</span><span class="p">,</span>
+                        <span class="s2">&quot;gap_end&quot;</span><span class="p">:</span> <span class="n">gap_end</span><span class="p">,</span>
+                        <span class="s2">&quot;duration_hours&quot;</span><span class="p">:</span> <span class="n">duration_hours</span><span class="p">,</span>
+                        <span class="s2">&quot;missing_records&quot;</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">run_indices</span><span class="p">),</span>
+                        <span class="s2">&quot;column&quot;</span><span class="p">:</span> <span class="n">col</span><span class="p">,</span>
+                    <span class="p">}</span>
+                <span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">gaps</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+            <span class="n">columns</span><span class="o">=</span><span class="p">[</span>
+                <span class="s2">&quot;gap_start&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;gap_end&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;duration_hours&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;missing_records&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;column&quot;</span><span class="p">,</span>
+            <span class="p">]</span>
+        <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">gaps</span><span class="p">)</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="s2">&quot;gap_start&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="plot_gaps">
+<a class="viewcode-back" href="../../source/micromet.html#micromet.tools.plot_gaps">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">plot_gaps</span><span class="p">(</span><span class="n">gaps_df</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="s2">&quot;Time Series Data Gaps&quot;</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Create a Gantt chart visualization of gaps in time series data.</span>
+
+<span class="sd">    Parameters:</span>
+<span class="sd">    -----------</span>
+<span class="sd">    gaps_df : pandas.DataFrame</span>
+<span class="sd">        DataFrame containing gap information as returned by find_gaps()</span>
+<span class="sd">    title : str, default &quot;Time Series Data Gaps&quot;</span>
+<span class="sd">        Title for the plot</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">    --------</span>
+<span class="sd">    plotly.graph_objects.Figure</span>
+<span class="sd">        Interactive Plotly figure showing gaps as a Gantt chart</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">gaps_df</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;No gaps found to plot.&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="c1"># Create figure</span>
+    <span class="n">fig</span> <span class="o">=</span> <span class="n">go</span><span class="o">.</span><span class="n">Figure</span><span class="p">()</span>
+
+    <span class="c1"># Get unique columns and assign colors</span>
+    <span class="n">unique_columns</span> <span class="o">=</span> <span class="n">gaps_df</span><span class="p">[</span><span class="s2">&quot;column&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">unique</span><span class="p">()</span>
+    <span class="c1"># Define a set of colors manually</span>
+    <span class="n">colors</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="s2">&quot;rgb(166,206,227)&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;rgb(31,120,180)&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;rgb(178,223,138)&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;rgb(51,160,44)&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;rgb(251,154,153)&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;rgb(227,26,28)&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;rgb(253,191,111)&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;rgb(255,127,0)&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;rgb(202,178,214)&quot;</span><span class="p">,</span>
+    <span class="p">]</span>
+    <span class="c1"># Cycle through colors if more variables than colors</span>
+    <span class="n">color_map</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
+        <span class="nb">zip</span><span class="p">(</span>
+            <span class="n">unique_columns</span><span class="p">,</span>
+            <span class="p">[</span><span class="n">colors</span><span class="p">[</span><span class="n">i</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="n">colors</span><span class="p">)]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">unique_columns</span><span class="p">))],</span>
+        <span class="p">)</span>
+    <span class="p">)</span>
+
+    <span class="c1"># Add gaps as horizontal bars</span>
+    <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">gaps_df</span><span class="o">.</span><span class="n">iterrows</span><span class="p">():</span>
+        <span class="n">fig</span><span class="o">.</span><span class="n">add_trace</span><span class="p">(</span>
+            <span class="n">go</span><span class="o">.</span><span class="n">Bar</span><span class="p">(</span>
+                <span class="n">x</span><span class="o">=</span><span class="p">[</span><span class="n">row</span><span class="p">[</span><span class="s2">&quot;duration_hours&quot;</span><span class="p">]],</span>
+                <span class="n">y</span><span class="o">=</span><span class="p">[</span><span class="n">row</span><span class="p">[</span><span class="s2">&quot;column&quot;</span><span class="p">]],</span>
+                <span class="n">orientation</span><span class="o">=</span><span class="s2">&quot;h&quot;</span><span class="p">,</span>
+                <span class="n">base</span><span class="o">=</span><span class="p">[(</span><span class="n">row</span><span class="p">[</span><span class="s2">&quot;gap_start&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="o">.</span><span class="n">min</span><span class="p">)</span><span class="o">.</span><span class="n">total_seconds</span><span class="p">()</span> <span class="o">/</span> <span class="mi">3600</span><span class="p">],</span>
+                <span class="n">marker_color</span><span class="o">=</span><span class="n">color_map</span><span class="p">[</span><span class="n">row</span><span class="p">[</span><span class="s2">&quot;column&quot;</span><span class="p">]],</span>
+                <span class="n">name</span><span class="o">=</span><span class="n">row</span><span class="p">[</span><span class="s2">&quot;column&quot;</span><span class="p">],</span>
+                <span class="n">showlegend</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                <span class="n">hovertemplate</span><span class="o">=</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Column: </span><span class="si">{</span><span class="n">row</span><span class="p">[</span><span class="s1">&#39;column&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&lt;br&gt;&quot;</span>
+                    <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot;Start: </span><span class="si">{</span><span class="n">row</span><span class="p">[</span><span class="s1">&#39;gap_start&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&lt;br&gt;&quot;</span>
+                    <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot;End: </span><span class="si">{</span><span class="n">row</span><span class="p">[</span><span class="s1">&#39;gap_end&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&lt;br&gt;&quot;</span>
+                    <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot;Duration: </span><span class="si">{</span><span class="n">row</span><span class="p">[</span><span class="s1">&#39;duration_hours&#39;</span><span class="p">]</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2"> hours&lt;br&gt;&quot;</span>
+                    <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot;Missing Records: </span><span class="si">{</span><span class="n">row</span><span class="p">[</span><span class="s1">&#39;missing_records&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="p">),</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+
+    <span class="c1"># Update layout</span>
+    <span class="n">fig</span><span class="o">.</span><span class="n">update_layout</span><span class="p">(</span>
+        <span class="n">title</span><span class="o">=</span><span class="n">title</span><span class="p">,</span>
+        <span class="n">xaxis_title</span><span class="o">=</span><span class="s2">&quot;Time&quot;</span><span class="p">,</span>
+        <span class="n">yaxis_title</span><span class="o">=</span><span class="s2">&quot;Variables&quot;</span><span class="p">,</span>
+        <span class="n">barmode</span><span class="o">=</span><span class="s2">&quot;overlay&quot;</span><span class="p">,</span>
+        <span class="n">height</span><span class="o">=</span><span class="nb">max</span><span class="p">(</span><span class="mi">200</span><span class="p">,</span> <span class="mi">100</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">unique_columns</span><span class="p">)),</span>
+        <span class="n">showlegend</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">xaxis</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">tickformat</span><span class="o">=</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2"> %H:%M&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;date&quot;</span><span class="p">),</span>
+    <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">fig</span></div>
+
+
+
+<div class="viewcode-block" id="detect_extreme_variations">
+<a class="viewcode-back" href="../../source/micromet.html#micromet.tools.detect_extreme_variations">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">detect_extreme_variations</span><span class="p">(</span>
+    <span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span>
+    <span class="n">fields</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">frequency</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;D&quot;</span><span class="p">,</span>
+    <span class="n">variation_threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">3.0</span><span class="p">,</span>
+    <span class="n">null_value</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">9999</span><span class="p">,</span>
+    <span class="n">min_periods</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Detect extreme variations in specified fields of a datetime-indexed DataFrame.</span>
+
+<span class="sd">    Parameters:</span>
+<span class="sd">    -----------</span>
+<span class="sd">    df : pandas.DataFrame</span>
+<span class="sd">        Input DataFrame with datetime index</span>
+<span class="sd">    fields : str or list of str, optional</span>
+<span class="sd">        Column names to analyze. If None, analyzes all numeric columns</span>
+<span class="sd">    frequency : str, default &#39;D&#39;</span>
+<span class="sd">        Frequency to analyze variations over (&#39;D&#39; for daily, &#39;H&#39; for hourly, etc.)</span>
+<span class="sd">    variation_threshold : float, default 3.0</span>
+<span class="sd">        Number of standard deviations beyond which a variation is considered extreme</span>
+<span class="sd">    null_value : float or int, default -9999</span>
+<span class="sd">        Value to be treated as null</span>
+<span class="sd">    min_periods : int, default 2</span>
+<span class="sd">        Minimum number of valid observations required to calculate variation</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">    --------</span>
+<span class="sd">    dict</span>
+<span class="sd">        Dictionary containing:</span>
+<span class="sd">        - &#39;variations&#39;: DataFrame with calculated variations</span>
+<span class="sd">        - &#39;extreme_points&#39;: DataFrame with flagged extreme variations</span>
+<span class="sd">        - &#39;summary&#39;: DataFrame with summary statistics</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Validate input DataFrame</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">df</span><span class="o">.</span><span class="n">index</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DatetimeIndex</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;DataFrame must have a datetime index&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Create copy of DataFrame</span>
+    <span class="n">df_copy</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+    <span class="c1"># Replace null values</span>
+    <span class="n">df_copy</span> <span class="o">=</span> <span class="n">df_copy</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">null_value</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
+
+    <span class="c1"># Select fields to analyze</span>
+    <span class="k">if</span> <span class="n">fields</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">fields</span> <span class="o">=</span> <span class="n">df_copy</span><span class="o">.</span><span class="n">select_dtypes</span><span class="p">(</span><span class="n">include</span><span class="o">=</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">number</span><span class="p">])</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">fields</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="n">fields</span> <span class="o">=</span> <span class="p">[</span><span class="n">fields</span><span class="p">]</span>
+
+    <span class="c1"># Initialize results</span>
+    <span class="n">variations</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="n">df_copy</span><span class="o">.</span><span class="n">index</span><span class="p">)</span>
+    <span class="n">extreme_points</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="n">df_copy</span><span class="o">.</span><span class="n">index</span><span class="p">)</span>
+    <span class="n">summary_stats</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="c1"># Calculate variations and detect extremes for each field</span>
+    <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="n">fields</span><span class="p">:</span>
+        <span class="c1"># Group by frequency and calculate statistics</span>
+        <span class="n">grouped</span> <span class="o">=</span> <span class="n">df_copy</span><span class="p">[</span><span class="n">field</span><span class="p">]</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">Grouper</span><span class="p">(</span><span class="n">freq</span><span class="o">=</span><span class="n">frequency</span><span class="p">))</span>
+
+        <span class="c1"># Calculate variation metrics</span>
+        <span class="n">field_var</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">field</span><span class="si">}</span><span class="s2">_variation&quot;</span>
+        <span class="n">variations</span><span class="p">[</span><span class="n">field_var</span><span class="p">]</span> <span class="o">=</span> <span class="n">grouped</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span>
+            <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="p">(</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">x</span> <span class="o">-</span> <span class="n">x</span><span class="o">.</span><span class="n">mean</span><span class="p">())</span> <span class="o">/</span> <span class="n">x</span><span class="o">.</span><span class="n">std</span><span class="p">()</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">dropna</span><span class="p">())</span> <span class="o">&gt;=</span> <span class="n">min_periods</span>
+                <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Flag extreme variations</span>
+        <span class="n">extreme_points</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">field</span><span class="si">}</span><span class="s2">_extreme&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">variations</span><span class="p">[</span><span class="n">field_var</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">variation_threshold</span>
+
+        <span class="c1"># Calculate summary statistics</span>
+        <span class="n">field_summary</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;field&quot;</span><span class="p">:</span> <span class="n">field</span><span class="p">,</span>
+            <span class="s2">&quot;total_observations&quot;</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">df_copy</span><span class="p">[</span><span class="n">field</span><span class="p">]</span><span class="o">.</span><span class="n">dropna</span><span class="p">()),</span>
+            <span class="s2">&quot;extreme_variations&quot;</span><span class="p">:</span> <span class="n">extreme_points</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">field</span><span class="si">}</span><span class="s2">_extreme&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">(),</span>
+            <span class="s2">&quot;mean_variation&quot;</span><span class="p">:</span> <span class="n">variations</span><span class="p">[</span><span class="n">field_var</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">(),</span>
+            <span class="s2">&quot;max_variation&quot;</span><span class="p">:</span> <span class="n">variations</span><span class="p">[</span><span class="n">field_var</span><span class="p">]</span><span class="o">.</span><span class="n">max</span><span class="p">(),</span>
+            <span class="s2">&quot;std_variation&quot;</span><span class="p">:</span> <span class="n">variations</span><span class="p">[</span><span class="n">field_var</span><span class="p">]</span><span class="o">.</span><span class="n">std</span><span class="p">(),</span>
+        <span class="p">}</span>
+        <span class="n">summary_stats</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">field_summary</span><span class="p">)</span>
+
+    <span class="c1"># Create summary DataFrame</span>
+    <span class="n">summary_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">summary_stats</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="s2">&quot;variations&quot;</span><span class="p">:</span> <span class="n">variations</span><span class="p">,</span>
+        <span class="s2">&quot;extreme_points&quot;</span><span class="p">:</span> <span class="n">extreme_points</span><span class="p">,</span>
+        <span class="s2">&quot;summary&quot;</span><span class="p">:</span> <span class="n">summary_df</span><span class="p">,</span>
+    <span class="p">}</span></div>
+
+
+
+<div class="viewcode-block" id="clean_extreme_variations">
+<a class="viewcode-back" href="../../source/micromet.html#micromet.tools.clean_extreme_variations">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">clean_extreme_variations</span><span class="p">(</span>
+    <span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span>
+    <span class="n">fields</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">frequency</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;D&quot;</span><span class="p">,</span>
+    <span class="n">variation_threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">3.0</span><span class="p">,</span>
+    <span class="n">null_value</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">9999</span><span class="p">,</span>
+    <span class="n">min_periods</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span>
+    <span class="n">replacement_method</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;nan&quot;</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Union</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">]]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Clean extreme variations from specified fields in a DataFrame.</span>
+
+<span class="sd">    Parameters:</span>
+<span class="sd">    -----------</span>
+<span class="sd">    df : pandas.DataFrame</span>
+<span class="sd">        Input DataFrame with datetime index</span>
+<span class="sd">    fields : str or list of str, optional</span>
+<span class="sd">        Column names to clean. If None, processes all numeric columns</span>
+<span class="sd">    frequency : str, default &#39;D&#39;</span>
+<span class="sd">        Frequency to analyze variations over (&#39;D&#39; for daily, &#39;H&#39; for hourly, etc.)</span>
+<span class="sd">    variation_threshold : float, default 3.0</span>
+<span class="sd">        Number of standard deviations beyond which a variation is considered extreme</span>
+<span class="sd">    null_value : float or int, default -9999</span>
+<span class="sd">        Value to be treated as null</span>
+<span class="sd">    min_periods : int, default 2</span>
+<span class="sd">        Minimum number of valid observations required to calculate variation</span>
+<span class="sd">    replacement_method : str, default &#39;nan&#39;</span>
+<span class="sd">        Method to handle extreme values:</span>
+<span class="sd">        - &#39;nan&#39;: Replace with NaN</span>
+<span class="sd">        - &#39;interpolate&#39;: Linear interpolation</span>
+<span class="sd">        - &#39;mean&#39;: Replace with frequency mean</span>
+<span class="sd">        - &#39;median&#39;: Replace with frequency median</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">    --------</span>
+<span class="sd">    dict</span>
+<span class="sd">        Dictionary containing:</span>
+<span class="sd">        - &#39;cleaned_data&#39;: DataFrame with cleaned data</span>
+<span class="sd">        - &#39;cleaning_summary&#39;: DataFrame summarizing the cleaning process</span>
+<span class="sd">        - &#39;removed_points&#39;: DataFrame containing the removed values</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Validate replacement method</span>
+    <span class="n">valid_methods</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;nan&quot;</span><span class="p">,</span> <span class="s2">&quot;interpolate&quot;</span><span class="p">,</span> <span class="s2">&quot;mean&quot;</span><span class="p">,</span> <span class="s2">&quot;median&quot;</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">replacement_method</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">valid_methods</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;replacement_method must be one of </span><span class="si">{</span><span class="n">valid_methods</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Detect extreme variations</span>
+    <span class="n">variation_results</span> <span class="o">=</span> <span class="n">detect_extreme_variations</span><span class="p">(</span>
+        <span class="n">df</span><span class="o">=</span><span class="n">df</span><span class="p">,</span>
+        <span class="n">fields</span><span class="o">=</span><span class="n">fields</span><span class="p">,</span>
+        <span class="n">frequency</span><span class="o">=</span><span class="n">frequency</span><span class="p">,</span>
+        <span class="n">variation_threshold</span><span class="o">=</span><span class="n">variation_threshold</span><span class="p">,</span>
+        <span class="n">null_value</span><span class="o">=</span><span class="n">null_value</span><span class="p">,</span>
+        <span class="n">min_periods</span><span class="o">=</span><span class="n">min_periods</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="c1"># Create copy of input DataFrame</span>
+    <span class="n">cleaned_df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+    <span class="c1"># Initialize summary statistics</span>
+    <span class="n">cleaning_summary</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">removed_points</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="n">df</span><span class="o">.</span><span class="n">index</span><span class="p">)</span>
+
+    <span class="c1"># Process each field</span>
+    <span class="k">if</span> <span class="n">fields</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">fields</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">select_dtypes</span><span class="p">(</span><span class="n">include</span><span class="o">=</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">number</span><span class="p">])</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">fields</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="n">fields</span> <span class="o">=</span> <span class="p">[</span><span class="n">fields</span><span class="p">]</span>
+
+    <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="n">fields</span><span class="p">:</span>
+        <span class="c1"># Get extreme points for this field</span>
+        <span class="n">extreme_mask</span> <span class="o">=</span> <span class="n">variation_results</span><span class="p">[</span><span class="s2">&quot;extreme_points&quot;</span><span class="p">][</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">field</span><span class="si">}</span><span class="s2">_extreme&quot;</span><span class="p">]</span>
+
+        <span class="c1"># Store removed values</span>
+        <span class="n">removed_points</span><span class="p">[</span><span class="n">field</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">extreme_mask</span><span class="p">,</span> <span class="n">cleaned_df</span><span class="p">[</span><span class="n">field</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
+
+        <span class="c1"># Apply replacement method</span>
+        <span class="k">if</span> <span class="n">replacement_method</span> <span class="o">==</span> <span class="s2">&quot;nan&quot;</span><span class="p">:</span>
+            <span class="n">cleaned_df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">extreme_mask</span><span class="p">,</span> <span class="n">field</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+
+        <span class="k">elif</span> <span class="n">replacement_method</span> <span class="o">==</span> <span class="s2">&quot;interpolate&quot;</span><span class="p">:</span>
+            <span class="n">temp_series</span> <span class="o">=</span> <span class="n">cleaned_df</span><span class="p">[</span><span class="n">field</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+            <span class="n">temp_series</span><span class="p">[</span><span class="n">extreme_mask</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+            <span class="n">cleaned_df</span><span class="p">[</span><span class="n">field</span><span class="p">]</span> <span class="o">=</span> <span class="n">temp_series</span><span class="o">.</span><span class="n">interpolate</span><span class="p">(</span><span class="n">method</span><span class="o">=</span><span class="s2">&quot;time&quot;</span><span class="p">)</span>
+
+        <span class="k">elif</span> <span class="n">replacement_method</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;mean&quot;</span><span class="p">,</span> <span class="s2">&quot;median&quot;</span><span class="p">]:</span>
+            <span class="n">grouped</span> <span class="o">=</span> <span class="n">cleaned_df</span><span class="p">[</span><span class="n">field</span><span class="p">]</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">Grouper</span><span class="p">(</span><span class="n">freq</span><span class="o">=</span><span class="n">frequency</span><span class="p">))</span>
+            <span class="k">if</span> <span class="n">replacement_method</span> <span class="o">==</span> <span class="s2">&quot;mean&quot;</span><span class="p">:</span>
+                <span class="n">replacements</span> <span class="o">=</span> <span class="n">grouped</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="s2">&quot;mean&quot;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">replacements</span> <span class="o">=</span> <span class="n">grouped</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="s2">&quot;median&quot;</span><span class="p">)</span>
+            <span class="n">cleaned_df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">extreme_mask</span><span class="p">,</span> <span class="n">field</span><span class="p">]</span> <span class="o">=</span> <span class="n">replacements</span><span class="p">[</span><span class="n">extreme_mask</span><span class="p">]</span>
+
+        <span class="c1"># Calculate cleaning summary</span>
+        <span class="n">cleaning_stats</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;field&quot;</span><span class="p">:</span> <span class="n">field</span><span class="p">,</span>
+            <span class="s2">&quot;points_removed&quot;</span><span class="p">:</span> <span class="n">extreme_mask</span><span class="o">.</span><span class="n">sum</span><span class="p">(),</span>
+            <span class="s2">&quot;percent_removed&quot;</span><span class="p">:</span> <span class="p">(</span><span class="n">extreme_mask</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">df</span><span class="p">))</span> <span class="o">*</span> <span class="mi">100</span><span class="p">,</span>
+            <span class="s2">&quot;replacement_method&quot;</span><span class="p">:</span> <span class="n">replacement_method</span><span class="p">,</span>
+        <span class="p">}</span>
+        <span class="n">cleaning_summary</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cleaning_stats</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="s2">&quot;cleaned_data&quot;</span><span class="p">:</span> <span class="n">cleaned_df</span><span class="p">,</span>
+        <span class="s2">&quot;cleaning_summary&quot;</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">cleaning_summary</span><span class="p">),</span>
+        <span class="s2">&quot;removed_points&quot;</span><span class="p">:</span> <span class="n">removed_points</span><span class="p">,</span>
+    <span class="p">}</span></div>
+
+
+
+<div class="viewcode-block" id="polar_to_cartesian_dataframe">
+<a class="viewcode-back" href="../../source/micromet.html#micromet.tools.polar_to_cartesian_dataframe">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">polar_to_cartesian_dataframe</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">wd_column</span><span class="o">=</span><span class="s2">&quot;WD&quot;</span><span class="p">,</span> <span class="n">dist_column</span><span class="o">=</span><span class="s2">&quot;Dist&quot;</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Convert polar coordinates from a DataFrame to Cartesian coordinates.</span>
+
+<span class="sd">    Parameters:</span>
+<span class="sd">        df (pd.DataFrame): Input DataFrame containing polar coordinates.</span>
+<span class="sd">        wd_column (str): Column name for degrees from north.</span>
+<span class="sd">        dist_column (str): Column name for distance from origin.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        pd.DataFrame: A DataFrame with added &#39;X&#39; and &#39;Y&#39; columns.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Create copies of the input columns to avoid modifying original data</span>
+    <span class="n">wd</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">wd_column</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="n">dist</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">dist_column</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+    <span class="c1"># Identify invalid values (-9999 or NaN)</span>
+    <span class="n">invalid_mask</span> <span class="o">=</span> <span class="p">(</span><span class="n">wd</span> <span class="o">==</span> <span class="o">-</span><span class="mi">9999</span><span class="p">)</span> <span class="o">|</span> <span class="p">(</span><span class="n">dist</span> <span class="o">==</span> <span class="o">-</span><span class="mi">9999</span><span class="p">)</span> <span class="o">|</span> <span class="n">wd</span><span class="o">.</span><span class="n">isna</span><span class="p">()</span> <span class="o">|</span> <span class="n">dist</span><span class="o">.</span><span class="n">isna</span><span class="p">()</span>
+
+    <span class="c1"># Convert degrees from north to standard polar angle (radians) where valid</span>
+    <span class="n">theta_radians</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">radians</span><span class="p">(</span><span class="mi">90</span> <span class="o">-</span> <span class="n">wd</span><span class="p">)</span>
+
+    <span class="c1"># Calculate Cartesian coordinates, setting invalid values to NaN</span>
+    <span class="n">df</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;X_</span><span class="si">{</span><span class="n">dist_column</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+        <span class="n">invalid_mask</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="n">dist</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">theta_radians</span><span class="p">)</span>
+    <span class="p">)</span>
+    <span class="n">df</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;Y_</span><span class="si">{</span><span class="n">dist_column</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+        <span class="n">invalid_mask</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="n">dist</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">theta_radians</span><span class="p">)</span>
+    <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">df</span></div>
+
+
+
+<div class="viewcode-block" id="aggregate_to_daily_centroid">
+<a class="viewcode-back" href="../../source/micromet.html#micromet.tools.aggregate_to_daily_centroid">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">aggregate_to_daily_centroid</span><span class="p">(</span>
+    <span class="n">df</span><span class="p">,</span>
+    <span class="n">date_column</span><span class="o">=</span><span class="s2">&quot;Timestamp&quot;</span><span class="p">,</span>
+    <span class="n">x_column</span><span class="o">=</span><span class="s2">&quot;X&quot;</span><span class="p">,</span>
+    <span class="n">y_column</span><span class="o">=</span><span class="s2">&quot;Y&quot;</span><span class="p">,</span>
+    <span class="n">weighted</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Aggregate half-hourly coordinate data to daily centroids.</span>
+
+<span class="sd">    Parameters:</span>
+<span class="sd">        df (pd.DataFrame): DataFrame containing timestamp and coordinates.</span>
+<span class="sd">        date_column (str): Column containing datetime values.</span>
+<span class="sd">        x_column (str): Column name for X coordinate.</span>
+<span class="sd">        y_column (str): Column name for Y coordinate.</span>
+<span class="sd">        weighted (bool): Weighted by ET column or not (default: True).</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        pd.DataFrame: Aggregated daily centroids.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Define a lambda function to compute the weighted mean:</span>
+    <span class="n">wm</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">average</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">x</span><span class="o">.</span><span class="n">index</span><span class="p">,</span> <span class="s2">&quot;ET&quot;</span><span class="p">])</span>
+
+    <span class="c1"># Ensure datetime format</span>
+    <span class="n">df</span><span class="p">[</span><span class="n">date_column</span><span class="p">]</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_datetime</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="n">date_column</span><span class="p">])</span>
+
+    <span class="c1"># Group by date (ignoring time component)</span>
+    <span class="n">df</span><span class="p">[</span><span class="s2">&quot;Date&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">date_column</span><span class="p">]</span><span class="o">.</span><span class="n">dt</span><span class="o">.</span><span class="n">date</span>
+
+    <span class="c1"># Calculate centroid (mean of X and Y)</span>
+    <span class="k">if</span> <span class="n">weighted</span><span class="p">:</span>
+
+        <span class="c1"># Compute weighted average using ET as weights</span>
+        <span class="n">daily_centroids</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">df</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">&quot;Date&quot;</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">apply</span><span class="p">(</span>
+                <span class="k">lambda</span> <span class="n">g</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span>
+                    <span class="p">{</span>
+                        <span class="n">x_column</span><span class="p">:</span> <span class="p">(</span><span class="n">g</span><span class="p">[</span><span class="n">x_column</span><span class="p">]</span> <span class="o">*</span> <span class="n">g</span><span class="p">[</span><span class="s2">&quot;ET&quot;</span><span class="p">])</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">/</span> <span class="n">g</span><span class="p">[</span><span class="s2">&quot;ET&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">(),</span>
+                        <span class="n">y_column</span><span class="p">:</span> <span class="p">(</span><span class="n">g</span><span class="p">[</span><span class="n">y_column</span><span class="p">]</span> <span class="o">*</span> <span class="n">g</span><span class="p">[</span><span class="s2">&quot;ET&quot;</span><span class="p">])</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">/</span> <span class="n">g</span><span class="p">[</span><span class="s2">&quot;ET&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">(),</span>
+                    <span class="p">}</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+            <span class="o">.</span><span class="n">reset_index</span><span class="p">()</span>
+        <span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">daily_centroids</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">df</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">&quot;Date&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">agg</span><span class="p">({</span><span class="n">x_column</span><span class="p">:</span> <span class="s2">&quot;mean&quot;</span><span class="p">,</span> <span class="n">y_column</span><span class="p">:</span> <span class="s2">&quot;mean&quot;</span><span class="p">})</span><span class="o">.</span><span class="n">reset_index</span><span class="p">()</span>
+        <span class="p">)</span>
+    <span class="c1"># Groupby and aggregate with namedAgg [1]:</span>
+    <span class="k">return</span> <span class="n">daily_centroids</span></div>
+
+
+
+<div class="viewcode-block" id="generate_density_raster">
+<a class="viewcode-back" href="../../source/micromet.html#micromet.tools.generate_density_raster">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">generate_density_raster</span><span class="p">(</span>
+    <span class="n">gdf</span><span class="p">,</span>
+    <span class="n">resolution</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span>  <span class="c1"># Cell size in meters</span>
+    <span class="n">buffer_distance</span><span class="o">=</span><span class="mi">200</span><span class="p">,</span>  <span class="c1"># Buffer beyond extent in meters</span>
+    <span class="n">epsg</span><span class="o">=</span><span class="mi">5070</span><span class="p">,</span>  <span class="c1"># Default coordinate system</span>
+    <span class="n">weight_field</span><span class="o">=</span><span class="s2">&quot;ET&quot;</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Generate a density raster from a point GeoDataFrame, weighted by the ET field.</span>
+
+<span class="sd">    Parameters:</span>
+<span class="sd">        gdf (GeoDataFrame): Input point GeoDataFrame with an &#39;ET&#39; field.</span>
+<span class="sd">        resolution (float): Raster cell size in meters (default: 50m).</span>
+<span class="sd">        buffer_distance (float): Buffer beyond point extent (default: 200m).</span>
+<span class="sd">        epsg (int): Coordinate system EPSG code (default: 5070).</span>
+<span class="sd">        weight_field (str): Weight field name (default: ET).</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        raster (numpy.ndarray): Normalized density raster.</span>
+<span class="sd">        transform (Affine): Affine transformation for georeferencing.</span>
+<span class="sd">        bounds (tuple): (xmin, ymin, xmax, ymax) of the raster extent.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># Ensure correct CRS</span>
+    <span class="n">gdf</span> <span class="o">=</span> <span class="n">gdf</span><span class="o">.</span><span class="n">to_crs</span><span class="p">(</span><span class="n">epsg</span><span class="o">=</span><span class="n">epsg</span><span class="p">)</span>
+
+    <span class="c1"># Extract point coordinates and ET values</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="n">gdf</span><span class="o">.</span><span class="n">geometry</span><span class="o">.</span><span class="n">x</span>
+    <span class="n">y</span> <span class="o">=</span> <span class="n">gdf</span><span class="o">.</span><span class="n">geometry</span><span class="o">.</span><span class="n">y</span>
+    <span class="n">weights</span> <span class="o">=</span> <span class="n">gdf</span><span class="p">[</span><span class="n">weight_field</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
+
+    <span class="c1"># Define raster extent with buffer</span>
+    <span class="n">xmin</span><span class="p">,</span> <span class="n">ymin</span><span class="p">,</span> <span class="n">xmax</span><span class="p">,</span> <span class="n">ymax</span> <span class="o">=</span> <span class="n">gdf</span><span class="o">.</span><span class="n">total_bounds</span>
+    <span class="n">xmin</span><span class="p">,</span> <span class="n">xmax</span> <span class="o">=</span> <span class="n">xmin</span> <span class="o">-</span> <span class="n">buffer_distance</span><span class="p">,</span> <span class="n">xmax</span> <span class="o">+</span> <span class="n">buffer_distance</span>
+    <span class="n">ymin</span><span class="p">,</span> <span class="n">ymax</span> <span class="o">=</span> <span class="n">ymin</span> <span class="o">-</span> <span class="n">buffer_distance</span><span class="p">,</span> <span class="n">ymax</span> <span class="o">+</span> <span class="n">buffer_distance</span>
+
+    <span class="c1"># Create a mesh grid</span>
+    <span class="n">xgrid</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">xmin</span><span class="p">,</span> <span class="n">xmax</span><span class="p">,</span> <span class="n">resolution</span><span class="p">)</span>
+    <span class="n">ygrid</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">ymin</span><span class="p">,</span> <span class="n">ymax</span><span class="p">,</span> <span class="n">resolution</span><span class="p">)</span>
+    <span class="n">xmesh</span><span class="p">,</span> <span class="n">ymesh</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">meshgrid</span><span class="p">(</span><span class="n">xgrid</span><span class="p">,</span> <span class="n">ygrid</span><span class="p">)</span>
+
+    <span class="c1"># Perform KDE with weights</span>
+    <span class="n">kde</span> <span class="o">=</span> <span class="n">gaussian_kde</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">([</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">]),</span> <span class="n">weights</span><span class="o">=</span><span class="n">weights</span><span class="p">)</span>
+    <span class="n">density</span> <span class="o">=</span> <span class="n">kde</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">([</span><span class="n">xmesh</span><span class="o">.</span><span class="n">ravel</span><span class="p">(),</span> <span class="n">ymesh</span><span class="o">.</span><span class="n">ravel</span><span class="p">()]))</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">xmesh</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+
+    <span class="c1"># Normalize to ensure sum of cell values is 1</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">density</span><span class="p">))</span>
+    <span class="c1"># density /= np.sum(density)</span>
+
+    <span class="c1"># Define raster transform</span>
+    <span class="n">transform</span> <span class="o">=</span> <span class="n">from_origin</span><span class="p">(</span><span class="n">xmin</span><span class="p">,</span> <span class="n">ymax</span><span class="p">,</span> <span class="n">resolution</span><span class="p">,</span> <span class="n">resolution</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">density</span><span class="p">,</span> <span class="n">transform</span><span class="p">,</span> <span class="p">(</span><span class="n">xmin</span><span class="p">,</span> <span class="n">ymin</span><span class="p">,</span> <span class="n">xmax</span><span class="p">,</span> <span class="n">ymax</span><span class="p">)</span></div>
+
+
+
+<span class="c1"># Example usage:</span>
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="c1"># Create sample data</span>
+    <span class="n">dates</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">date_range</span><span class="p">(</span><span class="n">start</span><span class="o">=</span><span class="s2">&quot;2024-01-01&quot;</span><span class="p">,</span> <span class="n">end</span><span class="o">=</span><span class="s2">&quot;2024-01-02&quot;</span><span class="p">,</span> <span class="n">freq</span><span class="o">=</span><span class="s2">&quot;30min&quot;</span><span class="p">)</span>
+    <span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="n">dates</span><span class="p">)</span>
+
+    <span class="c1"># Create multiple columns with gaps</span>
+    <span class="n">df</span><span class="p">[</span><span class="s2">&quot;temperature&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">20</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">dates</span><span class="p">))</span>
+    <span class="n">df</span><span class="p">[</span><span class="s2">&quot;humidity&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">60</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">dates</span><span class="p">))</span>
+    <span class="n">df</span><span class="p">[</span><span class="s2">&quot;pressure&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1013</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">dates</span><span class="p">))</span>
+
+    <span class="c1"># Insert some gaps</span>
+    <span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="s2">&quot;2024-01-01 10:00&quot;</span><span class="p">:</span><span class="s2">&quot;2024-01-01 12:00&quot;</span><span class="p">,</span> <span class="s2">&quot;temperature&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">9999</span>
+    <span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="s2">&quot;2024-01-01 15:00&quot;</span><span class="p">:</span><span class="s2">&quot;2024-01-01 16:00&quot;</span><span class="p">,</span> <span class="s2">&quot;humidity&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+    <span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="s2">&quot;2024-01-01 18:00&quot;</span><span class="p">:</span><span class="s2">&quot;2024-01-01 20:00&quot;</span><span class="p">,</span> <span class="s2">&quot;pressure&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">9999</span>
+
+    <span class="c1"># Find gaps</span>
+    <span class="n">gaps_df</span> <span class="o">=</span> <span class="n">find_gaps</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;temperature&quot;</span><span class="p">,</span> <span class="s2">&quot;humidity&quot;</span><span class="p">,</span> <span class="s2">&quot;pressure&quot;</span><span class="p">],</span> <span class="n">min_gap_periods</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="c1"># Create and show plot</span>
+    <span class="n">fig</span> <span class="o">=</span> <span class="n">plot_gaps</span><span class="p">(</span><span class="n">gaps_df</span><span class="p">,</span> <span class="s2">&quot;Sample Data Gaps&quot;</span><span class="p">)</span>
+    <span class="n">fig</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Paul Inkenbrandt &amp; Kathryn Ladig.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

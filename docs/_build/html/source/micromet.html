@@ -1,0 +1,1386 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>micromet package &mdash; micromet 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=01f34227"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            micromet
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <!-- Local TOC -->
+              <div class="local-toc"><ul>
+<li><a class="reference internal" href="#">micromet package</a><ul>
+<li><a class="reference internal" href="#submodules">Submodules</a></li>
+<li><a class="reference internal" href="#module-micromet.converter">micromet.converter module</a><ul>
+<li><a class="reference internal" href="#micromet.converter.AmerifluxDataProcessor"><code class="docutils literal notranslate"><span class="pre">AmerifluxDataProcessor</span></code></a><ul>
+<li><a class="reference internal" href="#micromet.converter.AmerifluxDataProcessor.NA_VALUES"><code class="docutils literal notranslate"><span class="pre">AmerifluxDataProcessor.NA_VALUES</span></code></a></li>
+<li><a class="reference internal" href="#micromet.converter.AmerifluxDataProcessor.iterate_through_stations"><code class="docutils literal notranslate"><span class="pre">AmerifluxDataProcessor.iterate_through_stations()</span></code></a></li>
+<li><a class="reference internal" href="#micromet.converter.AmerifluxDataProcessor.raw_file_compile"><code class="docutils literal notranslate"><span class="pre">AmerifluxDataProcessor.raw_file_compile()</span></code></a></li>
+<li><a class="reference internal" href="#micromet.converter.AmerifluxDataProcessor.to_dataframe"><code class="docutils literal notranslate"><span class="pre">AmerifluxDataProcessor.to_dataframe()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#micromet.converter.Reformatter"><code class="docutils literal notranslate"><span class="pre">Reformatter</span></code></a><ul>
+<li><a class="reference internal" href="#micromet.converter.Reformatter.DEFAULT_SOIL_DROP_LIMIT"><code class="docutils literal notranslate"><span class="pre">Reformatter.DEFAULT_SOIL_DROP_LIMIT</span></code></a></li>
+<li><a class="reference internal" href="#micromet.converter.Reformatter.MISSING_VALUE"><code class="docutils literal notranslate"><span class="pre">Reformatter.MISSING_VALUE</span></code></a></li>
+<li><a class="reference internal" href="#micromet.converter.Reformatter.SOIL_SENSOR_SKIP_INDEX"><code class="docutils literal notranslate"><span class="pre">Reformatter.SOIL_SENSOR_SKIP_INDEX</span></code></a></li>
+<li><a class="reference internal" href="#micromet.converter.Reformatter.apply_fixes"><code class="docutils literal notranslate"><span class="pre">Reformatter.apply_fixes()</span></code></a></li>
+<li><a class="reference internal" href="#micromet.converter.Reformatter.clean_columns"><code class="docutils literal notranslate"><span class="pre">Reformatter.clean_columns()</span></code></a></li>
+<li><a class="reference internal" href="#micromet.converter.Reformatter.col_order"><code class="docutils literal notranslate"><span class="pre">Reformatter.col_order()</span></code></a></li>
+<li><a class="reference internal" href="#micromet.converter.Reformatter.fix_swc_percent"><code class="docutils literal notranslate"><span class="pre">Reformatter.fix_swc_percent()</span></code></a></li>
+<li><a class="reference internal" href="#micromet.converter.Reformatter.infer_datetime_col"><code class="docutils literal notranslate"><span class="pre">Reformatter.infer_datetime_col()</span></code></a></li>
+<li><a class="reference internal" href="#micromet.converter.Reformatter.modernize_soil_legacy"><code class="docutils literal notranslate"><span class="pre">Reformatter.modernize_soil_legacy()</span></code></a></li>
+<li><a class="reference internal" href="#micromet.converter.Reformatter.normalize_prefixes"><code class="docutils literal notranslate"><span class="pre">Reformatter.normalize_prefixes()</span></code></a></li>
+<li><a class="reference internal" href="#micromet.converter.Reformatter.prepare"><code class="docutils literal notranslate"><span class="pre">Reformatter.prepare()</span></code></a></li>
+<li><a class="reference internal" href="#micromet.converter.Reformatter.rating"><code class="docutils literal notranslate"><span class="pre">Reformatter.rating()</span></code></a></li>
+<li><a class="reference internal" href="#micromet.converter.Reformatter.rename_columns"><code class="docutils literal notranslate"><span class="pre">Reformatter.rename_columns()</span></code></a></li>
+<li><a class="reference internal" href="#micromet.converter.Reformatter.resample_timestamps"><code class="docutils literal notranslate"><span class="pre">Reformatter.resample_timestamps()</span></code></a></li>
+<li><a class="reference internal" href="#micromet.converter.Reformatter.scale_and_convert"><code class="docutils literal notranslate"><span class="pre">Reformatter.scale_and_convert()</span></code></a></li>
+<li><a class="reference internal" href="#micromet.converter.Reformatter.set_number_types"><code class="docutils literal notranslate"><span class="pre">Reformatter.set_number_types()</span></code></a></li>
+<li><a class="reference internal" href="#micromet.converter.Reformatter.ssitc_scale"><code class="docutils literal notranslate"><span class="pre">Reformatter.ssitc_scale()</span></code></a></li>
+<li><a class="reference internal" href="#micromet.converter.Reformatter.tau_fixer"><code class="docutils literal notranslate"><span class="pre">Reformatter.tau_fixer()</span></code></a></li>
+<li><a class="reference internal" href="#micromet.converter.Reformatter.timestamp_reset"><code class="docutils literal notranslate"><span class="pre">Reformatter.timestamp_reset()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#micromet.converter.load_yaml"><code class="docutils literal notranslate"><span class="pre">load_yaml()</span></code></a></li>
+<li><a class="reference internal" href="#micromet.converter.logger_check"><code class="docutils literal notranslate"><span class="pre">logger_check()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#module-micromet.graphs">micromet.graphs module</a><ul>
+<li><a class="reference internal" href="#micromet.graphs.bland_alt_plot"><code class="docutils literal notranslate"><span class="pre">bland_alt_plot()</span></code></a></li>
+<li><a class="reference internal" href="#micromet.graphs.energy_sankey"><code class="docutils literal notranslate"><span class="pre">energy_sankey()</span></code></a></li>
+<li><a class="reference internal" href="#micromet.graphs.plot_timeseries_daterange"><code class="docutils literal notranslate"><span class="pre">plot_timeseries_daterange()</span></code></a></li>
+<li><a class="reference internal" href="#micromet.graphs.save_plot"><code class="docutils literal notranslate"><span class="pre">save_plot()</span></code></a></li>
+<li><a class="reference internal" href="#micromet.graphs.scatterplot_instrument_comparison"><code class="docutils literal notranslate"><span class="pre">scatterplot_instrument_comparison()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#module-micromet.headers">micromet.headers module</a><ul>
+<li><a class="reference internal" href="#micromet.headers.apply_header"><code class="docutils literal notranslate"><span class="pre">apply_header()</span></code></a></li>
+<li><a class="reference internal" href="#micromet.headers.fix_all_in_parent"><code class="docutils literal notranslate"><span class="pre">fix_all_in_parent()</span></code></a></li>
+<li><a class="reference internal" href="#micromet.headers.fix_directory_pairs"><code class="docutils literal notranslate"><span class="pre">fix_directory_pairs()</span></code></a></li>
+<li><a class="reference internal" href="#micromet.headers.looks_like_header"><code class="docutils literal notranslate"><span class="pre">looks_like_header()</span></code></a></li>
+<li><a class="reference internal" href="#micromet.headers.patch_file"><code class="docutils literal notranslate"><span class="pre">patch_file()</span></code></a></li>
+<li><a class="reference internal" href="#micromet.headers.read_colnames"><code class="docutils literal notranslate"><span class="pre">read_colnames()</span></code></a></li>
+<li><a class="reference internal" href="#micromet.headers.sniff_delimiter"><code class="docutils literal notranslate"><span class="pre">sniff_delimiter()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#module-micromet.station_data_pull">micromet.station_data_pull module</a><ul>
+<li><a class="reference internal" href="#micromet.station_data_pull.StationDataManager"><code class="docutils literal notranslate"><span class="pre">StationDataManager</span></code></a><ul>
+<li><a class="reference internal" href="#micromet.station_data_pull.StationDataManager.compare_sql_to_station"><code class="docutils literal notranslate"><span class="pre">StationDataManager.compare_sql_to_station()</span></code></a></li>
+<li><a class="reference internal" href="#micromet.station_data_pull.StationDataManager.database_columns"><code class="docutils literal notranslate"><span class="pre">StationDataManager.database_columns()</span></code></a></li>
+<li><a class="reference internal" href="#micromet.station_data_pull.StationDataManager.get_max_date"><code class="docutils literal notranslate"><span class="pre">StationDataManager.get_max_date()</span></code></a></li>
+<li><a class="reference internal" href="#micromet.station_data_pull.StationDataManager.get_station_data"><code class="docutils literal notranslate"><span class="pre">StationDataManager.get_station_data()</span></code></a></li>
+<li><a class="reference internal" href="#micromet.station_data_pull.StationDataManager.get_station_id"><code class="docutils literal notranslate"><span class="pre">StationDataManager.get_station_id()</span></code></a></li>
+<li><a class="reference internal" href="#micromet.station_data_pull.StationDataManager.get_times"><code class="docutils literal notranslate"><span class="pre">StationDataManager.get_times()</span></code></a></li>
+<li><a class="reference internal" href="#micromet.station_data_pull.StationDataManager.process_station_data"><code class="docutils literal notranslate"><span class="pre">StationDataManager.process_station_data()</span></code></a></li>
+<li><a class="reference internal" href="#micromet.station_data_pull.StationDataManager.remove_existing_records"><code class="docutils literal notranslate"><span class="pre">StationDataManager.remove_existing_records()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#module-micromet.tools">micromet.tools module</a><ul>
+<li><a class="reference internal" href="#micromet.tools.aggregate_to_daily_centroid"><code class="docutils literal notranslate"><span class="pre">aggregate_to_daily_centroid()</span></code></a></li>
+<li><a class="reference internal" href="#micromet.tools.clean_extreme_variations"><code class="docutils literal notranslate"><span class="pre">clean_extreme_variations()</span></code></a></li>
+<li><a class="reference internal" href="#micromet.tools.detect_extreme_variations"><code class="docutils literal notranslate"><span class="pre">detect_extreme_variations()</span></code></a></li>
+<li><a class="reference internal" href="#micromet.tools.find_gaps"><code class="docutils literal notranslate"><span class="pre">find_gaps()</span></code></a></li>
+<li><a class="reference internal" href="#micromet.tools.find_irr_dates"><code class="docutils literal notranslate"><span class="pre">find_irr_dates()</span></code></a></li>
+<li><a class="reference internal" href="#micromet.tools.generate_density_raster"><code class="docutils literal notranslate"><span class="pre">generate_density_raster()</span></code></a></li>
+<li><a class="reference internal" href="#micromet.tools.plot_gaps"><code class="docutils literal notranslate"><span class="pre">plot_gaps()</span></code></a></li>
+<li><a class="reference internal" href="#micromet.tools.polar_to_cartesian_dataframe"><code class="docutils literal notranslate"><span class="pre">polar_to_cartesian_dataframe()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#module-micromet">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</div>
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">micromet</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">micromet package</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/source/micromet.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="micromet-package">
+<h1>micromet package<a class="headerlink" href="#micromet-package" title="Link to this heading"></a></h1>
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Link to this heading"></a></h2>
+</section>
+<section id="module-micromet.converter">
+<span id="micromet-converter-module"></span><h2>micromet.converter module<a class="headerlink" href="#module-micromet.converter" title="Link to this heading"></a></h2>
+<p>converter.py
+Cleaned up version of micromet data processing utilities.</p>
+<p>Provides:
+- AmerifluxDataProcessor: read AmeriFlux-style csv (TOA5 or AmeriFlux output) into DataFrame.
+- Reformatter: sanitize, standardize, and resample station data for flux / met processing.</p>
+<p>Immediate cleanup performed:
+* Removed dead/commented code and duplicate lines.
+* Fixed duplicate attribute assignments.
+* Extracted long code blocks into helper methods for clarity.
+* Updated docstrings and type hints.
+* Added module-level constants and logger.
+* Replaced inline magic numbers with named constants.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="micromet.converter.AmerifluxDataProcessor">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">micromet.converter.</span></span><span class="sig-name descname"><span class="pre">AmerifluxDataProcessor</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'reformatter_vars.yml'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">logger</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/micromet/converter.html#AmerifluxDataProcessor"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#micromet.converter.AmerifluxDataProcessor" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Read Campbell Scientific TOA5 or AmeriFlux output CSV into a tidy DataFrame.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>path</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em> | </em><em>Path</em>) – File path to CSV.</p></li>
+<li><p><strong>config_path</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em> | </em><em>Path</em>) – File path to YAML configuration file for header names. Defaults to ‘reformatter_vars.yml’</p></li>
+<li><p><strong>logger</strong> (<a class="reference external" href="https://docs.python.org/3/library/logging.html#logging.Logger" title="(in Python v3.13)"><em>logging.Logger</em></a>) – Logger to use.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="micromet.converter.AmerifluxDataProcessor.NA_VALUES">
+<span class="sig-name descname"><span class="pre">NA_VALUES</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">['-9999',</span> <span class="pre">'NAN',</span> <span class="pre">'NaN',</span> <span class="pre">'nan',</span> <span class="pre">nan,</span> <span class="pre">-9999.0]</span></em><a class="headerlink" href="#micromet.converter.AmerifluxDataProcessor.NA_VALUES" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="micromet.converter.AmerifluxDataProcessor.iterate_through_stations">
+<span class="sig-name descname"><span class="pre">iterate_through_stations</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/micromet/converter.html#AmerifluxDataProcessor.iterate_through_stations"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#micromet.converter.AmerifluxDataProcessor.iterate_through_stations" title="Link to this definition"></a></dt>
+<dd><p>Iterate through all stations.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="micromet.converter.AmerifluxDataProcessor.raw_file_compile">
+<span class="sig-name descname"><span class="pre">raw_file_compile</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">main_dir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">station_folder_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">search_str</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'*Flux_AmeriFluxFormat*.dat'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/micromet/converter.html#AmerifluxDataProcessor.raw_file_compile"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#micromet.converter.AmerifluxDataProcessor.raw_file_compile" title="Link to this definition"></a></dt>
+<dd><p>Compiles raw AmeriFlux datalogger files into a single dataframe.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>main_dir</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em> | </em><em>Path</em>) – Name of main directory to search for AmeriFlux datalogger files.</p></li>
+<li><p><strong>station_folder_name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – Name of the station folder containing the raw datalogger files.</p></li>
+<li><p><strong>search_str</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – String to search for; use asterisk (*) for wildcard.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Dataframe containing compiled AmeriFlux data, or None if no valid files found.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.3)">pandas.DataFrame</a> or None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="micromet.converter.AmerifluxDataProcessor.to_dataframe">
+<span class="sig-name descname"><span class="pre">to_dataframe</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/micromet/converter.html#AmerifluxDataProcessor.to_dataframe"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#micromet.converter.AmerifluxDataProcessor.to_dataframe" title="Link to this definition"></a></dt>
+<dd><p>Return parsed CSV as pandas DataFrame.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.3)"><code class="xref py py-class docutils literal notranslate"><span class="pre">DataFrame</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="micromet.converter.Reformatter">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">micromet.converter.</span></span><span class="sig-name descname"><span class="pre">Reformatter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">var_limits_csv</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">drop_soil</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">logger</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/micromet/converter.html#Reformatter"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#micromet.converter.Reformatter" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Clean and standardize station data.</p>
+<p>Steps (all configurable):</p>
+<ol class="arabic simple">
+<li><p>Fix and align timestamps (<cite>_fix_timestamps</cite>).</p></li>
+<li><p>Rename columns (<cite>_rename_columns</cite>).</p></li>
+<li><p>Remove obvious outliers and redundant columns (<cite>clean_columns</cite>).</p></li>
+<li><p>Adjust derived values (<cite>apply_fixes</cite>).</p></li>
+<li><p>Optionally, drop extra soil sensor channels (<cite>_drop_extra_soil_columns</cite>).</p></li>
+<li><p>Finalize column order and missing value representation.</p></li>
+</ol>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>config_path</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em> | </em><em>Path</em>) – File Path to YAML configuration file governing renames, drops, etc.</p></li>
+<li><p><strong>var_limits_csv</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em> | </em><em>Path</em><em>, </em><em>optional</em>) – CSV file containing per‑variable hard min/max limits.</p></li>
+<li><p><strong>drop_soil</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><em>bool</em></a><em>, </em><em>default True</em>) – Whether to remove soil columns deemed redundant (see config).</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="micromet.converter.Reformatter.DEFAULT_SOIL_DROP_LIMIT">
+<span class="sig-name descname"><span class="pre">DEFAULT_SOIL_DROP_LIMIT</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">4</span></em><a class="headerlink" href="#micromet.converter.Reformatter.DEFAULT_SOIL_DROP_LIMIT" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="micromet.converter.Reformatter.MISSING_VALUE">
+<span class="sig-name descname"><span class="pre">MISSING_VALUE</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">-9999</span></em><a class="headerlink" href="#micromet.converter.Reformatter.MISSING_VALUE" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="micromet.converter.Reformatter.SOIL_SENSOR_SKIP_INDEX">
+<span class="sig-name descname"><span class="pre">SOIL_SENSOR_SKIP_INDEX</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">3</span></em><a class="headerlink" href="#micromet.converter.Reformatter.SOIL_SENSOR_SKIP_INDEX" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="micromet.converter.Reformatter.apply_fixes">
+<span class="sig-name descname"><span class="pre">apply_fixes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/micromet/converter.html#Reformatter.apply_fixes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#micromet.converter.Reformatter.apply_fixes" title="Link to this definition"></a></dt>
+<dd><p>Apply a set of minor, variable-specific data corrections.</p>
+<p>This method applies a sequence of small fixes to the input DataFrame,
+including adjustments to <cite>Tau</cite>, scaling of SSITC values, and unit conversions
+for soil water content. These operations are encapsulated in internal helper
+methods.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>df</strong> (<a class="reference external" href="https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.3)"><em>pandas.DataFrame</em></a>) – Input DataFrame containing raw or intermediate data.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>DataFrame with variable-specific fixes applied.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.3)">pandas.DataFrame</a></p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>The following fixes are applied in order:
+- <cite>tau_fixer</cite>: Handles edge cases and invalid values in the Tau variable.
+- <cite>fix_swc_percent</cite>: Converts volumetric water content values from percent to fraction, if needed.
+- <cite>ssitc_scale</cite>: Scales SSITC variable values according to predefined rules.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="micromet.converter.Reformatter.clean_columns">
+<span class="sig-name descname"><span class="pre">clean_columns</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">replace_w</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">nan</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/micromet/converter.html#Reformatter.clean_columns"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#micromet.converter.Reformatter.clean_columns" title="Link to this definition"></a></dt>
+<dd><p>Replace out-of-range values in float64 columns with a specified placeholder.</p>
+<p>For each float64 column in the DataFrame that has a defined limit in <cite>self.varlimits</cite>,
+this method replaces values that fall outside the [Min, Max] range with a specified
+replacement value (default is <cite>np.nan</cite>).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>df</strong> (<a class="reference external" href="https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.3)"><em>pandas.DataFrame</em></a>) – Input DataFrame containing the data to be cleaned.</p></li>
+<li><p><strong>replace_w</strong> (<em>scalar</em><em>, </em><em>optional</em>) – Value to replace out-of-range entries with. Default is <cite>np.nan</cite>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A copy of the input DataFrame with out-of-range values replaced.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.3)">pandas.DataFrame</a></p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<ul class="simple">
+<li><p>The method only processes columns present in both the DataFrame and <cite>self.varlimits</cite>.</p></li>
+<li><p>Only columns of type <cite>float64</cite> are cleaned.</p></li>
+<li><p>Limit values must be stored in a DataFrame <cite>self.varlimits</cite> with columns “Min” and “Max”.</p></li>
+</ul>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="micromet.converter.Reformatter.col_order">
+<span class="sig-name descname"><span class="pre">col_order</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/micromet/converter.html#Reformatter.col_order"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#micromet.converter.Reformatter.col_order" title="Link to this definition"></a></dt>
+<dd><p>Reorder DataFrame columns to place priority columns first.</p>
+<p>This method ensures that ‘TIMESTAMP_END’ and ‘TIMESTAMP_START’ appear as the
+first columns in the DataFrame, in that order. If these columns exist, they
+are moved to the front without altering the order of the remaining columns.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>df</strong> (<a class="reference external" href="https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.3)"><em>pandas.DataFrame</em></a>) – Input DataFrame with timestamp and other data columns.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>DataFrame with reordered columns.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.3)">pandas.DataFrame</a></p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<ul class="simple">
+<li><p>Columns are moved using <cite>.pop()</cite> and <cite>.insert()</cite> to preserve data.</p></li>
+<li><p>A debug message logs the final column order.</p></li>
+</ul>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="micromet.converter.Reformatter.fix_swc_percent">
+<span class="sig-name descname"><span class="pre">fix_swc_percent</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/micromet/converter.html#Reformatter.fix_swc_percent"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#micromet.converter.Reformatter.fix_swc_percent" title="Link to this definition"></a></dt>
+<dd><p>Convert fractional soil water content values to percent if applicable.</p>
+<p>This method scans for columns with names starting with “<a href="#id11"><span class="problematic" id="id12">SWC_</span></a>” and checks
+whether their maximum values are below or equal to 1.5. If so, the column
+is assumed to be in volumetric fraction (0–1) and is converted to percent (0–100)
+by multiplying by 100.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>df</strong> (<a class="reference external" href="https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.3)"><em>pandas.DataFrame</em></a>) – Input DataFrame containing soil water content (SWC) columns.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>DataFrame with updated SWC columns, where applicable.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.3)">pandas.DataFrame</a></p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<ul class="simple">
+<li><p>This heuristic assumes that volumetric soil water content should not exceed 1.5.</p></li>
+<li><p>Columns are modified in place within a copy of the DataFrame.</p></li>
+<li><p>A debug log entry is created for each column that is converted.</p></li>
+</ul>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="micromet.converter.Reformatter.infer_datetime_col">
+<span class="sig-name descname"><span class="pre">infer_datetime_col</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/micromet/converter.html#Reformatter.infer_datetime_col"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#micromet.converter.Reformatter.infer_datetime_col" title="Link to this definition"></a></dt>
+<dd><p>Return the name of the TIMESTAMP column.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a> | <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="micromet.converter.Reformatter.modernize_soil_legacy">
+<span class="sig-name descname"><span class="pre">modernize_soil_legacy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/micromet/converter.html#Reformatter.modernize_soil_legacy"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#micromet.converter.Reformatter.modernize_soil_legacy" title="Link to this definition"></a></dt>
+<dd><p>Update legacy soil sensor column names to a standardized format.</p>
+<p>This method parses column names from legacy SoilVUE or similar output formats
+and renames them according to a modern schema using orientation, depth, and
+sensor type mappings. Columns that do not match the expected legacy format
+are left unchanged.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>df</strong> (<a class="reference external" href="https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.3)"><em>pandas.DataFrame</em></a>) – DataFrame containing soil sensor data with potentially outdated column names.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>DataFrame with updated column names reflecting modern naming conventions.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.3)">pandas.DataFrame</a></p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<ul class="simple">
+<li><p>Legacy column names are parsed using a regular expression defined by <cite>self._LEGACY_RE</cite>.</p></li>
+<li><p>Depth values are mapped to indices via <cite>self._DEPTH_MAP</cite>.</p></li>
+<li><p>Orientation characters (e.g., ‘N’, ‘S’) are mapped via <cite>self._ORIENT_MAP</cite>.</p></li>
+<li><p>‘T’ prefix is interpreted as ‘TS’ due to prior normalization.</p></li>
+<li><p>Logging records renamed columns if any were modernized.</p></li>
+</ul>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="micromet.converter.Reformatter.normalize_prefixes">
+<span class="sig-name descname"><span class="pre">normalize_prefixes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/micromet/converter.html#Reformatter.normalize_prefixes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#micromet.converter.Reformatter.normalize_prefixes" title="Link to this definition"></a></dt>
+<dd><p>Normalize column name prefixes related to soil and temperature measurements.</p>
+<p>This method renames columns in the input DataFrame based on predefined prefix
+replacement rules. It performs the following operations:</p>
+<ul class="simple">
+<li><p>Replaces known prefixes such as ‘<a href="#id13"><span class="problematic" id="id14">BulkEC_</span></a>’, ‘<a href="#id15"><span class="problematic" id="id16">VWC_</span></a>’, and ‘<a href="#id17"><span class="problematic" id="id18">Ka_</span></a>’ using compiled regex patterns.</p></li>
+<li><p>Replaces ‘<a href="#id19"><span class="problematic" id="id20">T_</span></a>’ with ‘<a href="#id21"><span class="problematic" id="id22">Ts_</span></a>’ if the column name matches the pattern ‘T_&lt;depth&gt;cm_’.</p></li>
+</ul>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>df</strong> (<a class="reference external" href="https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.3)"><em>pandas.DataFrame</em></a>) – Input DataFrame with original column names to be normalized.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>DataFrame with column names updated to follow normalized prefix conventions.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.3)">pandas.DataFrame</a></p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>The method uses regex patterns defined in <cite>self._PREFIX_PATTERNS</cite> to perform
+most substitutions. Logging statements are used to report which columns were renamed.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="micromet.converter.Reformatter.prepare">
+<span class="sig-name descname"><span class="pre">prepare</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data_type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'eddy'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/micromet/converter.html#Reformatter.prepare"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#micromet.converter.Reformatter.prepare" title="Link to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.3)"><code class="xref py py-class docutils literal notranslate"><span class="pre">DataFrame</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="micromet.converter.Reformatter.rating">
+<em class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">rating</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/micromet/converter.html#Reformatter.rating"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#micromet.converter.Reformatter.rating" title="Link to this definition"></a></dt>
+<dd><p>Categorize a numeric value into a discrete rating level.</p>
+<p>This method assigns an integer rating category based on the input value:</p>
+<ul class="simple">
+<li><p>0 if 0 ≤ x ≤ 3</p></li>
+<li><p>1 if 4 ≤ x ≤ 6</p></li>
+<li><p>2 otherwise</p></li>
+</ul>
+<p>If the input is None, it is treated as 0.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>x</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a><em> or </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><em>float</em></a><em> or </em><em>None</em>) – The numeric value to be converted into a rating category.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>An integer rating in the range {0, 1, 2}, based on predefined thresholds.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)">int</a></p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>This is a simple classification utility used for scaling SSITC-related test scores.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="micromet.converter.Reformatter.rename_columns">
+<span class="sig-name descname"><span class="pre">rename_columns</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">data_type</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/micromet/converter.html#Reformatter.rename_columns"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#micromet.converter.Reformatter.rename_columns" title="Link to this definition"></a></dt>
+<dd><p>Rename DataFrame columns based on configuration and standardize column names.</p>
+<p>This method selects a column rename mapping based on the <cite>data_type</cite> parameter
+(‘eddy’ or ‘met’) from the internal configuration dictionary. It then renames
+the DataFrame columns accordingly and applies additional normalization routines:
+- <cite>normalize_prefixes</cite>: standardizes common prefix formats
+- <cite>modernize_soil_legacy</cite>: updates legacy soil column naming conventions</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>df</strong> (<em>pd.DataFrame</em>) – Input DataFrame with original column names to be renamed.</p></li>
+<li><p><strong>data_type</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – Type of data used to determine the appropriate rename mapping.
+Must be either ‘eddy’ or ‘met’.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>DataFrame with renamed and standardized column names.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>pd.DataFrame</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="micromet.converter.Reformatter.resample_timestamps">
+<span class="sig-name descname"><span class="pre">resample_timestamps</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/micromet/converter.html#Reformatter.resample_timestamps"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#micromet.converter.Reformatter.resample_timestamps" title="Link to this definition"></a></dt>
+<dd><p>Resample a DataFrame to 30-minute intervals based on the ‘datetime_start’ column.</p>
+<p>The method performs the following steps:
+- Filters out future timestamps beyond the current date.
+- Removes duplicate entries based on ‘datetime_start’.
+- Sets ‘datetime_start’ as the index and sorts the DataFrame.
+- Resamples the data to 30-minute intervals using the first valid observation.
+- Linearly interpolates missing values with a maximum gap of one interval.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>df</strong> (<em>pd.DataFrame</em>) – Input DataFrame containing a ‘datetime_start’ column of timestamp values.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Resampled and interpolated DataFrame indexed by ‘datetime_start’.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>pd.DataFrame</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="micromet.converter.Reformatter.scale_and_convert">
+<span class="sig-name descname"><span class="pre">scale_and_convert</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">column</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/micromet/converter.html#Reformatter.scale_and_convert"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#micromet.converter.Reformatter.scale_and_convert" title="Link to this definition"></a></dt>
+<dd><p>Apply a rating transformation and convert values to float.</p>
+<p>This method maps values in the input Series using the <cite>self.rating</cite> function
+and returns the transformed result. The transformation is intended to rescale
+categorical or ordinal values to a standardized float representation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>column</strong> (<a class="reference external" href="https://pandas.pydata.org/docs/reference/api/pandas.Series.html#pandas.Series" title="(in pandas v2.2.3)"><em>pandas.Series</em></a>) – Input Series containing values to be scaled and converted.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Series with values transformed using the rating function.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://pandas.pydata.org/docs/reference/api/pandas.Series.html#pandas.Series" title="(in pandas v2.2.3)">pandas.Series</a></p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<ul class="simple">
+<li><p>The <cite>self.rating</cite> function is applied element-wise via <cite>.apply()</cite>.</p></li>
+<li><p>The output Series retains the same index and is returned as float-compatible values.</p></li>
+</ul>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="micromet.converter.Reformatter.set_number_types">
+<span class="sig-name descname"><span class="pre">set_number_types</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/micromet/converter.html#Reformatter.set_number_types"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#micromet.converter.Reformatter.set_number_types" title="Link to this definition"></a></dt>
+<dd><p>Convert columns in the DataFrame to numeric types where appropriate.</p>
+<p>This method attempts to cast each column to a numeric type using <cite>pandas.to_numeric</cite>.
+Specific columns are downcast to integers to save memory, while all others are coerced
+to floats if needed. Non-numeric values are set to NaN.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>df</strong> (<a class="reference external" href="https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.3)"><em>pandas.DataFrame</em></a>) – Input DataFrame with columns to be type-cast.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>DataFrame with numeric types applied where possible.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.3)">pandas.DataFrame</a></p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<ul class="simple">
+<li><p>‘MO_LENGTH’ and ‘RECORD’ columns are downcast to integer.</p></li>
+<li><p>‘TIMESTAMP_START’, ‘TIMESTAMP_END’, and ‘SSITC’ are also downcast to integer.</p></li>
+<li><p>‘datetime_start’ is left unchanged.</p></li>
+<li><p>All other columns are converted to numeric (float) with <cite>errors=’coerce’</cite>.</p></li>
+<li><p>Logging reports the number of rows processed.</p></li>
+</ul>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="micromet.converter.Reformatter.ssitc_scale">
+<span class="sig-name descname"><span class="pre">ssitc_scale</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/micromet/converter.html#Reformatter.ssitc_scale"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#micromet.converter.Reformatter.ssitc_scale" title="Link to this definition"></a></dt>
+<dd><p>Scale SSITC test columns if values exceed expected thresholds.</p>
+<p>This method checks for the presence of known SSITC test columns in the input
+DataFrame and applies scaling and unit conversion if the maximum value in
+a column exceeds 3. The transformation is performed using <cite>self.scale_and_convert</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>df</strong> (<a class="reference external" href="https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.3)"><em>pandas.DataFrame</em></a>) – Input DataFrame that may contain SSITC test variables.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>DataFrame with scaled SSITC columns where applicable.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.3)">pandas.DataFrame</a></p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<ul class="simple">
+<li><p>Only the following columns are considered:
+‘FC_SSITC_TEST’, ‘LE_SSITC_TEST’, ‘ET_SSITC_TEST’, ‘H_SSITC_TEST’, ‘TAU_SSITC_TEST’.</p></li>
+<li><p>Scaling is applied only if the column exists and its maximum value exceeds 3.</p></li>
+<li><p>A debug message is logged for each column that is scaled.</p></li>
+</ul>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="micromet.converter.Reformatter.tau_fixer">
+<span class="sig-name descname"><span class="pre">tau_fixer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/micromet/converter.html#Reformatter.tau_fixer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#micromet.converter.Reformatter.tau_fixer" title="Link to this definition"></a></dt>
+<dd><p>Replace zero values in the ‘Tau’ column with NaN.</p>
+<p>This method identifies entries in the ‘Tau’ column that are exactly zero
+and replaces them with <cite>np.nan</cite>, but only if both ‘Tau’ and ‘u_star’ columns
+are present in the DataFrame.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>df</strong> (<a class="reference external" href="https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.3)"><em>pandas.DataFrame</em></a>) – Input DataFrame containing turbulent flux variables, including ‘Tau’ and ‘u_star’.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>DataFrame with zero values in ‘Tau’ replaced by NaN.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.3)">pandas.DataFrame</a></p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>This fix targets an artifact where Tau may be reported as zero when
+it is invalid or unmeasured.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="micromet.converter.Reformatter.timestamp_reset">
+<em class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">timestamp_reset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">minutes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">30</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/micromet/converter.html#Reformatter.timestamp_reset"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#micromet.converter.Reformatter.timestamp_reset" title="Link to this definition"></a></dt>
+<dd><p>Reset TIMESTAMP_START and TIMESTAMP_END columns based on the DataFrame index.</p>
+<p>This method assumes the DataFrame index is a datetime-like index and sets
+the ‘TIMESTAMP_START’ column to match the index formatted as an integer
+in ‘YYYYMMDDHHMM’ format. The ‘TIMESTAMP_END’ column is set to the timestamp
+<cite>minutes</cite> ahead of the index.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>df</strong> (<em>pd.DataFrame</em>) – Input DataFrame with a datetime-like index.</p></li>
+<li><p><strong>minutes</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a><em>, </em><em>optional</em>) – Number of minutes to add for TIMESTAMP_END calculation, by default 30.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Modified DataFrame with updated ‘TIMESTAMP_START’ and ‘TIMESTAMP_END’ columns.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>pd.DataFrame</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micromet.converter.load_yaml">
+<span class="sig-prename descclassname"><span class="pre">micromet.converter.</span></span><span class="sig-name descname"><span class="pre">load_yaml</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/micromet/converter.html#load_yaml"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#micromet.converter.load_yaml" title="Link to this definition"></a></dt>
+<dd><p>Load a YAML file and return as dict.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Dict</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micromet.converter.logger_check">
+<span class="sig-prename descclassname"><span class="pre">micromet.converter.</span></span><span class="sig-name descname"><span class="pre">logger_check</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">logger</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/micromet/converter.html#logger_check"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#micromet.converter.logger_check" title="Link to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/logging.html#logging.Logger" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Logger</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-micromet.graphs">
+<span id="micromet-graphs-module"></span><h2>micromet.graphs module<a class="headerlink" href="#module-micromet.graphs" title="Link to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="micromet.graphs.bland_alt_plot">
+<span class="sig-prename descclassname"><span class="pre">micromet.graphs.</span></span><span class="sig-name descname"><span class="pre">bland_alt_plot</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">edmet</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">compare_dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">station</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alpha</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.5</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/micromet/graphs.html#bland_alt_plot"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#micromet.graphs.bland_alt_plot" title="Link to this definition"></a></dt>
+<dd><p>Create a Bland–Altman plot to assess agreement between two instruments.</p>
+<p>This function compares two instruments specified in <cite>compare_dict</cite> by plotting the
+mean of their measurements against their difference. It reports the root mean square error
+(RMSE), bias, and spread, and visualizes the limits of agreement.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>edmet</strong> (<a class="reference external" href="https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.3)"><em>pandas.DataFrame</em></a>) – DataFrame containing environmental measurements, indexed by datetime.</p></li>
+<li><p><strong>compare_dict</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><em>dict</em></a>) – Dictionary where keys are instrument column names and values are tuples of
+metadata in the format (variable, instrument label, units).</p></li>
+<li><p><strong>station</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – Name or identifier for the measurement station, used in plot titles.</p></li>
+<li><p><strong>alpha</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><em>float</em></a><em>, </em><em>optional</em>) – Transparency of the plot elements. Default is 0.5.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>f</strong> (<em>matplotlib.figure.Figure</em>) – The matplotlib figure object containing the plot.</p></li>
+<li><p><strong>ax</strong> (<em>matplotlib.axes.Axes</em>) – The matplotlib axes object for the Bland–Altman plot.</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<ul class="simple">
+<li><p>Missing values (-9999) are replaced with NaN before processing.</p></li>
+<li><p>Data is resampled to hourly frequency and linearly interpolated.</p></li>
+<li><p>Bias is calculated as the mean difference between instruments.</p></li>
+<li><p>Spread is the standard deviation of the difference.</p></li>
+<li><p>Limits of agreement are shown at ±1.96 × standard deviation.</p></li>
+<li><p>The <cite>statsmodels.graphics.mean_diff_plot</cite> utility is used for plotting.</p></li>
+</ul>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micromet.graphs.energy_sankey">
+<span class="sig-prename descclassname"><span class="pre">micromet.graphs.</span></span><span class="sig-name descname"><span class="pre">energy_sankey</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">date_text</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'2024-06-19</span> <span class="pre">12:00'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/micromet/graphs.html#energy_sankey"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#micromet.graphs.energy_sankey" title="Link to this definition"></a></dt>
+<dd><p>Create a Sankey diagram representing the energy balance for a specific date and time.</p>
+<p>This function generates a Sankey diagram to visualize the flow of energy in a system,
+typically used in meteorological or environmental studies. It calculates various
+energy balance components and creates a diagram showing their relationships.</p>
+<section id="parameters">
+<h3>Parameters:<a class="headerlink" href="#parameters" title="Link to this heading"></a></h3>
+<dl class="simple">
+<dt>df<span class="classifier">pandas.DataFrame</span></dt><dd><p>A DataFrame containing time series data with columns for different energy
+components (SW_IN, LW_IN, SW_OUT, LW_OUT, NETRAD, G, LE, H).</p>
+</dd>
+<dt>date_text<span class="classifier">str, optional</span></dt><dd><p>A string representing the date and time for which to create the diagram.
+Default is “2024-06-19 12:00”.</p>
+</dd>
+</dl>
+</section>
+<section id="returns">
+<h3>Returns:<a class="headerlink" href="#returns" title="Link to this heading"></a></h3>
+<p>:
+plotly.graph_objs._figure.Figure</p>
+<blockquote>
+<div><p>A Plotly Figure object containing the Sankey diagram.</p>
+</div></blockquote>
+</section>
+<section id="notes">
+<h3>Notes:<a class="headerlink" href="#notes" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p>The function assumes that the DataFrame index is a DatetimeIndex.</p></li>
+<li><p>Energy balance components are extracted from the DataFrame for the specified date.</p></li>
+<li><p>The energy balance ratio (EBR) is calculated as (H + LE) / (NETRAD - G).</p></li>
+<li><p>The residual term is calculated as NETRAD - (G + H + LE).</p></li>
+<li><p>The Sankey diagram visualizes the flow of energy between different components.</p></li>
+</ul>
+</section>
+<section id="energy-balance-components">
+<h3>Energy Balance Components:<a class="headerlink" href="#energy-balance-components" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p>SW_IN: Incoming Shortwave Radiation</p></li>
+<li><p>LW_IN: Incoming Longwave Radiation</p></li>
+<li><p>SW_OUT: Outgoing Shortwave Radiation</p></li>
+<li><p>LW_OUT: Outgoing Longwave Radiation</p></li>
+<li><p>NETRAD: Net Radiation</p></li>
+<li><p>G: Ground Heat Flux</p></li>
+<li><p>LE: Latent Heat</p></li>
+<li><p>H: Sensible Heat</p></li>
+</ul>
+</section>
+<section id="example">
+<h3>Example:<a class="headerlink" href="#example" title="Link to this heading"></a></h3>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">plotly.graph_objs</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Assume &#39;df&#39; is a properly formatted DataFrame with energy balance data</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">fig</span> <span class="o">=</span> <span class="n">energy_sankey</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="s2">&quot;2024-06-19 12:00&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">fig</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</section>
+<section id="dependencies">
+<h3>Dependencies:<a class="headerlink" href="#dependencies" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p>pandas</p></li>
+<li><p>plotly.graph_objs</p></li>
+</ul>
+</section>
+<section id="see-also">
+<h3>See Also:<a class="headerlink" href="#see-also" title="Link to this heading"></a></h3>
+<p>plotly.graph_objs.Sankey : For more information on creating Sankey diagrams with Plotly</p>
+</section>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micromet.graphs.plot_timeseries_daterange">
+<span class="sig-prename descclassname"><span class="pre">micromet.graphs.</span></span><span class="sig-name descname"><span class="pre">plot_timeseries_daterange</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">selected_station</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">selected_field</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">start_date</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">end_date</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/micromet/graphs.html#plot_timeseries_daterange"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#micromet.graphs.plot_timeseries_daterange" title="Link to this definition"></a></dt>
+<dd><p>Plot a time series for a specific station and variable within a date range.</p>
+<p>This function extracts and visualizes a single time series from a multi-station
+DataFrame, limited to a specified date range and filtered by station ID and
+data field. It handles missing values and generates a time series plot.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>input_df</strong> (<a class="reference external" href="https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.3)"><em>pandas.DataFrame</em></a>) – DataFrame containing a multi-index (station, timestamp) with time series data.</p></li>
+<li><p><strong>selected_station</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – Station identifier to select from the DataFrame.</p></li>
+<li><p><strong>selected_field</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – Column name of the variable to plot (e.g., temperature, humidity).</p></li>
+<li><p><strong>start_date</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em> or </em><a class="reference external" href="https://pandas.pydata.org/docs/reference/api/pandas.Timestamp.html#pandas.Timestamp" title="(in pandas v2.2.3)"><em>pandas.Timestamp</em></a>) – Start date of the time range to include in the plot.</p></li>
+<li><p><strong>end_date</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em> or </em><a class="reference external" href="https://pandas.pydata.org/docs/reference/api/pandas.Timestamp.html#pandas.Timestamp" title="(in pandas v2.2.3)"><em>pandas.Timestamp</em></a>) – End date of the time range to include in the plot.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Displays a matplotlib plot but does not return any value.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>None</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<ul class="simple">
+<li><p>Assumes <cite>input_df</cite> is indexed by station and datetime (MultiIndex).</p></li>
+<li><p>Missing values equal to -9999 are replaced with NaN prior to plotting.</p></li>
+<li><p>The function sets global variables <cite>fig</cite> and <cite>ax</cite>, which may overwrite
+other plots in an interactive session.</p></li>
+</ul>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micromet.graphs.save_plot">
+<span class="sig-prename descclassname"><span class="pre">micromet.graphs.</span></span><span class="sig-name descname"><span class="pre">save_plot</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">b</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/micromet/graphs.html#save_plot"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#micromet.graphs.save_plot" title="Link to this definition"></a></dt>
+<dd><p>Saves plot for an interactive notebook button function</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micromet.graphs.scatterplot_instrument_comparison">
+<span class="sig-prename descclassname"><span class="pre">micromet.graphs.</span></span><span class="sig-name descname"><span class="pre">scatterplot_instrument_comparison</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">edmet</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">compare_dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">station</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/micromet/graphs.html#scatterplot_instrument_comparison"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#micromet.graphs.scatterplot_instrument_comparison" title="Link to this definition"></a></dt>
+<dd><p>Generate a scatterplot comparing two instrument measurements with regression analysis.</p>
+<p>This function compares two instruments specified in <cite>compare_dict</cite> by plotting
+their 1-hour mean values, interpolating missing data, and performing linear regression.
+It includes a 1:1 reference line and displays key regression statistics.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>edmet</strong> (<a class="reference external" href="https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.3)"><em>pandas.DataFrame</em></a>) – DataFrame containing environmental measurements, indexed by datetime.</p></li>
+<li><p><strong>compare_dict</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><em>dict</em></a>) – Dictionary where keys are instrument column names and values are tuples of
+metadata in the format (variable, instrument label, units).</p></li>
+<li><p><strong>station</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – Identifier for the station to annotate the plot title.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>slope</strong> (<em>float</em>) – Slope of the linear regression line.</p></li>
+<li><p><strong>intercept</strong> (<em>float</em>) – Intercept of the linear regression line.</p></li>
+<li><p><strong>r_squared</strong> (<em>float</em>) – Coefficient of determination ($R^2$) from the regression.</p></li>
+<li><p><strong>p_value</strong> (<em>float</em>) – Two-sided p-value for a hypothesis test whose null hypothesis is that the slope is zero.</p></li>
+<li><p><strong>std_err</strong> (<em>float</em>) – Standard error of the estimated slope.</p></li>
+<li><p><strong>fig</strong> (<em>matplotlib.figure.Figure</em>) – The matplotlib figure object.</p></li>
+<li><p><strong>ax</strong> (<em>matplotlib.axes.Axes</em>) – The matplotlib axes object containing the plot.</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<ul class="simple">
+<li><p>Missing values (-9999) are replaced with NaN before processing.</p></li>
+<li><p>The data is resampled to hourly frequency and linearly interpolated.</p></li>
+<li><p>The regression line and 1:1 line are plotted for visual comparison.</p></li>
+<li><p>X and Y axes are labeled using metadata from <cite>compare_dict</cite>.</p></li>
+<li><p>The function both displays the plot and prints regression statistics.</p></li>
+</ul>
+</dd></dl>
+
+</section>
+<section id="module-micromet.headers">
+<span id="micromet-headers-module"></span><h2>micromet.headers module<a class="headerlink" href="#module-micromet.headers" title="Link to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="micromet.headers.apply_header">
+<span class="sig-prename descclassname"><span class="pre">micromet.headers.</span></span><span class="sig-name descname"><span class="pre">apply_header</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">header_file</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_file</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">inplace</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/micromet/headers.html#apply_header"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#micromet.headers.apply_header" title="Link to this definition"></a></dt>
+<dd><p>Copy the header from <cite>header_file</cite> onto <cite>target_file</cite> and return a DataFrame
+:rtype: <span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.3)"><code class="xref py py-class docutils literal notranslate"><span class="pre">DataFrame</span></code></a></span></p>
+<p>with the correct column names.  If <cite>inplace</cite> is True, the target file is
+overwritten on disk (a <a href="#id1"><span class="problematic" id="id2">*</span></a>.bak backup is kept).</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micromet.headers.fix_all_in_parent">
+<span class="sig-prename descclassname"><span class="pre">micromet.headers.</span></span><span class="sig-name descname"><span class="pre">fix_all_in_parent</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">parent</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">searchstr</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'*_AmeriFluxFormat_*.dat'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/micromet/headers.html#fix_all_in_parent"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#micromet.headers.fix_all_in_parent" title="Link to this definition"></a></dt>
+<dd><p>Scan <em>parent</em> (optionally <em>recursive</em>) for duplicate filenames.
+Whenever one copy has a header and another does not, transfer the header.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micromet.headers.fix_directory_pairs">
+<span class="sig-prename descclassname"><span class="pre">micromet.headers.</span></span><span class="sig-name descname"><span class="pre">fix_directory_pairs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dir_with_headers</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dir_without_headers</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/micromet/headers.html#fix_directory_pairs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#micromet.headers.fix_directory_pairs" title="Link to this definition"></a></dt>
+<dd><p>Loop over all files in <cite>dir_without_headers</cite>; whenever a file lacks a
+header, patch it with the header from the identically named file in
+<cite>dir_with_headers</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micromet.headers.looks_like_header">
+<span class="sig-prename descclassname"><span class="pre">micromet.headers.</span></span><span class="sig-name descname"><span class="pre">looks_like_header</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">line</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/micromet/headers.html#looks_like_header"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#micromet.headers.looks_like_header" title="Link to this definition"></a></dt>
+<dd><p>A pragmatic test: header lines normally contain ≥ 1 alphabetic character,
+data rows in instrument logs normally do not.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micromet.headers.patch_file">
+<span class="sig-prename descclassname"><span class="pre">micromet.headers.</span></span><span class="sig-name descname"><span class="pre">patch_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">donor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">write_back</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/micromet/headers.html#patch_file"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#micromet.headers.patch_file" title="Link to this definition"></a></dt>
+<dd><p>Copy header from <em>donor</em> onto <em>target</em> and return a fixed DataFrame.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.3)"><code class="xref py py-class docutils literal notranslate"><span class="pre">DataFrame</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micromet.headers.read_colnames">
+<span class="sig-prename descclassname"><span class="pre">micromet.headers.</span></span><span class="sig-name descname"><span class="pre">read_colnames</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/micromet/headers.html#read_colnames"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#micromet.headers.read_colnames" title="Link to this definition"></a></dt>
+<dd><p>Grab the <em>first</em> line and split it on the file’s delimiter.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]</span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micromet.headers.sniff_delimiter">
+<span class="sig-prename descclassname"><span class="pre">micromet.headers.</span></span><span class="sig-name descname"><span class="pre">sniff_delimiter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sample_bytes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2048</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">default</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">','</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/micromet/headers.html#sniff_delimiter"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#micromet.headers.sniff_delimiter" title="Link to this definition"></a></dt>
+<dd><p>Return the most likely delimiter, falling back to <em>default</em> if unsure.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-micromet.station_data_pull">
+<span id="micromet-station-data-pull-module"></span><h2>micromet.station_data_pull module<a class="headerlink" href="#module-micromet.station_data_pull" title="Link to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="micromet.station_data_pull.StationDataManager">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">micromet.station_data_pull.</span></span><span class="sig-name descname"><span class="pre">StationDataManager</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">engine</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/micromet/station_data_pull.html#StationDataManager"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#micromet.station_data_pull.StationDataManager" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>A class to manage station data operations including fetching, processing, and database interactions.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="micromet.station_data_pull.StationDataManager.compare_sql_to_station">
+<span class="sig-name descname"><span class="pre">compare_sql_to_station</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">station</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">field</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'timestamp_end'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">loggertype</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'eddy'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/micromet/station_data_pull.html#StationDataManager.compare_sql_to_station"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#micromet.station_data_pull.StationDataManager.compare_sql_to_station" title="Link to this definition"></a></dt>
+<dd><p>Compare station data with SQL records and filter new entries.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>df</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.3)"><code class="xref py py-class docutils literal notranslate"><span class="pre">DataFrame</span></code></a></span>) – Station data DataFrame</p></li>
+<li><p><strong>station</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span>) – Station identifier</p></li>
+<li><p><strong>field</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span>) – Field to compare</p></li>
+<li><p><strong>loggertype</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span>) – Logger type</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.3)"><code class="xref py py-class docutils literal notranslate"><span class="pre">DataFrame</span></code></a></span></p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Filtered DataFrame</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="micromet.station_data_pull.StationDataManager.database_columns">
+<span class="sig-name descname"><span class="pre">database_columns</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dat</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/micromet/station_data_pull.html#StationDataManager.database_columns"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#micromet.station_data_pull.StationDataManager.database_columns" title="Link to this definition"></a></dt>
+<dd><p>Get the columns of the database table.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>dat</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span>) – Type of data (‘eddy’ or ‘met’)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code></a></span></p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>List of column names</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="micromet.station_data_pull.StationDataManager.get_max_date">
+<span class="sig-name descname"><span class="pre">get_max_date</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">station</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">loggertype</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'eddy'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/micromet/station_data_pull.html#StationDataManager.get_max_date"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#micromet.station_data_pull.StationDataManager.get_max_date" title="Link to this definition"></a></dt>
+<dd><p>Get maximum timestamp from station database.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>station</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span>) – Station identifier</p></li>
+<li><p><strong>loggertype</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span>) – Logger type</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/datetime.html#datetime.datetime" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">datetime</span></code></a></span></p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Latest timestamp</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="micromet.station_data_pull.StationDataManager.get_station_data">
+<span class="sig-name descname"><span class="pre">get_station_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">station</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reformat</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">loggertype</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'eddy'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/micromet/station_data_pull.html#StationDataManager.get_station_data"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#micromet.station_data_pull.StationDataManager.get_station_data" title="Link to this definition"></a></dt>
+<dd><p>Fetch and process station data.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>station</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span>) – Station identifier</p></li>
+<li><p><strong>reformat</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a></span>) – Whether to reformat the data</p></li>
+<li><p><strong>loggertype</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span>) – Logger type (‘eddy’ or ‘met’)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Tuple" title="(in Python v3.13)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Tuple</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.13)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.3)"><code class="xref py py-class docutils literal notranslate"><span class="pre">DataFrame</span></code></a>], <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.13)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></a>]]</span></p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Tuple of processed DataFrame and data packet size</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="micromet.station_data_pull.StationDataManager.get_station_id">
+<em class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">get_station_id</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">stationid</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/micromet/station_data_pull.html#StationDataManager.get_station_id"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#micromet.station_data_pull.StationDataManager.get_station_id" title="Link to this definition"></a></dt>
+<dd><p>Extract station ID from full station identifier.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="micromet.station_data_pull.StationDataManager.get_times">
+<span class="sig-name descname"><span class="pre">get_times</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">station</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">loggertype</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'eddy'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/micromet/station_data_pull.html#StationDataManager.get_times"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#micromet.station_data_pull.StationDataManager.get_times" title="Link to this definition"></a></dt>
+<dd><p>Retrieve current logger time and system time.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>station</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span>) – Station identifier</p></li>
+<li><p><strong>loggertype</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span>) – Logger type (‘eddy’ or ‘met’)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Tuple" title="(in Python v3.13)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Tuple</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.13)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>], <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]</span></p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Tuple of logger time and system time</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="micromet.station_data_pull.StationDataManager.process_station_data">
+<span class="sig-name descname"><span class="pre">process_station_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">site_folders</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/micromet/station_data_pull.html#StationDataManager.process_station_data"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#micromet.station_data_pull.StationDataManager.process_station_data" title="Link to this definition"></a></dt>
+<dd><p>Process data for all stations.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>site_folders</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a></span>) – Dictionary mapping station IDs to names</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="micromet.station_data_pull.StationDataManager.remove_existing_records">
+<em class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">remove_existing_records</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">column_to_check</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">values_to_remove</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/micromet/station_data_pull.html#StationDataManager.remove_existing_records"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#micromet.station_data_pull.StationDataManager.remove_existing_records" title="Link to this definition"></a></dt>
+<dd><p>Remove existing records from DataFrame.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>df</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.3)"><code class="xref py py-class docutils literal notranslate"><span class="pre">DataFrame</span></code></a></span>) – Input DataFrame</p></li>
+<li><p><strong>column_to_check</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span>) – Column name to check</p></li>
+<li><p><strong>values_to_remove</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code></a></span>) – Values to remove</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.3)"><code class="xref py py-class docutils literal notranslate"><span class="pre">DataFrame</span></code></a></span></p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Filtered DataFrame</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-micromet.tools">
+<span id="micromet-tools-module"></span><h2>micromet.tools module<a class="headerlink" href="#module-micromet.tools" title="Link to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="micromet.tools.aggregate_to_daily_centroid">
+<span class="sig-prename descclassname"><span class="pre">micromet.tools.</span></span><span class="sig-name descname"><span class="pre">aggregate_to_daily_centroid</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">date_column</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Timestamp'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_column</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'X'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_column</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Y'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weighted</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/micromet/tools.html#aggregate_to_daily_centroid"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#micromet.tools.aggregate_to_daily_centroid" title="Link to this definition"></a></dt>
+<dd><p>Aggregate half-hourly coordinate data to daily centroids.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>df</strong> (<em>pd.DataFrame</em>) – DataFrame containing timestamp and coordinates.</p></li>
+<li><p><strong>date_column</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – Column containing datetime values.</p></li>
+<li><p><strong>x_column</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – Column name for X coordinate.</p></li>
+<li><p><strong>y_column</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – Column name for Y coordinate.</p></li>
+<li><p><strong>weighted</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><em>bool</em></a>) – Weighted by ET column or not (default: True).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Aggregated daily centroids.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>pd.DataFrame</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micromet.tools.clean_extreme_variations">
+<span class="sig-prename descclassname"><span class="pre">micromet.tools.</span></span><span class="sig-name descname"><span class="pre">clean_extreme_variations</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fields</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">frequency</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'D'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">variation_threshold</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">null_value</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-9999</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_periods</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">replacement_method</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'nan'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/micromet/tools.html#clean_extreme_variations"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#micromet.tools.clean_extreme_variations" title="Link to this definition"></a></dt>
+<dd><p>Clean extreme variations from specified fields in a DataFrame.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Dict</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.3)"><code class="xref py py-class docutils literal notranslate"><span class="pre">DataFrame</span></code></a>]</span></p>
+</dd>
+</dl>
+<section id="id3">
+<h3>Parameters:<a class="headerlink" href="#id3" title="Link to this heading"></a></h3>
+<dl class="simple">
+<dt>df<span class="classifier">pandas.DataFrame</span></dt><dd><p>Input DataFrame with datetime index</p>
+</dd>
+<dt>fields<span class="classifier">str or list of str, optional</span></dt><dd><p>Column names to clean. If None, processes all numeric columns</p>
+</dd>
+<dt>frequency<span class="classifier">str, default ‘D’</span></dt><dd><p>Frequency to analyze variations over (‘D’ for daily, ‘H’ for hourly, etc.)</p>
+</dd>
+<dt>variation_threshold<span class="classifier">float, default 3.0</span></dt><dd><p>Number of standard deviations beyond which a variation is considered extreme</p>
+</dd>
+<dt>null_value<span class="classifier">float or int, default -9999</span></dt><dd><p>Value to be treated as null</p>
+</dd>
+<dt>min_periods<span class="classifier">int, default 2</span></dt><dd><p>Minimum number of valid observations required to calculate variation</p>
+</dd>
+<dt>replacement_method<span class="classifier">str, default ‘nan’</span></dt><dd><p>Method to handle extreme values:
+- ‘nan’: Replace with NaN
+- ‘interpolate’: Linear interpolation
+- ‘mean’: Replace with frequency mean
+- ‘median’: Replace with frequency median</p>
+</dd>
+</dl>
+</section>
+<section id="id4">
+<h3>Returns:<a class="headerlink" href="#id4" title="Link to this heading"></a></h3>
+<p>:
+dict</p>
+<blockquote>
+<div><p>Dictionary containing:
+- ‘cleaned_data’: DataFrame with cleaned data
+- ‘cleaning_summary’: DataFrame summarizing the cleaning process
+- ‘removed_points’: DataFrame containing the removed values</p>
+</div></blockquote>
+</section>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micromet.tools.detect_extreme_variations">
+<span class="sig-prename descclassname"><span class="pre">micromet.tools.</span></span><span class="sig-name descname"><span class="pre">detect_extreme_variations</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fields</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">frequency</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'D'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">variation_threshold</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">null_value</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-9999</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_periods</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/micromet/tools.html#detect_extreme_variations"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#micromet.tools.detect_extreme_variations" title="Link to this definition"></a></dt>
+<dd><p>Detect extreme variations in specified fields of a datetime-indexed DataFrame.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Dict</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.3)"><code class="xref py py-class docutils literal notranslate"><span class="pre">DataFrame</span></code></a>]</span></p>
+</dd>
+</dl>
+<section id="id5">
+<h3>Parameters:<a class="headerlink" href="#id5" title="Link to this heading"></a></h3>
+<dl class="simple">
+<dt>df<span class="classifier">pandas.DataFrame</span></dt><dd><p>Input DataFrame with datetime index</p>
+</dd>
+<dt>fields<span class="classifier">str or list of str, optional</span></dt><dd><p>Column names to analyze. If None, analyzes all numeric columns</p>
+</dd>
+<dt>frequency<span class="classifier">str, default ‘D’</span></dt><dd><p>Frequency to analyze variations over (‘D’ for daily, ‘H’ for hourly, etc.)</p>
+</dd>
+<dt>variation_threshold<span class="classifier">float, default 3.0</span></dt><dd><p>Number of standard deviations beyond which a variation is considered extreme</p>
+</dd>
+<dt>null_value<span class="classifier">float or int, default -9999</span></dt><dd><p>Value to be treated as null</p>
+</dd>
+<dt>min_periods<span class="classifier">int, default 2</span></dt><dd><p>Minimum number of valid observations required to calculate variation</p>
+</dd>
+</dl>
+</section>
+<section id="id6">
+<h3>Returns:<a class="headerlink" href="#id6" title="Link to this heading"></a></h3>
+<p>:
+dict</p>
+<blockquote>
+<div><p>Dictionary containing:
+- ‘variations’: DataFrame with calculated variations
+- ‘extreme_points’: DataFrame with flagged extreme variations
+- ‘summary’: DataFrame with summary statistics</p>
+</div></blockquote>
+</section>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micromet.tools.find_gaps">
+<span class="sig-prename descclassname"><span class="pre">micromet.tools.</span></span><span class="sig-name descname"><span class="pre">find_gaps</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">columns</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">missing_value</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-9999</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_gap_periods</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/micromet/tools.html#find_gaps"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#micromet.tools.find_gaps" title="Link to this definition"></a></dt>
+<dd><p>Find gaps in time series data where values are either NaN or equal to missing_value
+for longer than min_gap_periods.</p>
+<section id="id7">
+<h3>Parameters:<a class="headerlink" href="#id7" title="Link to this heading"></a></h3>
+<dl class="simple">
+<dt>df<span class="classifier">pandas.DataFrame</span></dt><dd><p>DataFrame with a time series index of regular frequency</p>
+</dd>
+<dt>columns<span class="classifier">str or list of str</span></dt><dd><p>Column(s) to check for gaps</p>
+</dd>
+<dt>missing_value<span class="classifier">numeric, default -9999</span></dt><dd><p>Value to consider as missing data alongside NaN</p>
+</dd>
+<dt>min_gap_periods<span class="classifier">int, default 1</span></dt><dd><p>Minimum number of consecutive missing periods to be considered a gap</p>
+</dd>
+</dl>
+</section>
+<section id="id8">
+<h3>Returns:<a class="headerlink" href="#id8" title="Link to this heading"></a></h3>
+<p>:
+pandas.DataFrame</p>
+<blockquote>
+<div><p>DataFrame containing gap information with columns:
+- gap_start: start datetime of gap
+- gap_end: end datetime of gap
+- duration_hours: duration of gap in hours
+- missing_records: number of missing records in gap
+- column: name of column where gap was found</p>
+</div></blockquote>
+</section>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micromet.tools.find_irr_dates">
+<span class="sig-prename descclassname"><span class="pre">micromet.tools.</span></span><span class="sig-name descname"><span class="pre">find_irr_dates</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">swc_col</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'SWC_1_1_1'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">do_plot</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dist</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">20</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">height</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">30</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prom</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.6</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/micromet/tools.html#find_irr_dates"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#micromet.tools.find_irr_dates" title="Link to this definition"></a></dt>
+<dd><p>Detect irrigation events from soil water content time series.</p>
+<p>Identifies peaks in soil water content (SWC) data that are likely associated
+with irrigation events. Detection is based on peak prominence, height, and distance.
+Optionally plots the full time series with detected events highlighted.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>df</strong> (<a class="reference external" href="https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.3)"><em>pandas.DataFrame</em></a>) – Input DataFrame containing time-indexed soil water content data.</p></li>
+<li><p><strong>swc_col</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><em>optional</em>) – Column name containing soil water content values in percent
+(not fractional). Default is ‘SWC_1_1_1’.</p></li>
+<li><p><strong>do_plot</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><em>bool</em></a><em>, </em><em>optional</em>) – If True, generates a plot showing SWC time series and identified peaks.
+Default is False.</p></li>
+<li><p><strong>dist</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a><em>, </em><em>optional</em>) – Minimum number of time steps between detected peaks. Default is 20.</p></li>
+<li><p><strong>height</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><em>float</em></a><em>, </em><em>optional</em>) – Minimum height of peaks to be considered irrigation events. Default is 30 (%).</p></li>
+<li><p><strong>prom</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><em>float</em></a><em>, </em><em>optional</em>) – Minimum prominence of the peaks. Default is 0.6.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>dates_of_irr</strong> (<em>pandas.DatetimeIndex</em>) – Timestamps corresponding to detected irrigation events.</p></li>
+<li><p><strong>swc_during_irr</strong> (<em>pandas.Series</em>) – Soil water content values at the detected peaks.</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<ul class="simple">
+<li><p>Only data from April through October (inclusive) is considered as the irrigation season.</p></li>
+<li><p>Uses <cite>scipy.signal.find_peaks</cite> for peak detection.</p></li>
+<li><p>Intended for use with SWC data measured in percent, not fractional values.</p></li>
+</ul>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micromet.tools.generate_density_raster">
+<span class="sig-prename descclassname"><span class="pre">micromet.tools.</span></span><span class="sig-name descname"><span class="pre">generate_density_raster</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gdf</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">resolution</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">50</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">buffer_distance</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">200</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epsg</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5070</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weight_field</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'ET'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/micromet/tools.html#generate_density_raster"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#micromet.tools.generate_density_raster" title="Link to this definition"></a></dt>
+<dd><p>Generate a density raster from a point GeoDataFrame, weighted by the ET field.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>gdf</strong> (<em>GeoDataFrame</em>) – Input point GeoDataFrame with an ‘ET’ field.</p></li>
+<li><p><strong>resolution</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><em>float</em></a>) – Raster cell size in meters (default: 50m).</p></li>
+<li><p><strong>buffer_distance</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><em>float</em></a>) – Buffer beyond point extent (default: 200m).</p></li>
+<li><p><strong>epsg</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a>) – Coordinate system EPSG code (default: 5070).</p></li>
+<li><p><strong>weight_field</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – Weight field name (default: ET).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Normalized density raster.
+transform (Affine): Affine transformation for georeferencing.
+bounds (tuple): (xmin, ymin, xmax, ymax) of the raster extent.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>raster (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.2)">numpy.ndarray</a>)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micromet.tools.plot_gaps">
+<span class="sig-prename descclassname"><span class="pre">micromet.tools.</span></span><span class="sig-name descname"><span class="pre">plot_gaps</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gaps_df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">title</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Time</span> <span class="pre">Series</span> <span class="pre">Data</span> <span class="pre">Gaps'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/micromet/tools.html#plot_gaps"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#micromet.tools.plot_gaps" title="Link to this definition"></a></dt>
+<dd><p>Create a Gantt chart visualization of gaps in time series data.</p>
+<section id="id9">
+<h3>Parameters:<a class="headerlink" href="#id9" title="Link to this heading"></a></h3>
+<dl class="simple">
+<dt>gaps_df<span class="classifier">pandas.DataFrame</span></dt><dd><p>DataFrame containing gap information as returned by find_gaps()</p>
+</dd>
+<dt>title<span class="classifier">str, default “Time Series Data Gaps”</span></dt><dd><p>Title for the plot</p>
+</dd>
+</dl>
+</section>
+<section id="id10">
+<h3>Returns:<a class="headerlink" href="#id10" title="Link to this heading"></a></h3>
+<p>:
+plotly.graph_objects.Figure</p>
+<blockquote>
+<div><p>Interactive Plotly figure showing gaps as a Gantt chart</p>
+</div></blockquote>
+</section>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micromet.tools.polar_to_cartesian_dataframe">
+<span class="sig-prename descclassname"><span class="pre">micromet.tools.</span></span><span class="sig-name descname"><span class="pre">polar_to_cartesian_dataframe</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">wd_column</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'WD'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dist_column</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Dist'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/micromet/tools.html#polar_to_cartesian_dataframe"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#micromet.tools.polar_to_cartesian_dataframe" title="Link to this definition"></a></dt>
+<dd><p>Convert polar coordinates from a DataFrame to Cartesian coordinates.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>df</strong> (<em>pd.DataFrame</em>) – Input DataFrame containing polar coordinates.</p></li>
+<li><p><strong>wd_column</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – Column name for degrees from north.</p></li>
+<li><p><strong>dist_column</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – Column name for distance from origin.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A DataFrame with added ‘X’ and ‘Y’ columns.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>pd.DataFrame</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-micromet">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-micromet" title="Link to this heading"></a></h2>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Paul Inkenbrandt &amp; Kathryn Ladig.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
