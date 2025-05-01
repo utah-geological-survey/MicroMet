@@ -4,9 +4,12 @@ sphinx-rtd-theme
 pandas
 numpy
 plotly
-matplotlib
+sqlalchemy
+matplotlib-base
 scipy
 statsmodels
 scikit-learn
+pyproj
+rasterio
 pyyaml
 pytest

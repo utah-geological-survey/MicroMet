@@ -21,6 +21,9 @@ dependencies = [
     "plotly>=5.0",
     "rasterio>=1.2",
     "pyproj>=3.0",
+    "sqlalchemy>=1.4",
+    "statsmodels>=0.12",
+    "scikit-learn>=0.24",
 ]
 
 [project.optional-dependencies]
@@ -36,5 +39,7 @@ test = [
     "pytest-cov>=2.0",
 ]
 
-[tool.setuptools]
-package-dir = {"" = ""}
+
+[project.urls]
+"Homepage" = "https://github.com/yourname/your_package"
+"Documentation" = "https://your_package.readthedocs.io/en/latest/"
