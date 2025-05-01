@@ -37,4 +37,4 @@ test = [
 ]
 
 [tool.setuptools]
-package-dir = {"" = "src"}
+package-dir = {"" = ""}
