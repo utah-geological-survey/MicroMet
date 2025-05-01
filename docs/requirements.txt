@@ -7,10 +7,6 @@ plotly
 sqlalchemy
 matplotlib
 scipy
-statsmodels
-scikit-learn
-pyproj
-rasterio
 pyyaml
 pytest
-pathlib
+requests

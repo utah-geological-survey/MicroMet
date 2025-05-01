@@ -2,15 +2,12 @@ import requests
 import datetime
 from typing import Union, Tuple, Optional
 
-# from numba import Boolean
 from requests.auth import HTTPBasicAuth
 import pandas as pd
 from io import BytesIO
 import configparser
 import sqlalchemy
 from .converter import Reformatter
-
-import configparser
 
 try:
     config = configparser.ConfigParser()
