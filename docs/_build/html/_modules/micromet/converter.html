@@ -45,6 +45,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../ameriflux_variables.html">AmeriFlux Data Variables</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../data_processing.html">Data Processing and Management</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../modules.html">MicroMet</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../links.html">Useful Links Index</a></li>
 </ul>
 
         </div>
@@ -105,6 +106,7 @@
 <span class="c1"># Helper functions</span>
 <span class="c1"># -----------------------------------------------------------------------------#</span>
 
+
 <div class="viewcode-block" id="load_yaml">
 <a class="viewcode-back" href="../../micromet.html#micromet.converter.load_yaml">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">load_yaml</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="n">Path</span> <span class="o">|</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
@@ -114,6 +116,7 @@
         <span class="k">raise</span> <span class="ne">FileNotFoundError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Config file not found: </span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
     <span class="k">with</span> <span class="n">path</span><span class="o">.</span><span class="n">open</span><span class="p">()</span> <span class="k">as</span> <span class="n">fp</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">yaml</span><span class="o">.</span><span class="n">safe_load</span><span class="p">(</span><span class="n">fp</span><span class="p">)</span></div>
+
 
 
 <div class="viewcode-block" id="logger_check">
@@ -159,9 +162,11 @@
     <span class="n">_HEADER_PREFIX</span> <span class="o">=</span> <span class="s2">&quot;TIMESTAMP_START&quot;</span>
     <span class="n">NA_VALUES</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;-9999&quot;</span><span class="p">,</span> <span class="s2">&quot;NAN&quot;</span><span class="p">,</span> <span class="s2">&quot;NaN&quot;</span><span class="p">,</span> <span class="s2">&quot;nan&quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="o">-</span><span class="mf">9999.0</span><span class="p">]</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
-                 <span class="n">config_path</span><span class="p">:</span> <span class="n">Path</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;reformatter_vars.yml&#39;</span><span class="p">,</span>
-                 <span class="n">logger</span><span class="p">:</span> <span class="n">logging</span><span class="o">.</span><span class="n">Logger</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">config_path</span><span class="p">:</span> <span class="n">Path</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;reformatter_vars.yml&quot;</span><span class="p">,</span>
+        <span class="n">logger</span><span class="p">:</span> <span class="n">logging</span><span class="o">.</span><span class="n">Logger</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">):</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">logger</span> <span class="o">=</span> <span class="n">logger_check</span><span class="p">(</span><span class="n">logger</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">headers</span> <span class="o">=</span> <span class="n">load_yaml</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="n">config_path</span><span class="p">))</span>
@@ -176,18 +181,19 @@
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Return parsed CSV as pandas DataFrame.&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_determine_header_rows</span><span class="p">(</span><span class="n">file</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Reading </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">file</span><span class="p">)</span>
-        <span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">file</span><span class="p">,</span>
-                         <span class="n">skiprows</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">skip_rows</span><span class="p">,</span>
-                         <span class="n">names</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">names</span><span class="p">,</span>
-                         <span class="n">na_values</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">NA_VALUES</span><span class="p">,</span>
-                         <span class="p">)</span>
+        <span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span>
+            <span class="n">file</span><span class="p">,</span>
+            <span class="n">skiprows</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">skip_rows</span><span class="p">,</span>
+            <span class="n">names</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">names</span><span class="p">,</span>
+            <span class="n">na_values</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">NA_VALUES</span><span class="p">,</span>
+        <span class="p">)</span>
         <span class="k">return</span> <span class="n">df</span></div>
 
 
     <span class="c1"># --------------------------------------------------------------------- #</span>
     <span class="c1"># Internal helpers</span>
     <span class="c1"># --------------------------------------------------------------------- #</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">_determine_header_rows</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file</span><span class="p">:</span><span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_determine_header_rows</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Examine the first line to decide if file is TOA5 or already processed.</span>
 
@@ -195,20 +201,20 @@
 <span class="sd">        AmeriFlux standard Level‑2 output has no prefix, just column labels.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">with</span> <span class="n">file</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">fp</span><span class="p">:</span>
-            <span class="n">first_line</span> <span class="o">=</span> <span class="n">fp</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;&quot;&#39;</span><span class="p">,</span><span class="s2">&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;,&quot;</span><span class="p">)</span>
+            <span class="n">first_line</span> <span class="o">=</span> <span class="n">fp</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;&quot;&#39;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;,&quot;</span><span class="p">)</span>
             <span class="n">second_line</span> <span class="o">=</span> <span class="n">fp</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;&quot;&#39;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;,&quot;</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">first_line</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">_HEADER_PREFIX</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Header row detected: </span><span class="si">{</span><span class="n">first_line</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">skip_rows</span> <span class="o">=</span> <span class="mi">0</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">names</span> <span class="o">=</span> <span class="n">first_line</span>
         <span class="k">elif</span> <span class="n">first_line</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">_TOA5_PREFIX</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">skip_rows</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">skip_rows</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">]</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">names</span> <span class="o">=</span> <span class="n">second_line</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Header line not recognized: </span><span class="si">{</span><span class="n">first_line</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Skip rows for set to </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">skip_rows</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">_get_file_no</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span><span class="nb">int</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_file_no</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
         <span class="n">basename</span> <span class="o">=</span> <span class="n">file</span><span class="o">.</span><span class="n">stem</span>
 
         <span class="k">try</span><span class="p">:</span>
@@ -227,7 +233,7 @@
 <a class="viewcode-back" href="../../micromet.html#micromet.converter.AmerifluxDataProcessor.raw_file_compile">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">raw_file_compile</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
-        <span class="n">main_dir</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span><span class="n">Path</span><span class="p">],</span>
+        <span class="n">main_dir</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">],</span>
         <span class="n">station_folder_name</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">],</span>
         <span class="n">search_str</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;*Flux_AmeriFluxFormat*.dat&quot;</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">]:</span>
@@ -264,7 +270,6 @@
                 <span class="n">df</span><span class="p">[</span><span class="s2">&quot;datalogger_no&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">datalogger_number</span>
                 <span class="n">compiled_data</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
 
-
         <span class="k">if</span> <span class="n">compiled_data</span><span class="p">:</span>
             <span class="n">compiled_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">compiled_data</span><span class="p">,</span> <span class="n">ignore_index</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
             <span class="k">return</span> <span class="n">compiled_df</span>
@@ -277,29 +282,27 @@
 <a class="viewcode-back" href="../../micromet.html#micromet.converter.AmerifluxDataProcessor.iterate_through_stations">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">iterate_through_stations</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Iterate through all stations.&quot;&quot;&quot;</span>
-        <span class="n">site_folders</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;US-UTD&#39;</span><span class="p">:</span> <span class="s1">&#39;Dugout_Ranch&#39;</span><span class="p">,</span>
-                        <span class="s1">&#39;US-UTB&#39;</span><span class="p">:</span> <span class="s1">&#39;BSF&#39;</span><span class="p">,</span>
-                        <span class="s1">&#39;US-UTJ&#39;</span><span class="p">:</span> <span class="s1">&#39;Bluff&#39;</span><span class="p">,</span>
-                        <span class="s1">&#39;US-UTW&#39;</span><span class="p">:</span> <span class="s1">&#39;Wellington&#39;</span><span class="p">,</span>
-                        <span class="s1">&#39;US-UTE&#39;</span><span class="p">:</span> <span class="s1">&#39;Escalante&#39;</span><span class="p">,</span>
-                        <span class="s1">&#39;US-UTM&#39;</span><span class="p">:</span> <span class="s1">&#39;Matheson&#39;</span><span class="p">,</span>
-                        <span class="s1">&#39;US-UTP&#39;</span><span class="p">:</span> <span class="s1">&#39;Phrag&#39;</span><span class="p">,</span>
-                        <span class="s1">&#39;US-CdM&#39;</span><span class="p">:</span> <span class="s1">&#39;Cedar_mesa&#39;</span><span class="p">,</span>
-                        <span class="s1">&#39;US-UTV&#39;</span><span class="p">:</span> <span class="s1">&#39;Desert_View_Myton&#39;</span><span class="p">,</span>
-                        <span class="s1">&#39;US-UTN&#39;</span><span class="p">:</span> <span class="s1">&#39;Juab&#39;</span><span class="p">,</span>
-                        <span class="s1">&#39;US-UTG&#39;</span><span class="p">:</span> <span class="s1">&#39;Green_River&#39;</span>
-                        <span class="p">}</span>
-        <span class="k">for</span> <span class="n">stationid</span><span class="p">,</span><span class="n">folder</span> <span class="ow">in</span> <span class="n">site_folders</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-            <span class="k">for</span> <span class="n">datatype</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;met&#39;</span><span class="p">,</span><span class="s1">&#39;eddy&#39;</span><span class="p">]:</span>
-                <span class="k">if</span> <span class="n">datatype</span> <span class="o">==</span> <span class="s1">&#39;met&#39;</span><span class="p">:</span>
+        <span class="n">site_folders</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;US-UTD&quot;</span><span class="p">:</span> <span class="s2">&quot;Dugout_Ranch&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;US-UTB&quot;</span><span class="p">:</span> <span class="s2">&quot;BSF&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;US-UTJ&quot;</span><span class="p">:</span> <span class="s2">&quot;Bluff&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;US-UTW&quot;</span><span class="p">:</span> <span class="s2">&quot;Wellington&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;US-UTE&quot;</span><span class="p">:</span> <span class="s2">&quot;Escalante&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;US-UTM&quot;</span><span class="p">:</span> <span class="s2">&quot;Matheson&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;US-UTP&quot;</span><span class="p">:</span> <span class="s2">&quot;Phrag&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;US-CdM&quot;</span><span class="p">:</span> <span class="s2">&quot;Cedar_mesa&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;US-UTV&quot;</span><span class="p">:</span> <span class="s2">&quot;Desert_View_Myton&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;US-UTN&quot;</span><span class="p">:</span> <span class="s2">&quot;Juab&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;US-UTG&quot;</span><span class="p">:</span> <span class="s2">&quot;Green_River&quot;</span><span class="p">,</span>
+        <span class="p">}</span>
+        <span class="k">for</span> <span class="n">stationid</span><span class="p">,</span> <span class="n">folder</span> <span class="ow">in</span> <span class="n">site_folders</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">for</span> <span class="n">datatype</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;met&quot;</span><span class="p">,</span> <span class="s2">&quot;eddy&quot;</span><span class="p">]:</span>
+                <span class="k">if</span> <span class="n">datatype</span> <span class="o">==</span> <span class="s2">&quot;met&quot;</span><span class="p">:</span>
                     <span class="n">search_str</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;*Statistics_Ameriflux*.dat&quot;</span>
                 <span class="k">else</span><span class="p">:</span>
                     <span class="n">search_str</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;*AmeriFluxFormat*.dat&quot;</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">raw_file_compile</span><span class="p">(</span><span class="n">stationid</span><span class="p">,</span>
-                                      <span class="n">folder</span><span class="p">,</span>
-                                      <span class="n">search_str</span><span class="p">)</span></div>
+                <span class="bp">self</span><span class="o">.</span><span class="n">raw_file_compile</span><span class="p">(</span><span class="n">stationid</span><span class="p">,</span> <span class="n">folder</span><span class="p">,</span> <span class="n">search_str</span><span class="p">)</span></div>
 </div>
-
 
 
 
@@ -349,13 +352,12 @@
     <span class="n">SOIL_SENSOR_SKIP_INDEX</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">3</span>  <span class="c1"># Drop SWC_/TS_/EC_/K_ where second segment &gt;= 3</span>
     <span class="n">DEFAULT_SOIL_DROP_LIMIT</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span>  <span class="c1"># keep last 4 items in math_soils_v2 list</span>
 
-
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
-            <span class="bp">self</span><span class="p">,</span>
-            <span class="n">config_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">,</span>
-            <span class="n">var_limits_csv</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-            <span class="n">drop_soil</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
-            <span class="n">logger</span><span class="p">:</span> <span class="n">logging</span><span class="o">.</span><span class="n">Logger</span> <span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">config_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">,</span>
+        <span class="n">var_limits_csv</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">drop_soil</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">logger</span><span class="p">:</span> <span class="n">logging</span><span class="o">.</span><span class="n">Logger</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">logger</span> <span class="o">=</span> <span class="n">logger_check</span><span class="p">(</span><span class="n">logger</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">config</span> <span class="o">=</span> <span class="n">load_yaml</span><span class="p">(</span><span class="n">config_path</span><span class="p">)</span>
@@ -384,15 +386,9 @@
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">drop_soil</span><span class="p">:</span>
             <span class="n">df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_drop_extra_soil_columns</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
 
-        <span class="n">df</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="n">df</span><span class="o">.</span><span class="n">pipe</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_drop_extras</span><span class="p">)</span>
-            <span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">MISSING_VALUE</span><span class="p">)</span>
-
-        <span class="p">)</span>
+        <span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">pipe</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_drop_extras</span><span class="p">)</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">MISSING_VALUE</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Done; final shape: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">df</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">df</span></div>
-
-
 
 
     <span class="c1"># ------------------------------------------------------------------</span>
@@ -400,7 +396,7 @@
     <span class="c1"># ------------------------------------------------------------------</span>
 <div class="viewcode-block" id="Reformatter.infer_datetime_col">
 <a class="viewcode-back" href="../../micromet.html#micromet.converter.Reformatter.infer_datetime_col">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">infer_datetime_col</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="o">|</span><span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">infer_datetime_col</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Return the name of the TIMESTAMP column.&quot;&quot;&quot;</span>
         <span class="n">datetime_col_options</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;TIMESTAMP_START&quot;</span><span class="p">,</span> <span class="s2">&quot;TIMESTAMP_START_1&quot;</span><span class="p">]</span>
         <span class="n">datetime_col_options</span> <span class="o">+=</span> <span class="p">[</span><span class="n">col</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">datetime_col_options</span><span class="p">]</span>
@@ -409,7 +405,7 @@
                 <span class="k">return</span> <span class="n">cand</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;No TIMESTAMP column in dataframe&quot;</span><span class="p">)</span>
-                <span class="k">return</span> <span class="n">df</span><span class="o">.</span><span class="n">iloc</span><span class="p">[:,</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">name</span>
+                <span class="k">return</span> <span class="n">df</span><span class="o">.</span><span class="n">iloc</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">name</span>
         <span class="k">return</span> <span class="kc">None</span></div>
 
 
@@ -421,7 +417,9 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;TS col </span><span class="si">{</span><span class="n">ts_col</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;TIMESTAMP_START col </span><span class="si">{</span><span class="n">df</span><span class="p">[</span><span class="n">ts_col</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="n">ts_format</span> <span class="o">=</span> <span class="s2">&quot;%Y%m</span><span class="si">%d</span><span class="s2">%H%M&quot;</span>
-        <span class="n">df</span><span class="p">[</span><span class="s2">&quot;datetime_start&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_datetime</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="n">ts_col</span><span class="p">],</span> <span class="nb">format</span><span class="o">=</span><span class="n">ts_format</span><span class="p">,</span> <span class="n">errors</span><span class="o">=</span><span class="s2">&quot;coerce&quot;</span><span class="p">)</span>
+        <span class="n">df</span><span class="p">[</span><span class="s2">&quot;datetime_start&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_datetime</span><span class="p">(</span>
+            <span class="n">df</span><span class="p">[</span><span class="n">ts_col</span><span class="p">],</span> <span class="nb">format</span><span class="o">=</span><span class="n">ts_format</span><span class="p">,</span> <span class="n">errors</span><span class="o">=</span><span class="s2">&quot;coerce&quot;</span>
+        <span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Len of unfixed timestamps </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">df</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">dropna</span><span class="p">(</span><span class="n">subset</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;datetime_start&quot;</span><span class="p">])</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Len of fixed timestamps </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">df</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
@@ -452,7 +450,11 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">today</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">(</span><span class="s2">&quot;today&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="s2">&quot;D&quot;</span><span class="p">)</span>
         <span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">df</span><span class="p">[</span><span class="s2">&quot;datetime_start&quot;</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="n">today</span><span class="p">]</span>
-        <span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">drop_duplicates</span><span class="p">(</span><span class="n">subset</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;datetime_start&quot;</span><span class="p">])</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="s2">&quot;datetime_start&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">sort_index</span><span class="p">()</span>
+        <span class="n">df</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">df</span><span class="o">.</span><span class="n">drop_duplicates</span><span class="p">(</span><span class="n">subset</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;datetime_start&quot;</span><span class="p">])</span>
+            <span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="s2">&quot;datetime_start&quot;</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">sort_index</span><span class="p">()</span>
+        <span class="p">)</span>
         <span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">resample</span><span class="p">(</span><span class="s2">&quot;30min&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">first</span><span class="p">()</span><span class="o">.</span><span class="n">interpolate</span><span class="p">(</span><span class="n">limit</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Len of resampled timestamps </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">df</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">df</span></div>
@@ -483,7 +485,11 @@
 <span class="sd">            Modified DataFrame with updated &#39;TIMESTAMP_START&#39; and &#39;TIMESTAMP_END&#39; columns.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">df</span><span class="p">[</span><span class="s2">&quot;TIMESTAMP_START&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y%m</span><span class="si">%d</span><span class="s2">%H%M&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
-        <span class="n">df</span><span class="p">[</span><span class="s2">&quot;TIMESTAMP_END&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">df</span><span class="o">.</span><span class="n">index</span> <span class="o">+</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timedelta</span><span class="p">(</span><span class="n">minutes</span><span class="o">=</span><span class="n">minutes</span><span class="p">))</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y%m</span><span class="si">%d</span><span class="s2">%H%M&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
+        <span class="n">df</span><span class="p">[</span><span class="s2">&quot;TIMESTAMP_END&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="p">(</span><span class="n">df</span><span class="o">.</span><span class="n">index</span> <span class="o">+</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timedelta</span><span class="p">(</span><span class="n">minutes</span><span class="o">=</span><span class="n">minutes</span><span class="p">))</span>
+            <span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y%m</span><span class="si">%d</span><span class="s2">%H%M&quot;</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
+        <span class="p">)</span>
         <span class="k">return</span> <span class="n">df</span></div>
 
 
@@ -515,7 +521,9 @@
 <span class="sd">        pd.DataFrame</span>
 <span class="sd">            DataFrame with renamed and standardized column names.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">mapping</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;renames_eddy&quot;</span> <span class="k">if</span> <span class="n">data_type</span> <span class="o">==</span> <span class="s2">&quot;eddy&quot;</span> <span class="k">else</span> <span class="s2">&quot;renames_met&quot;</span><span class="p">,</span> <span class="p">{})</span>
+        <span class="n">mapping</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+            <span class="s2">&quot;renames_eddy&quot;</span> <span class="k">if</span> <span class="n">data_type</span> <span class="o">==</span> <span class="s2">&quot;eddy&quot;</span> <span class="k">else</span> <span class="s2">&quot;renames_met&quot;</span><span class="p">,</span> <span class="p">{}</span>
+        <span class="p">)</span>
         <span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="n">mapping</span><span class="p">)</span>
         <span class="n">df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">normalize_prefixes</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
         <span class="n">df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">modernize_soil_legacy</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
@@ -532,8 +540,8 @@
 <span class="sd">        This method renames columns in the input DataFrame based on predefined prefix</span>
 <span class="sd">        replacement rules. It performs the following operations:</span>
 
-<span class="sd">        - Replaces known prefixes such as &#39;BulkEC_&#39;, &#39;VWC_&#39;, and &#39;Ka_&#39; using compiled regex patterns.</span>
-<span class="sd">        - Replaces &#39;T_&#39; with &#39;Ts_&#39; if the column name matches the pattern &#39;T_&lt;depth&gt;cm_&#39;.</span>
+<span class="sd">        - Replaces known prefixes such as ``BulkEC_``, ``VWC_``, and ``Ka_`` using compiled regex patterns.</span>
+<span class="sd">        - Replaces ``T_`` with ``Ts_`` if the column name matches the pattern &#39;T_&lt;depth&gt;cm_&#39;.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
@@ -657,9 +665,7 @@
                 <span class="k">if</span> <span class="n">df</span><span class="o">.</span><span class="n">dtypes</span><span class="p">[</span><span class="n">col</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;float64&quot;</span><span class="p">:</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Examining column </span><span class="si">{</span><span class="n">col</span><span class="si">}</span><span class="s2"> limits&quot;</span><span class="p">)</span>
                     <span class="n">limits</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">varlimits</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">col</span><span class="p">]</span>
-                    <span class="n">valid_mask</span> <span class="o">=</span> <span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="n">col</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">limits</span><span class="p">[</span><span class="s2">&quot;Min&quot;</span><span class="p">])</span> <span class="o">&amp;</span> <span class="p">(</span>
-                        <span class="n">df</span><span class="p">[</span><span class="n">col</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">limits</span><span class="p">[</span><span class="s2">&quot;Max&quot;</span><span class="p">]</span>
-                    <span class="p">)</span>
+                    <span class="n">valid_mask</span> <span class="o">=</span> <span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="n">col</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">limits</span><span class="p">[</span><span class="s2">&quot;Min&quot;</span><span class="p">])</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="n">col</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">limits</span><span class="p">[</span><span class="s2">&quot;Max&quot;</span><span class="p">])</span>
                     <span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="o">~</span><span class="n">valid_mask</span><span class="p">,</span> <span class="n">col</span><span class="p">]</span> <span class="o">=</span> <span class="n">replace_w</span>
                     <span class="c1"># df[variable] = df[variable].apply(</span>
                     <span class="c1">#    lambda x: replace_w if x &lt; lower_bound or x &gt; upper_bound else x</span>
@@ -742,7 +748,7 @@
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Convert fractional soil water content values to percent if applicable.</span>
 
-<span class="sd">        This method scans for columns with names starting with &quot;SWC_&quot; and checks</span>
+<span class="sd">        This method scans for columns with names starting with ``SWC_`` and checks</span>
 <span class="sd">        whether their maximum values are below or equal to 1.5. If so, the column</span>
 <span class="sd">        is assumed to be in volumetric fraction (0–1) and is converted to percent (0–100)</span>
 <span class="sd">        by multiplying by 100.</span>
@@ -929,7 +935,7 @@
                         <span class="k">continue</span>
                 <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
                     <span class="k">pass</span>  <span class="c1"># non‑numeric, ignore</span>
-            <span class="k">if</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">math_soils</span><span class="p">[:</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">DEFAULT_SOIL_DROP_LIMIT</span><span class="p">]:</span>
+            <span class="k">if</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">math_soils</span><span class="p">[:</span> <span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">DEFAULT_SOIL_DROP_LIMIT</span><span class="p">]:</span>
                 <span class="n">to_drop</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">col</span><span class="p">)</span>
                 <span class="k">continue</span>
             <span class="k">if</span> <span class="p">(</span>
@@ -977,17 +983,13 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">col</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;MO_LENGTH&quot;</span><span class="p">,</span> <span class="s2">&quot;RECORD&quot;</span><span class="p">]:</span>
-                <span class="n">df</span><span class="p">[</span><span class="n">col</span><span class="p">]</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_numeric</span><span class="p">(</span>
-                    <span class="n">df</span><span class="p">[</span><span class="n">col</span><span class="p">],</span> <span class="n">downcast</span><span class="o">=</span><span class="s2">&quot;integer&quot;</span><span class="p">,</span> <span class="n">errors</span><span class="o">=</span><span class="s2">&quot;coerce&quot;</span>
-                <span class="p">)</span>
+                <span class="n">df</span><span class="p">[</span><span class="n">col</span><span class="p">]</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_numeric</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="n">col</span><span class="p">],</span> <span class="n">downcast</span><span class="o">=</span><span class="s2">&quot;integer&quot;</span><span class="p">,</span> <span class="n">errors</span><span class="o">=</span><span class="s2">&quot;coerce&quot;</span><span class="p">)</span>
 
             <span class="k">elif</span> <span class="n">col</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;datetime_start&quot;</span><span class="p">]:</span>
                 <span class="n">df</span><span class="p">[</span><span class="n">col</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">col</span><span class="p">]</span>
 
-            <span class="k">elif</span> <span class="n">col</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;TIMESTAMP_START&quot;</span><span class="p">,</span> <span class="s2">&quot;TIMESTAMP_END&quot;</span><span class="p">,</span><span class="s2">&quot;SSITC&quot;</span><span class="p">]:</span>
-                <span class="n">df</span><span class="p">[</span><span class="n">col</span><span class="p">]</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_numeric</span><span class="p">(</span>
-                    <span class="n">df</span><span class="p">[</span><span class="n">col</span><span class="p">],</span> <span class="n">downcast</span><span class="o">=</span><span class="s2">&quot;integer&quot;</span><span class="p">,</span> <span class="n">errors</span><span class="o">=</span><span class="s2">&quot;coerce&quot;</span>
-                <span class="p">)</span>
+            <span class="k">elif</span> <span class="n">col</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;TIMESTAMP_START&quot;</span><span class="p">,</span> <span class="s2">&quot;TIMESTAMP_END&quot;</span><span class="p">,</span> <span class="s2">&quot;SSITC&quot;</span><span class="p">]:</span>
+                <span class="n">df</span><span class="p">[</span><span class="n">col</span><span class="p">]</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_numeric</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="n">col</span><span class="p">],</span> <span class="n">downcast</span><span class="o">=</span><span class="s2">&quot;integer&quot;</span><span class="p">,</span> <span class="n">errors</span><span class="o">=</span><span class="s2">&quot;coerce&quot;</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">df</span><span class="p">[</span><span class="n">col</span><span class="p">]</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_numeric</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="n">col</span><span class="p">],</span> <span class="n">errors</span><span class="o">=</span><span class="s2">&quot;coerce&quot;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Set number types: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">df</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>

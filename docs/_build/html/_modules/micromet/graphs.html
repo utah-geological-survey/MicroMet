@@ -45,6 +45,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../ameriflux_variables.html">AmeriFlux Data Variables</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../data_processing.html">Data Processing and Management</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../modules.html">MicroMet</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../links.html">Useful Links Index</a></li>
 </ul>
 
         </div>
@@ -80,6 +81,7 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.metrics</span><span class="w"> </span><span class="kn">import</span> <span class="n">mean_squared_error</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">statsmodels.api</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sm</span>
 
+
 <div class="viewcode-block" id="energy_sankey">
 <a class="viewcode-back" href="../../micromet.html#micromet.graphs.energy_sankey">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">energy_sankey</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">date_text</span><span class="o">=</span><span class="s2">&quot;2024-06-19 12:00&quot;</span><span class="p">):</span>
@@ -90,30 +92,27 @@
 <span class="sd">    typically used in meteorological or environmental studies. It calculates various</span>
 <span class="sd">    energy balance components and creates a diagram showing their relationships.</span>
 
-<span class="sd">    Parameters:</span>
-<span class="sd">    -----------</span>
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
 <span class="sd">    df : pandas.DataFrame</span>
-<span class="sd">        A DataFrame containing time series data with columns for different energy</span>
-<span class="sd">        components (SW_IN, LW_IN, SW_OUT, LW_OUT, NETRAD, G, LE, H).</span>
+<span class="sd">        A DataFrame with time series data and the following columns:</span>
+<span class="sd">        &#39;SW_IN&#39;, &#39;LW_IN&#39;, &#39;SW_OUT&#39;, &#39;LW_OUT&#39;, &#39;NETRAD&#39;, &#39;G&#39;, &#39;LE&#39;, &#39;H&#39;.</span>
+<span class="sd">        The index must be a pandas.DatetimeIndex.</span>
 <span class="sd">    date_text : str, optional</span>
-<span class="sd">        A string representing the date and time for which to create the diagram.</span>
-<span class="sd">        Default is &quot;2024-06-19 12:00&quot;.</span>
+<span class="sd">        Date and time to extract from the DataFrame (default is &quot;2024-06-19 12:00&quot;).</span>
 
-<span class="sd">    Returns:</span>
-<span class="sd">    --------</span>
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
 <span class="sd">    plotly.graph_objs._figure.Figure</span>
 <span class="sd">        A Plotly Figure object containing the Sankey diagram.</span>
 
-<span class="sd">    Notes:</span>
-<span class="sd">    ------</span>
-<span class="sd">    - The function assumes that the DataFrame index is a DatetimeIndex.</span>
-<span class="sd">    - Energy balance components are extracted from the DataFrame for the specified date.</span>
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
 <span class="sd">    - The energy balance ratio (EBR) is calculated as (H + LE) / (NETRAD - G).</span>
-<span class="sd">    - The residual term is calculated as NETRAD - (G + H + LE).</span>
-<span class="sd">    - The Sankey diagram visualizes the flow of energy between different components.</span>
+<span class="sd">    - The residual term is computed as: NETRAD - (G + H + LE).</span>
 
-<span class="sd">    Energy Balance Components:</span>
-<span class="sd">    --------------------------</span>
+<span class="sd">    Energy Balance Components</span>
+<span class="sd">    -------------------------</span>
 <span class="sd">    - SW_IN: Incoming Shortwave Radiation</span>
 <span class="sd">    - LW_IN: Incoming Longwave Radiation</span>
 <span class="sd">    - SW_OUT: Outgoing Shortwave Radiation</span>
@@ -123,22 +122,15 @@
 <span class="sd">    - LE: Latent Heat</span>
 <span class="sd">    - H: Sensible Heat</span>
 
-<span class="sd">    Example:</span>
+<span class="sd">    Examples</span>
 <span class="sd">    --------</span>
 <span class="sd">    &gt;&gt;&gt; import pandas as pd</span>
-<span class="sd">    &gt;&gt;&gt; import plotly.graph_objs</span>
-<span class="sd">    &gt;&gt;&gt; # Assume &#39;df&#39; is a properly formatted DataFrame with energy balance data</span>
 <span class="sd">    &gt;&gt;&gt; fig = energy_sankey(df, &quot;2024-06-19 12:00&quot;)</span>
 <span class="sd">    &gt;&gt;&gt; fig.show()</span>
 
-<span class="sd">    Dependencies:</span>
-<span class="sd">    -------------</span>
-<span class="sd">    - pandas</span>
-<span class="sd">    - plotly.graph_objs</span>
-
-<span class="sd">    See Also:</span>
-<span class="sd">    ---------</span>
-<span class="sd">    plotly.graph_objs.Sankey : For more information on creating Sankey diagrams with Plotly</span>
+<span class="sd">    See Also</span>
+<span class="sd">    --------</span>
+<span class="sd">    plotly.graph_objs.Sankey : For creating Sankey diagrams with Plotly.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">select_date</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_datetime</span><span class="p">(</span><span class="n">date_text</span><span class="p">)</span>
     <span class="n">swi</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">select_date</span><span class="p">,</span> <span class="s2">&quot;SW_IN&quot;</span><span class="p">]</span>
@@ -446,6 +438,7 @@
     <span class="n">plt</span><span class="o">.</span><span class="n">xticks</span><span class="p">(</span><span class="n">rotation</span><span class="o">=</span><span class="mi">45</span><span class="p">)</span>
     <span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
     <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span></div>
+
 
 
 <div class="viewcode-block" id="save_plot">

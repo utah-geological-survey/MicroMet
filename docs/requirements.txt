@@ -13,3 +13,4 @@ pyproj
 rasterio
 pyyaml
 pytest
+pathlib

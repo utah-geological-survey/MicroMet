@@ -1,8 +1,13 @@
 import pytest
 import os
+import sys
+import warnings
 import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
+
+sys.path.append("../src")
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../src")))
 from micromet.soil_heat import (
     temperature_gradient,
     soil_heat_flux,

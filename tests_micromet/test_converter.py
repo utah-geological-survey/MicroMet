@@ -13,6 +13,8 @@ import tempfile
 import os
 from unittest.mock import mock_open, patch
 
+sys.path.append("../src")
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../src")))
 from micromet.converter import Reformatter, AmerifluxDataProcessor
 
 # tests/test_ameriflux_data_processor.py
@@ -41,10 +43,7 @@ def patch_infer_datetime_col(monkeypatch):
 def test_header_rows_tidy_file(tmp_path: Path):
     """A tidy (non-TOA5) file should yield header_rows == 0."""
     csv = tmp_path / "tidy.csv"
-    csv.write_text(
-        "timestamp,value\n"
-        "2025-01-01 00:00:00,1.23\n"
-    )
+    csv.write_text("timestamp,value\n" "2025-01-01 00:00:00,1.23\n")
 
     proc = AmerifluxDataProcessor(csv)
     assert proc.header_rows == 0, "Non-TOA5 files should have no header offset"
@@ -54,11 +53,11 @@ def test_header_rows_toa5(tmp_path: Path):
     """A TOA5 file must keep the default four header rows."""
     csv = tmp_path / "toa5.csv"
     csv.write_text(
-        "TOA5,site,logger\n"   # 0
-        "meta line 1\n"        # 1
-        "meta line 2\n"        # 2
-        "meta line 3\n"        # 3
-        "timestamp,value\n"    # 4  ← becomes header after skiprows=4
+        "TOA5,site,logger\n"  # 0
+        "meta line 1\n"  # 1
+        "meta line 2\n"  # 2
+        "meta line 3\n"  # 3
+        "timestamp,value\n"  # 4  ← becomes header after skiprows=4
         "2025-01-01 00:00:00,4.56\n"
     )
 
@@ -79,16 +78,16 @@ def test_to_dataframe_sorted_and_coerced(tmp_path: Path):
     csv = tmp_path / "tidy_unsorted.csv"
     csv.write_text(
         "timestamp,value\n"
-        "2025-01-02 00:00:00,2.0\n"      # out of order on purpose
+        "2025-01-02 00:00:00,2.0\n"  # out of order on purpose
         "2025-01-01 00:00:00,1.0\n"
-        "bad-time,3.0\n"                 # <- coercible to NaT
+        "bad-time,3.0\n"  # <- coercible to NaT
     )
 
     df = AmerifluxDataProcessor(csv).to_dataframe()
 
     # --- column types ------------------------------------------------------ #
     assert pd.api.types.is_datetime64_any_dtype(df["timestamp"])
-    assert df["value"].tolist() == [1.0, 2.0, 3.0]          # same data
+    assert df["value"].tolist() == [1.0, 2.0, 3.0]  # same data
     # The bad timestamp should have become NaT and sorted last
     assert df["timestamp"].iloc[0] == pd.Timestamp("2025-01-01 00:00:00")
     assert df["timestamp"].iloc[1] == pd.Timestamp("2025-01-02 00:00:00")
@@ -96,7 +95,10 @@ def test_to_dataframe_sorted_and_coerced(tmp_path: Path):
 
     # --- order ------------------------------------------------------------- #
     # After sorting, the data should be chronological except NaT at the end.
-    assert list(df["timestamp"].sort_values(na_position="last")) == list(df["timestamp"])
+    assert list(df["timestamp"].sort_values(na_position="last")) == list(
+        df["timestamp"]
+    )
+
 
 ###############################################################################
 # Fixtures
@@ -134,9 +136,9 @@ def tmp_cfg(tmp_path: Path, cfg_dict):
 def var_limits_csv(tmp_path: Path):
     """Provide hard min/max limits for one variable to test clipping."""
     p = tmp_path / "varlimits.csv"
-    pd.DataFrame(
-        {"variable": ["CO2"], "min": [380.0], "max": [420.0]}
-    ).to_csv(p, index=False)
+    pd.DataFrame({"variable": ["CO2"], "min": [380.0], "max": [420.0]}).to_csv(
+        p, index=False
+    )
     return p
 
 
@@ -147,15 +149,21 @@ def monkeypatched_reformatter(monkeypatch, mod, tmp_cfg):
     the tests do not rely on any other project files.
     """
     # ── helpers ────────────────────────────────────────────────────────────
-    monkeypatch.setattr(mod, "load_yaml", lambda path: yaml.safe_load(Path(path).read_text()))
+    monkeypatch.setattr(
+        mod, "load_yaml", lambda path: yaml.safe_load(Path(path).read_text())
+    )
     monkeypatch.setattr(mod, "_infer_datetime_col", lambda df: "TIMESTAMP")
 
     # ── constants used inside the class but defined elsewhere ─────────────
     monkeypatch.setattr(mod, "MISSING_VALUE", -9999, raising=False)
-    monkeypatch.setattr(mod, "SOIL_SENSOR_SKIP_INDEX", 3, raising=False)   # allow us to drop idx ≥ 3
-    monkeypatch.setattr(mod, "DEFAULT_SOIL_DROP_LIMIT", 2, raising=False)  # keep tests predictable
+    monkeypatch.setattr(
+        mod, "SOIL_SENSOR_SKIP_INDEX", 3, raising=False
+    )  # allow us to drop idx ≥ 3
+    monkeypatch.setattr(
+        mod, "DEFAULT_SOIL_DROP_LIMIT", 2, raising=False
+    )  # keep tests predictable
 
-    return mod.Reformatter(tmp_cfg, drop_soil=False)   # drop_soil toggled per-test
+    return mod.Reformatter(tmp_cfg, drop_soil=False)  # drop_soil toggled per-test
 
 
 ###############################################################################
@@ -164,6 +172,7 @@ def monkeypatched_reformatter(monkeypatch, mod, tmp_cfg):
 def _base_frame(ts="202501010000"):
     """Convenience helper to build a frame with the mandatory TIMESTAMP col."""
     return pd.DataFrame({"TIMESTAMP": [ts]})
+
 
 # ---------------------------------------------------------------------------
 # Timestamp handling
@@ -187,7 +196,7 @@ def test_fix_timestamps_resample_and_interpolate(monkeypatched_reformatter):
                 "202501010000",
                 "202501010015",  # 15-min mark → falls into 00:00 bin
                 "202501010100",  # next full hour
-                "invalid",       # should be dropped (coerce→NaT)
+                "invalid",  # should be dropped (coerce→NaT)
                 "299901011200",  # far future → should be dropped
             ],
             "Val": [1, 2, 3, 4, 5, 6],
@@ -227,6 +236,7 @@ def test_prefix_and_legacy_conversion(monkeypatched_reformatter):
     expected = {"EC_3_1_1", "SWC_4_2_1", "K_3_3_1", "TS_4_4_1"}
     assert expected.issubset(out.columns)
 
+
 def test_tau_fixer_sets_zero_to_missing(monkeypatched_reformatter):
     df = _base_frame().assign(Tau=[0.0], u_star=[0.2])
     out = monkeypatched_reformatter.prepare(df)
@@ -236,7 +246,7 @@ def test_tau_fixer_sets_zero_to_missing(monkeypatched_reformatter):
 
 
 def test_swc_scaled_to_percent(monkeypatched_reformatter):
-    df = _base_frame().assign(SWC_3_1_1=[0.30])   # 0–1 volumetric
+    df = _base_frame().assign(SWC_3_1_1=[0.30])  # 0–1 volumetric
     out = monkeypatched_reformatter.prepare(df)
     assert out["SWC_3_1_1"].iloc[0] == pytest.approx(30.0), "SWC not scaled to %"
 
@@ -253,9 +263,10 @@ def test_varlimits_clipping(monkeypatch, mod, tmp_cfg, var_limits_csv):
     monkeypatch.setattr(mod, "_infer_datetime_col", lambda df: "TIMESTAMP")
     monkeypatch.setattr(mod, "MISSING_VALUE", -9999, raising=False)
 
-    df = _base_frame().assign(CO2=[1000.0])   # outside max=420
+    df = _base_frame().assign(CO2=[1000.0])  # outside max=420
     out = fmt.prepare(df)
     assert out["CO2"].iloc[0] == 420.0, "Value not clipped to var-limit max"
+
 
 def test_ssitc_scale_and_rating(monkeypatched_reformatter):
     """
@@ -268,7 +279,7 @@ def test_ssitc_scale_and_rating(monkeypatched_reformatter):
     df = pd.DataFrame(
         {
             "TIMESTAMP": ["202501010000", "202501010030", "202501010100"],
-            "FC_SSITC_TEST": [2, 5, 8],   # covers all three rating bands
+            "FC_SSITC_TEST": [2, 5, 8],  # covers all three rating bands
         }
     )
 

@@ -2,7 +2,7 @@ import os
 import sys
 
 # sys.path.insert(0, os.path.abspath("../../src"))
-sys.path.insert(0, os.path.abspath(".."))  # adjust path as needed
+sys.path.insert(0, os.path.abspath("../src"))  # adjust path as needed
 # sys.path.append("../..")  # Adjust this path as needed
 import micromet
 
@@ -31,12 +31,19 @@ extensions = [
     "sphinx_autodoc_typehints",
 ]
 
+templates_path = ["_templates"]
+exclude_patterns = ["tests_micromet/*"]
 
-exclude_patterns = [
-    "_build",
-    "Thumbs.db",
-    ".DS_Store",
-]
+napoleon_google_docstring = False  # You can still use Google-style if True
+napoleon_numpy_docstring = True  # Set this to True for NumPy-style
+
+napoleon_include_init_with_doc = True
+napoleon_include_private_with_doc = False
+napoleon_include_special_with_doc = True
+napoleon_use_admonition_for_examples = False
+napoleon_use_admonition_for_notes = False
+napoleon_use_admonition_for_references = False
+napoleon_use_ivar = False
 
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output

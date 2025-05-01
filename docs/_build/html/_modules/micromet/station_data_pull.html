@@ -45,6 +45,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../ameriflux_variables.html">AmeriFlux Data Variables</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../data_processing.html">Data Processing and Management</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../modules.html">MicroMet</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../links.html">Useful Links Index</a></li>
 </ul>
 
         </div>
@@ -103,6 +104,8 @@
 <span class="sd">    A class to manage station data operations including fetching, processing, and database interactions.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
+<div class="viewcode-block" id="StationDataManager.__init__">
+<a class="viewcode-back" href="../../micromet.html#micromet.station_data_pull.StationDataManager.__init__">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">config</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">configparser</span><span class="o">.</span><span class="n">ConfigParser</span><span class="p">,</span> <span class="nb">dict</span><span class="p">],</span>
@@ -119,7 +122,8 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">engine</span> <span class="o">=</span> <span class="n">engine</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">logger_credentials</span> <span class="o">=</span> <span class="n">HTTPBasicAuth</span><span class="p">(</span>
             <span class="n">config</span><span class="p">[</span><span class="s2">&quot;LOGGER&quot;</span><span class="p">][</span><span class="s2">&quot;login&quot;</span><span class="p">],</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;LOGGER&quot;</span><span class="p">][</span><span class="s2">&quot;pw&quot;</span><span class="p">]</span>
-        <span class="p">)</span>
+        <span class="p">)</span></div>
+
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_get_port</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">station</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">loggertype</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>

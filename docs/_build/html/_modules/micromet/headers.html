@@ -45,6 +45,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../ameriflux_variables.html">AmeriFlux Data Variables</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../data_processing.html">Data Processing and Management</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../modules.html">MicroMet</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../links.html">Useful Links Index</a></li>
 </ul>
 
         </div>
@@ -79,6 +80,7 @@
 <span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">collections</span><span class="w"> </span><span class="kn">import</span> <span class="n">defaultdict</span>
 
+
 <span class="c1"># ──────────────────────────────────────────────────────────────────────────────</span>
 <span class="c1"># 1.  Tiny helpers</span>
 <span class="c1"># ──────────────────────────────────────────────────────────────────────────────</span>
@@ -86,10 +88,28 @@
 <a class="viewcode-back" href="../../micromet.html#micromet.headers.looks_like_header">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">looks_like_header</span><span class="p">(</span><span class="n">line</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    A pragmatic test: header lines normally contain ≥ 1 alphabetic character,</span>
-<span class="sd">    data rows in instrument logs normally do not.</span>
+<span class="sd">    Heuristically determine if a line appears to be a header.</span>
+
+<span class="sd">    This function checks whether the first field in a comma-separated line contains</span>
+<span class="sd">    any alphabetic characters. It is intended to distinguish header lines from data</span>
+<span class="sd">    lines in structured text files such as instrument logs.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    line : str</span>
+<span class="sd">        A single line from a text file, typically the first line.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    bool</span>
+<span class="sd">        True if the line likely represents a header, False otherwise.</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    This function assumes comma-separated input and does not generalize to other</span>
+<span class="sd">    delimiters. It performs a basic check only on the first field.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">line_list</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">)</span>
+    <span class="n">line_list</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;,&quot;</span><span class="p">)</span>
     <span class="k">return</span> <span class="nb">bool</span><span class="p">(</span><span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;[A-Za-z]&quot;</span><span class="p">,</span> <span class="n">line_list</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span></div>
 
 
@@ -97,7 +117,36 @@
 <div class="viewcode-block" id="sniff_delimiter">
 <a class="viewcode-back" href="../../micromet.html#micromet.headers.sniff_delimiter">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">sniff_delimiter</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="n">sample_bytes</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2048</span><span class="p">,</span> <span class="n">default</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;,&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return the most likely delimiter, falling back to *default* if unsure.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Infer the most likely delimiter used in a text file.</span>
+
+<span class="sd">    This function reads a sample of the file and attempts to determine the delimiter</span>
+<span class="sd">    using Python&#39;s built-in CSV sniffer. If the delimiter cannot be reliably inferred,</span>
+<span class="sd">    it falls back to a default value.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    path : Path</span>
+<span class="sd">        Path to the file whose delimiter is to be inferred.</span>
+<span class="sd">    sample_bytes : int, optional</span>
+<span class="sd">        Number of bytes to read from the beginning of the file for delimiter detection.</span>
+<span class="sd">        Default is 2048.</span>
+<span class="sd">    default : str, optional</span>
+<span class="sd">        Fallback delimiter to use if delimiter inference fails. Default is &quot;,&quot;.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    str</span>
+<span class="sd">        The inferred or fallback delimiter character.</span>
+
+<span class="sd">    Raises</span>
+<span class="sd">    ------</span>
+<span class="sd">    None</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    Uses `csv.Sniffer` to detect delimiters like commas, tabs, or semicolons.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">with</span> <span class="n">path</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="s2">&quot;r&quot;</span><span class="p">,</span> <span class="n">newline</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">fh</span><span class="p">:</span>
         <span class="n">sample</span> <span class="o">=</span> <span class="n">fh</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">sample_bytes</span><span class="p">)</span>
     <span class="k">try</span><span class="p">:</span>
@@ -110,7 +159,27 @@
 <div class="viewcode-block" id="read_colnames">
 <a class="viewcode-back" href="../../micromet.html#micromet.headers.read_colnames">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">read_colnames</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Grab the *first* line and split it on the file’s delimiter.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Read the first line of a file and return column names split by its delimiter.</span>
+
+<span class="sd">    This function reads only the first line of the file at `path`, infers the file&#39;s</span>
+<span class="sd">    delimiter, and splits the line into a list of column names.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    path : Path</span>
+<span class="sd">        Path to the file containing a header row.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    list of str</span>
+<span class="sd">        List of column names extracted from the first line of the file.</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    This function assumes the first line contains a valid header and relies on</span>
+<span class="sd">    `sniff_delimiter` to determine the appropriate delimiter.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">delim</span> <span class="o">=</span> <span class="n">sniff_delimiter</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
     <span class="k">with</span> <span class="n">path</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="s2">&quot;r&quot;</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">fh</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">fh</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n\r</span><span class="s2">&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">delim</span><span class="p">)</span></div>
@@ -119,10 +188,34 @@
 
 <div class="viewcode-block" id="patch_file">
 <a class="viewcode-back" href="../../micromet.html#micromet.headers.patch_file">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">patch_file</span><span class="p">(</span>
-    <span class="n">donor</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="n">target</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">write_back</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Copy header from *donor* onto *target* and return a fixed DataFrame.&quot;&quot;&quot;</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">patch_file</span><span class="p">(</span><span class="n">donor</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="n">target</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">write_back</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Copy a header from a donor file and apply it to a target file.</span>
+
+<span class="sd">    This function reads column headers from the `donor` file and applies them to the</span>
+<span class="sd">    `target` file, which is assumed to lack a header row. The resulting data is</span>
+<span class="sd">    returned as a pandas DataFrame. Optionally, the target file is overwritten</span>
+<span class="sd">    with the fixed version, and a `.bak` backup of the original is saved.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    donor : Path</span>
+<span class="sd">        Path to the file that contains a valid header row.</span>
+<span class="sd">    target : Path</span>
+<span class="sd">        Path to the file that is missing a header.</span>
+<span class="sd">    write_back : bool, optional</span>
+<span class="sd">        If True, the target file is overwritten with the fixed version, and</span>
+<span class="sd">        a backup is saved with a `.bak` extension. Default is True.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    pandas.DataFrame</span>
+<span class="sd">        DataFrame containing the contents of `target` with headers applied from `donor`.</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    The delimiter is automatically inferred from the donor file.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">cols</span> <span class="o">=</span> <span class="n">read_colnames</span><span class="p">(</span><span class="n">donor</span><span class="p">)</span>
     <span class="n">delim</span> <span class="o">=</span> <span class="n">sniff_delimiter</span><span class="p">(</span><span class="n">donor</span><span class="p">)</span>
 
@@ -144,9 +237,38 @@
 <a class="viewcode-back" href="../../micromet.html#micromet.headers.fix_all_in_parent">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">fix_all_in_parent</span><span class="p">(</span><span class="n">parent</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="n">searchstr</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;*_AmeriFluxFormat_*.dat&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Scan *parent* (optionally *recursive*) for duplicate filenames.</span>
-<span class="sd">    Whenever one copy has a header and another does not, transfer the header.</span>
+<span class="sd">    Recursively scan a parent directory for files with duplicate names and fix missing headers.</span>
+
+<span class="sd">    This function searches `parent` for files matching a given pattern. If duplicate</span>
+<span class="sd">    filenames are found such that one version has a header and another does not,</span>
+<span class="sd">    the header is copied from the former to the latter. The target files are</span>
+<span class="sd">    overwritten in-place, and a `.bak` backup is created for each.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    parent : Path</span>
+<span class="sd">        Root directory to scan for matching files. All subdirectories are included recursively.</span>
+<span class="sd">    searchstr : str, optional</span>
+<span class="sd">        Glob-style pattern to match filenames (default is &quot;*_AmeriFluxFormat_*.dat&quot;).</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    None</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    - Files are grouped by basename and inspected line-by-line to determine whether</span>
+<span class="sd">      they contain a header.</span>
+<span class="sd">    - If multiple files have headers, only the first one is used as the donor.</span>
+<span class="sd">    - Files with no header and no matching header source are skipped.</span>
+
+<span class="sd">    See Also</span>
+<span class="sd">    --------</span>
+<span class="sd">    apply_header : Applies a header from one file to another.</span>
+<span class="sd">    looks_like_header : Determines whether a line appears to be a valid header.</span>
+<span class="sd">    patch_file : Wrapper to apply a header to a target file and optionally save it.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+
     <span class="c1"># ------------------------------------------------------------------ #</span>
     <span class="c1"># 1. Collect every file path, grouped by basename.</span>
     <span class="n">paths_by_name</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="n">Path</span><span class="p">]]</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">list</span><span class="p">)</span>
@@ -179,11 +301,14 @@
         <span class="n">donor</span> <span class="o">=</span> <span class="n">header_files</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
         <span class="k">for</span> <span class="n">tgt</span> <span class="ow">in</span> <span class="n">noheader_files</span><span class="p">:</span>
             <span class="n">df_fixed</span> <span class="o">=</span> <span class="n">patch_file</span><span class="p">(</span><span class="n">donor</span><span class="p">,</span> <span class="n">tgt</span><span class="p">,</span> <span class="n">write_back</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[INFO]  Patched  </span><span class="si">{</span><span class="n">tgt</span><span class="o">.</span><span class="n">relative_to</span><span class="p">(</span><span class="n">parent</span><span class="p">)</span><span class="si">}</span><span class="s2">   &quot;</span>
-                  <span class="sa">f</span><span class="s2">&quot;(</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">df_fixed</span><span class="p">)</span><span class="si">:</span><span class="s2">,d</span><span class="si">}</span><span class="s2"> rows)&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;[INFO]  Patched  </span><span class="si">{</span><span class="n">tgt</span><span class="o">.</span><span class="n">relative_to</span><span class="p">(</span><span class="n">parent</span><span class="p">)</span><span class="si">}</span><span class="s2">   &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;(</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">df_fixed</span><span class="p">)</span><span class="si">:</span><span class="s2">,d</span><span class="si">}</span><span class="s2"> rows)&quot;</span>
+            <span class="p">)</span>
 
     <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">✔ All possible files have been checked.&quot;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">paths_by_name</span></div>
+
 
 
 <div class="viewcode-block" id="apply_header">
@@ -195,9 +320,34 @@
     <span class="n">inplace</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Copy the header from `header_file` onto `target_file` and return a DataFrame</span>
-<span class="sd">    with the correct column names.  If `inplace` is True, the target file is</span>
-<span class="sd">    overwritten on disk (a *.bak backup is kept).</span>
+<span class="sd">    Apply a header from a reference file to a data file and return a DataFrame.</span>
+
+<span class="sd">    This function reads column names from `header_file` and applies them to</span>
+<span class="sd">    `target_file`, which is assumed to lack a header row. The result is returned</span>
+<span class="sd">    as a pandas DataFrame. Optionally, the function can overwrite `target_file`</span>
+<span class="sd">    with the updated version, keeping a backup as `*.bak`.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    header_file : Path</span>
+<span class="sd">        Path to the file containing the correct column headers.</span>
+<span class="sd">    target_file : Path</span>
+<span class="sd">        Path to the file that is missing column headers.</span>
+<span class="sd">    inplace : bool, optional</span>
+<span class="sd">        If True, the modified DataFrame is written back to `target_file`,</span>
+<span class="sd">        and a backup of the original file is saved with a `.bak` extension.</span>
+<span class="sd">        Default is False.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    pandas.DataFrame</span>
+<span class="sd">        DataFrame containing the contents of `target_file` with headers applied</span>
+<span class="sd">        from `header_file`.</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    The delimiter is inferred using a sniffing function to ensure consistent parsing</span>
+<span class="sd">    between the header and target files.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">delimiter</span> <span class="o">=</span> <span class="n">sniff_delimiter</span><span class="p">(</span><span class="n">header_file</span><span class="p">)</span>
 
@@ -213,19 +363,44 @@
     <span class="c1"># optionally write the fixed file back to disk</span>
     <span class="k">if</span> <span class="n">inplace</span><span class="p">:</span>
         <span class="n">backup</span> <span class="o">=</span> <span class="n">target_file</span><span class="o">.</span><span class="n">with_suffix</span><span class="p">(</span><span class="n">target_file</span><span class="o">.</span><span class="n">suffix</span> <span class="o">+</span> <span class="s2">&quot;.bak&quot;</span><span class="p">)</span>
-        <span class="n">target_file</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">backup</span><span class="p">)</span>                 <span class="c1"># keep a backup</span>
+        <span class="n">target_file</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">backup</span><span class="p">)</span>  <span class="c1"># keep a backup</span>
         <span class="n">df</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">target_file</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="n">delimiter</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">df</span></div>
+
 
 
 <div class="viewcode-block" id="fix_directory_pairs">
 <a class="viewcode-back" href="../../micromet.html#micromet.headers.fix_directory_pairs">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">fix_directory_pairs</span><span class="p">(</span><span class="n">dir_with_headers</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="n">dir_without_headers</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Loop over all files in `dir_without_headers`; whenever a file lacks a</span>
-<span class="sd">    header, patch it with the header from the identically named file in</span>
-<span class="sd">    `dir_with_headers`.</span>
+<span class="sd">    Apply headers from a directory of correctly formatted files to a directory</span>
+<span class="sd">    of files missing headers.</span>
+
+<span class="sd">    This function loops through all files in `dir_without_headers`. For each file</span>
+<span class="sd">    that lacks a header, it attempts to find a matching file by name in</span>
+<span class="sd">    `dir_with_headers` and uses it to patch the missing header. The original file</span>
+<span class="sd">    is overwritten, and a `.bak` backup is created.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    dir_with_headers : Path</span>
+<span class="sd">        Directory containing files with valid headers.</span>
+<span class="sd">    dir_without_headers : Path</span>
+<span class="sd">        Directory containing files that may be missing headers.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    None</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    This function assumes that files in both directories are named identically,</span>
+<span class="sd">    and that headers can be determined by inspecting the first line of each file.</span>
+
+<span class="sd">    See Also</span>
+<span class="sd">    --------</span>
+<span class="sd">    apply_header : Applies a header from one file to another.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="c1"># index the header-bearing directory for O(1) lookup</span>
     <span class="n">header_index</span> <span class="o">=</span> <span class="p">{</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="n">p</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">dir_with_headers</span><span class="o">.</span><span class="n">iterdir</span><span class="p">()</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">is_file</span><span class="p">()}</span>
@@ -247,12 +422,13 @@
         <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[INFO] Patched header on </span><span class="si">{</span><span class="n">f</span><span class="si">}</span><span class="s2"> (</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">df_fixed</span><span class="p">)</span><span class="si">}</span><span class="s2"> rows)&quot;</span><span class="p">)</span></div>
 
 
+
 <span class="c1"># ──────────────────────────────────────────────────────────────────────────────</span>
 <span class="c1"># 3.  Example CLI usage</span>
 <span class="c1"># ──────────────────────────────────────────────────────────────────────────────</span>
 <span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
-    <span class="n">root</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;C:\data\logs&quot;</span><span class="p">)</span>           <span class="c1"># &lt;── your top-level directory here</span>
-    <span class="n">fix_all_in_parent</span><span class="p">(</span><span class="n">root</span><span class="p">,</span> <span class="n">recurse</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="c1"># recurse=True if sub-sub-folders exist</span>
+    <span class="n">root</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;C:\data\logs&quot;</span><span class="p">)</span>  <span class="c1"># &lt;── your top-level directory here</span>
+    <span class="n">fix_all_in_parent</span><span class="p">(</span><span class="n">root</span><span class="p">,</span> <span class="n">recurse</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>  <span class="c1"># recurse=True if sub-sub-folders exist</span>
 </pre></div>
 
            </div>

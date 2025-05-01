@@ -45,6 +45,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../ameriflux_variables.html">AmeriFlux Data Variables</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../data_processing.html">Data Processing and Management</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../modules.html">MicroMet</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../links.html">Useful Links Index</a></li>
 </ul>
 
         </div>
@@ -82,7 +83,6 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">rasterio.transform</span><span class="w"> </span><span class="kn">import</span> <span class="n">from_origin</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">scipy.stats</span><span class="w"> </span><span class="kn">import</span> <span class="n">gaussian_kde</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
-
 
 
 <div class="viewcode-block" id="find_irr_dates">
@@ -148,19 +148,19 @@
 <span class="sd">    Find gaps in time series data where values are either NaN or equal to missing_value</span>
 <span class="sd">    for longer than min_gap_periods.</span>
 
-<span class="sd">    Parameters:</span>
-<span class="sd">    -----------</span>
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
 <span class="sd">    df : pandas.DataFrame</span>
-<span class="sd">        DataFrame with a time series index of regular frequency</span>
+<span class="sd">        DataFrame with a time series index of regular frequency.</span>
 <span class="sd">    columns : str or list of str</span>
-<span class="sd">        Column(s) to check for gaps</span>
+<span class="sd">        Column(s) to check for gaps.</span>
 <span class="sd">    missing_value : numeric, default -9999</span>
-<span class="sd">        Value to consider as missing data alongside NaN</span>
+<span class="sd">        Value to consider as missing data alongside NaN.</span>
 <span class="sd">    min_gap_periods : int, default 1</span>
-<span class="sd">        Minimum number of consecutive missing periods to be considered a gap</span>
+<span class="sd">        Minimum number of consecutive missing periods to be considered a gap.</span>
 
-<span class="sd">    Returns:</span>
-<span class="sd">    --------</span>
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
 <span class="sd">    pandas.DataFrame</span>
 <span class="sd">        DataFrame containing gap information with columns:</span>
 <span class="sd">        - gap_start: start datetime of gap</span>
@@ -232,17 +232,17 @@
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Create a Gantt chart visualization of gaps in time series data.</span>
 
-<span class="sd">    Parameters:</span>
-<span class="sd">    -----------</span>
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
 <span class="sd">    gaps_df : pandas.DataFrame</span>
-<span class="sd">        DataFrame containing gap information as returned by find_gaps()</span>
+<span class="sd">        DataFrame containing gap information as returned by `find_gaps()`.</span>
 <span class="sd">    title : str, default &quot;Time Series Data Gaps&quot;</span>
-<span class="sd">        Title for the plot</span>
+<span class="sd">        Title for the plot.</span>
 
-<span class="sd">    Returns:</span>
-<span class="sd">    --------</span>
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
 <span class="sd">    plotly.graph_objects.Figure</span>
-<span class="sd">        Interactive Plotly figure showing gaps as a Gantt chart</span>
+<span class="sd">        Interactive Plotly figure showing gaps as a Gantt chart.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">gaps_df</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
         <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;No gaps found to plot.&quot;</span><span class="p">)</span>
@@ -322,28 +322,28 @@
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Detect extreme variations in specified fields of a datetime-indexed DataFrame.</span>
 
-<span class="sd">    Parameters:</span>
-<span class="sd">    -----------</span>
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
 <span class="sd">    df : pandas.DataFrame</span>
-<span class="sd">        Input DataFrame with datetime index</span>
+<span class="sd">        Input DataFrame with datetime index.</span>
 <span class="sd">    fields : str or list of str, optional</span>
-<span class="sd">        Column names to analyze. If None, analyzes all numeric columns</span>
+<span class="sd">        Column names to analyze. If None, analyzes all numeric columns.</span>
 <span class="sd">    frequency : str, default &#39;D&#39;</span>
-<span class="sd">        Frequency to analyze variations over (&#39;D&#39; for daily, &#39;H&#39; for hourly, etc.)</span>
+<span class="sd">        Frequency to analyze variations over (e.g., &#39;D&#39; for daily, &#39;H&#39; for hourly).</span>
 <span class="sd">    variation_threshold : float, default 3.0</span>
-<span class="sd">        Number of standard deviations beyond which a variation is considered extreme</span>
+<span class="sd">        Number of standard deviations beyond which a variation is considered extreme.</span>
 <span class="sd">    null_value : float or int, default -9999</span>
-<span class="sd">        Value to be treated as null</span>
+<span class="sd">        Value to be treated as null.</span>
 <span class="sd">    min_periods : int, default 2</span>
-<span class="sd">        Minimum number of valid observations required to calculate variation</span>
+<span class="sd">        Minimum number of valid observations required to calculate variation.</span>
 
-<span class="sd">    Returns:</span>
-<span class="sd">    --------</span>
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
 <span class="sd">    dict</span>
-<span class="sd">        Dictionary containing:</span>
-<span class="sd">        - &#39;variations&#39;: DataFrame with calculated variations</span>
-<span class="sd">        - &#39;extreme_points&#39;: DataFrame with flagged extreme variations</span>
-<span class="sd">        - &#39;summary&#39;: DataFrame with summary statistics</span>
+<span class="sd">        Dictionary with the following keys:</span>
+<span class="sd">        - &#39;variations&#39;: DataFrame with calculated variation metrics.</span>
+<span class="sd">        - &#39;extreme_points&#39;: DataFrame with boolean flags for extreme values.</span>
+<span class="sd">        - &#39;summary&#39;: Summary statistics for each field.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="c1"># Validate input DataFrame</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">df</span><span class="o">.</span><span class="n">index</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DatetimeIndex</span><span class="p">):</span>
@@ -420,20 +420,20 @@
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Clean extreme variations from specified fields in a DataFrame.</span>
 
-<span class="sd">    Parameters:</span>
-<span class="sd">    -----------</span>
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
 <span class="sd">    df : pandas.DataFrame</span>
-<span class="sd">        Input DataFrame with datetime index</span>
+<span class="sd">        Input DataFrame with datetime index.</span>
 <span class="sd">    fields : str or list of str, optional</span>
-<span class="sd">        Column names to clean. If None, processes all numeric columns</span>
+<span class="sd">        Column names to clean. If None, processes all numeric columns.</span>
 <span class="sd">    frequency : str, default &#39;D&#39;</span>
-<span class="sd">        Frequency to analyze variations over (&#39;D&#39; for daily, &#39;H&#39; for hourly, etc.)</span>
+<span class="sd">        Frequency to analyze variations over (e.g., &#39;D&#39; for daily, &#39;H&#39; for hourly).</span>
 <span class="sd">    variation_threshold : float, default 3.0</span>
-<span class="sd">        Number of standard deviations beyond which a variation is considered extreme</span>
+<span class="sd">        Number of standard deviations beyond which a variation is considered extreme.</span>
 <span class="sd">    null_value : float or int, default -9999</span>
-<span class="sd">        Value to be treated as null</span>
+<span class="sd">        Value to be treated as null.</span>
 <span class="sd">    min_periods : int, default 2</span>
-<span class="sd">        Minimum number of valid observations required to calculate variation</span>
+<span class="sd">        Minimum number of valid observations required to calculate variation.</span>
 <span class="sd">    replacement_method : str, default &#39;nan&#39;</span>
 <span class="sd">        Method to handle extreme values:</span>
 <span class="sd">        - &#39;nan&#39;: Replace with NaN</span>
@@ -441,13 +441,13 @@
 <span class="sd">        - &#39;mean&#39;: Replace with frequency mean</span>
 <span class="sd">        - &#39;median&#39;: Replace with frequency median</span>
 
-<span class="sd">    Returns:</span>
-<span class="sd">    --------</span>
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
 <span class="sd">    dict</span>
-<span class="sd">        Dictionary containing:</span>
-<span class="sd">        - &#39;cleaned_data&#39;: DataFrame with cleaned data</span>
-<span class="sd">        - &#39;cleaning_summary&#39;: DataFrame summarizing the cleaning process</span>
-<span class="sd">        - &#39;removed_points&#39;: DataFrame containing the removed values</span>
+<span class="sd">        Dictionary with the following keys:</span>
+<span class="sd">        - &#39;cleaned_data&#39;: DataFrame with cleaned data.</span>
+<span class="sd">        - &#39;cleaning_summary&#39;: Summary of cleaning operations.</span>
+<span class="sd">        - &#39;removed_points&#39;: DataFrame showing removed or replaced values.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="c1"># Validate replacement method</span>
     <span class="n">valid_methods</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;nan&quot;</span><span class="p">,</span> <span class="s2">&quot;interpolate&quot;</span><span class="p">,</span> <span class="s2">&quot;mean&quot;</span><span class="p">,</span> <span class="s2">&quot;median&quot;</span><span class="p">]</span>

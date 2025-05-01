@@ -21,5 +21,3 @@ Each station measures:
 - CO₂, water vapor, wind speed/direction
 - Soil moisture, temperature, and precipitation
 - Air temperature, relative humidity, and barometric pressure
-
-===========================
