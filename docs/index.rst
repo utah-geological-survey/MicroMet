@@ -7,9 +7,10 @@ Welcome to Micromet's documentation!
    :maxdepth: 2
    :caption: Contents:
 
-   about_ufn
-   ameriflux_variables
+   getting_started
    data_processing
    modules
+   about_ufn
+   ameriflux_variables
    links
    micromet
