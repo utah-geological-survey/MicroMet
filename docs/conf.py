@@ -20,6 +20,7 @@ copyright = "2025, Paul Inkenbrandt & Kathryn Ladig"
 author = "Paul Inkenbrandt & Kathryn Ladig"
 release = "0.1.0"
 
+master_doc = "index"  # The name of the master document (without the .rst extension)
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 

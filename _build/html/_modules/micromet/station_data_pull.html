@@ -1,0 +1,457 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>micromet.station_data_pull &mdash; micromet 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=01f34227"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            micromet
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../about_ufn.html">About the Utah Flux Network</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../ameriflux_variables.html">AmeriFlux Data Variables</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../data_processing.html">Data Processing and Management</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../modules.html">MicroMet</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../links.html">Useful Links Index</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">micromet</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">micromet.station_data_pull</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for micromet.station_data_pull</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">requests</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">datetime</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Union</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Optional</span>
+
+<span class="c1"># from numba import Boolean</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">requests.auth</span><span class="w"> </span><span class="kn">import</span> <span class="n">HTTPBasicAuth</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">io</span><span class="w"> </span><span class="kn">import</span> <span class="n">BytesIO</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">configparser</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">sqlalchemy</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.converter</span><span class="w"> </span><span class="kn">import</span> <span class="n">Reformatter</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">configparser</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="n">config</span> <span class="o">=</span> <span class="n">configparser</span><span class="o">.</span><span class="n">ConfigParser</span><span class="p">()</span>
+    <span class="n">config</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="s2">&quot;../secrets/config.ini&quot;</span><span class="p">)</span>
+    <span class="n">passwrd</span> <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;DEFAULT&quot;</span><span class="p">][</span><span class="s2">&quot;pw&quot;</span><span class="p">]</span>
+    <span class="n">ip</span> <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;DEFAULT&quot;</span><span class="p">][</span><span class="s2">&quot;ip&quot;</span><span class="p">]</span>
+    <span class="n">login</span> <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;DEFAULT&quot;</span><span class="p">][</span><span class="s2">&quot;login&quot;</span><span class="p">]</span>
+<span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;credentials needed&quot;</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="StationDataManager">
+<a class="viewcode-back" href="../../micromet.html#micromet.station_data_pull.StationDataManager">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">StationDataManager</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A class to manage station data operations including fetching, processing, and database interactions.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="StationDataManager.__init__">
+<a class="viewcode-back" href="../../micromet.html#micromet.station_data_pull.StationDataManager.__init__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">config</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">configparser</span><span class="o">.</span><span class="n">ConfigParser</span><span class="p">,</span> <span class="nb">dict</span><span class="p">],</span>
+        <span class="n">engine</span><span class="p">:</span> <span class="n">sqlalchemy</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">base</span><span class="o">.</span><span class="n">Engine</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Initialize the StationDataManager with configuration and database engine.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            config: Configuration containing station details and credentials</span>
+<span class="sd">            engine: SQLAlchemy database engine</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">config</span> <span class="o">=</span> <span class="n">config</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">engine</span> <span class="o">=</span> <span class="n">engine</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger_credentials</span> <span class="o">=</span> <span class="n">HTTPBasicAuth</span><span class="p">(</span>
+            <span class="n">config</span><span class="p">[</span><span class="s2">&quot;LOGGER&quot;</span><span class="p">][</span><span class="s2">&quot;login&quot;</span><span class="p">],</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;LOGGER&quot;</span><span class="p">][</span><span class="s2">&quot;pw&quot;</span><span class="p">]</span>
+        <span class="p">)</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_port</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">station</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">loggertype</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the port number for a given station and logger type.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            station: Station identifier</span>
+<span class="sd">            loggertype: Type of logger (&#39;eddy&#39; or &#39;met&#39;)</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Port number</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">port_key</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">loggertype</span><span class="si">}</span><span class="s2">_port&quot;</span>
+        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="n">station</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">port_key</span><span class="p">,</span> <span class="mi">80</span><span class="p">))</span>
+
+<div class="viewcode-block" id="StationDataManager.get_times">
+<a class="viewcode-back" href="../../micromet.html#micromet.station_data_pull.StationDataManager.get_times">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_times</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">station</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">loggertype</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;eddy&quot;</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="nb">str</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Retrieve current logger time and system time.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            station: Station identifier</span>
+<span class="sd">            loggertype: Logger type (&#39;eddy&#39; or &#39;met&#39;)</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Tuple of logger time and system time</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">ip</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="n">station</span><span class="p">][</span><span class="s2">&quot;ip&quot;</span><span class="p">]</span>
+        <span class="n">port</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_port</span><span class="p">(</span><span class="n">station</span><span class="p">,</span> <span class="n">loggertype</span><span class="p">)</span>
+
+        <span class="n">clk_url</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;http://</span><span class="si">{</span><span class="n">ip</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">port</span><span class="si">}</span><span class="s2">/?&quot;</span>
+        <span class="n">clk_args</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;command&quot;</span><span class="p">:</span> <span class="s2">&quot;ClockCheck&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;uri&quot;</span><span class="p">:</span> <span class="s2">&quot;dl&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;format&quot;</span><span class="p">:</span> <span class="s2">&quot;json&quot;</span><span class="p">,</span>
+        <span class="p">}</span>
+
+        <span class="n">clktimeresp</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+            <span class="n">clk_url</span><span class="p">,</span> <span class="n">params</span><span class="o">=</span><span class="n">clk_args</span><span class="p">,</span> <span class="n">auth</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">logger_credentials</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">json</span><span class="p">()</span>
+
+        <span class="n">clktime</span> <span class="o">=</span> <span class="n">clktimeresp</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;time&quot;</span><span class="p">)</span>
+        <span class="n">comptime</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span><span class="si">:</span><span class="s2">%Y-%m-%d %H:%M:%S</span><span class="si">}</span><span class="s2">&quot;</span>
+
+        <span class="k">return</span> <span class="n">clktime</span><span class="p">,</span> <span class="n">comptime</span></div>
+
+
+<div class="viewcode-block" id="StationDataManager.get_station_id">
+<a class="viewcode-back" href="../../micromet.html#micromet.station_data_pull.StationDataManager.get_station_id">[docs]</a>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_station_id</span><span class="p">(</span><span class="n">stationid</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Extract station ID from full station identifier.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">stationid</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;-&quot;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="StationDataManager.get_station_data">
+<a class="viewcode-back" href="../../micromet.html#micromet.station_data_pull.StationDataManager.get_station_data">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_station_data</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">station</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">reformat</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">loggertype</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;eddy&quot;</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Optional</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">],</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Fetch and process station data.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            station: Station identifier</span>
+<span class="sd">            reformat: Whether to reformat the data</span>
+<span class="sd">            loggertype: Logger type (&#39;eddy&#39; or &#39;met&#39;)</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Tuple of processed DataFrame and data packet size</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">ip</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="n">station</span><span class="p">][</span><span class="s2">&quot;ip&quot;</span><span class="p">]</span>
+        <span class="n">port</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_port</span><span class="p">(</span><span class="n">station</span><span class="p">,</span> <span class="n">loggertype</span><span class="p">)</span>
+        <span class="n">tabletype</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="s2">&quot;Flux_AmeriFluxFormat&quot;</span> <span class="k">if</span> <span class="n">loggertype</span> <span class="o">==</span> <span class="s2">&quot;eddy&quot;</span> <span class="k">else</span> <span class="s2">&quot;Statistics_AmeriFlux&quot;</span>
+        <span class="p">)</span>
+
+        <span class="n">url</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;http://</span><span class="si">{</span><span class="n">ip</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">port</span><span class="si">}</span><span class="s2">/tables.html?&quot;</span>
+        <span class="n">params</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;command&quot;</span><span class="p">:</span> <span class="s2">&quot;DataQuery&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;mode&quot;</span><span class="p">:</span> <span class="s2">&quot;since-record&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;format&quot;</span><span class="p">:</span> <span class="s2">&quot;toA5&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;uri&quot;</span><span class="p">:</span> <span class="sa">f</span><span class="s2">&quot;dl:</span><span class="si">{</span><span class="n">tabletype</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;p1&quot;</span><span class="p">:</span> <span class="s2">&quot;0&quot;</span><span class="p">,</span>
+        <span class="p">}</span>
+
+        <span class="n">response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">params</span><span class="o">=</span><span class="n">params</span><span class="p">,</span> <span class="n">auth</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">logger_credentials</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">response</span><span class="o">.</span><span class="n">status_code</span> <span class="o">==</span> <span class="mi">200</span><span class="p">:</span>
+            <span class="n">raw_data</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">BytesIO</span><span class="p">(</span><span class="n">response</span><span class="o">.</span><span class="n">content</span><span class="p">),</span> <span class="n">skiprows</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>
+            <span class="n">pack_size</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">response</span><span class="o">.</span><span class="n">content</span><span class="p">)</span> <span class="o">*</span> <span class="mf">1e-6</span>
+
+            <span class="k">if</span> <span class="n">raw_data</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">reformat</span><span class="p">:</span>
+                <span class="n">am_data</span> <span class="o">=</span> <span class="n">Reformatter</span><span class="p">(</span><span class="n">raw_data</span><span class="p">)</span>
+                <span class="n">am_df</span> <span class="o">=</span> <span class="n">am_data</span><span class="o">.</span><span class="n">et_data</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">am_df</span> <span class="o">=</span> <span class="n">raw_data</span>
+
+            <span class="k">return</span> <span class="n">am_df</span><span class="p">,</span> <span class="n">pack_size</span>
+
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error: </span><span class="si">{</span><span class="n">response</span><span class="o">.</span><span class="n">status_code</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span></div>
+
+
+<div class="viewcode-block" id="StationDataManager.remove_existing_records">
+<a class="viewcode-back" href="../../micromet.html#micromet.station_data_pull.StationDataManager.remove_existing_records">[docs]</a>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">remove_existing_records</span><span class="p">(</span>
+        <span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">column_to_check</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">values_to_remove</span><span class="p">:</span> <span class="nb">list</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Remove existing records from DataFrame.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            df: Input DataFrame</span>
+<span class="sd">            column_to_check: Column name to check</span>
+<span class="sd">            values_to_remove: Values to remove</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Filtered DataFrame</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">column_variations</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">column_to_check</span><span class="p">,</span>
+            <span class="n">column_to_check</span><span class="o">.</span><span class="n">upper</span><span class="p">(),</span>
+            <span class="n">column_to_check</span><span class="o">.</span><span class="n">lower</span><span class="p">(),</span>
+        <span class="p">]</span>
+
+        <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">column_variations</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Column &#39;</span><span class="si">{</span><span class="n">col</span><span class="si">}</span><span class="s2">&#39; found in DataFrame&quot;</span><span class="p">)</span>
+                <span class="k">return</span> <span class="n">df</span><span class="p">[</span><span class="o">~</span><span class="n">df</span><span class="p">[</span><span class="n">col</span><span class="p">]</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">values_to_remove</span><span class="p">)]</span>
+
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Column &#39;</span><span class="si">{</span><span class="n">column_to_check</span><span class="si">}</span><span class="s2">&#39; not found in DataFrame&quot;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="StationDataManager.compare_sql_to_station">
+<a class="viewcode-back" href="../../micromet.html#micromet.station_data_pull.StationDataManager.compare_sql_to_station">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">compare_sql_to_station</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span>
+        <span class="n">station</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">field</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;timestamp_end&quot;</span><span class="p">,</span>
+        <span class="n">loggertype</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;eddy&quot;</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Compare station data with SQL records and filter new entries.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            df: Station data DataFrame</span>
+<span class="sd">            station: Station identifier</span>
+<span class="sd">            field: Field to compare</span>
+<span class="sd">            loggertype: Logger type</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Filtered DataFrame</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">table</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;amflux</span><span class="si">{</span><span class="n">loggertype</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="n">query</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;SELECT </span><span class="si">{</span><span class="n">field</span><span class="si">}</span><span class="s2"> FROM </span><span class="si">{</span><span class="n">table</span><span class="si">}</span><span class="s2"> WHERE stationid = &#39;</span><span class="si">{</span><span class="n">station</span><span class="si">}</span><span class="s2">&#39;;&quot;</span>
+
+        <span class="n">exist</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_sql</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="n">con</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="p">)</span>
+        <span class="n">existing</span> <span class="o">=</span> <span class="n">exist</span><span class="p">[</span><span class="s2">&quot;timestamp_end&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">remove_existing_records</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="n">existing</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="StationDataManager.get_max_date">
+<a class="viewcode-back" href="../../micromet.html#micromet.station_data_pull.StationDataManager.get_max_date">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_max_date</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">station</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">loggertype</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;eddy&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get maximum timestamp from station database.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            station: Station identifier</span>
+<span class="sd">            loggertype: Logger type</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Latest timestamp</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">table</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;amflux</span><span class="si">{</span><span class="n">loggertype</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="n">query</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;SELECT MAX(timestamp_end) AS max_value FROM </span><span class="si">{</span><span class="n">table</span><span class="si">}</span><span class="s2"> WHERE stationid = &#39;</span><span class="si">{</span><span class="n">station</span><span class="si">}</span><span class="s2">&#39;;&quot;</span>
+
+        <span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_sql</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="n">con</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;max_value&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="StationDataManager.database_columns">
+<a class="viewcode-back" href="../../micromet.html#micromet.station_data_pull.StationDataManager.database_columns">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">database_columns</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dat</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the columns of the database table.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            dat: Type of data (&#39;eddy&#39; or &#39;met&#39;)</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            List of column names</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">table</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;amflux</span><span class="si">{</span><span class="n">dat</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="n">query</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;SELECT * FROM </span><span class="si">{</span><span class="n">table</span><span class="si">}</span><span class="s2"> LIMIT 0;&quot;</span>
+        <span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_sql</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="n">con</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="StationDataManager.process_station_data">
+<a class="viewcode-back" href="../../micromet.html#micromet.station_data_pull.StationDataManager.process_station_data">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">process_station_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">site_folders</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Process data for all stations.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            site_folders: Dictionary mapping station IDs to names</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">stationid</span><span class="p">,</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">site_folders</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">station</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_station_id</span><span class="p">(</span><span class="n">stationid</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">stationid</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">dat</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;eddy&quot;</span><span class="p">,</span> <span class="s2">&quot;met&quot;</span><span class="p">]:</span>
+                <span class="k">if</span> <span class="n">dat</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="n">station</span><span class="p">]:</span>
+                    <span class="k">continue</span>
+
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">stationtime</span><span class="p">,</span> <span class="n">comptime</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_times</span><span class="p">(</span><span class="n">station</span><span class="p">,</span> <span class="n">loggertype</span><span class="o">=</span><span class="n">dat</span><span class="p">)</span>
+                    <span class="n">am_df</span><span class="p">,</span> <span class="n">pack_size</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_station_data</span><span class="p">(</span><span class="n">station</span><span class="p">,</span> <span class="n">loggertype</span><span class="o">=</span><span class="n">dat</span><span class="p">)</span>
+                <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error fetching data for </span><span class="si">{</span><span class="n">stationid</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                    <span class="k">continue</span>
+
+                <span class="k">if</span> <span class="n">am_df</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;No data for </span><span class="si">{</span><span class="n">stationid</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                    <span class="k">continue</span>
+
+                <span class="n">am_cols</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">database_columns</span><span class="p">(</span><span class="n">dat</span><span class="p">)</span>
+
+                <span class="n">am_df_filt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">compare_sql_to_station</span><span class="p">(</span><span class="n">am_df</span><span class="p">,</span> <span class="n">station</span><span class="p">,</span> <span class="n">loggertype</span><span class="o">=</span><span class="n">dat</span><span class="p">)</span>
+                <span class="n">stats</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prepare_upload_stats</span><span class="p">(</span>
+                    <span class="n">am_df_filt</span><span class="p">,</span>
+                    <span class="n">stationid</span><span class="p">,</span>
+                    <span class="n">dat</span><span class="p">,</span>
+                    <span class="n">pack_size</span><span class="p">,</span>
+                    <span class="nb">len</span><span class="p">(</span><span class="n">am_df</span><span class="p">),</span>
+                    <span class="nb">len</span><span class="p">(</span><span class="n">am_df_filt</span><span class="p">),</span>
+                    <span class="n">stationtime</span><span class="p">,</span>
+                    <span class="n">comptime</span><span class="p">,</span>
+                <span class="p">)</span>
+
+                <span class="c1"># Upload data</span>
+                <span class="n">am_df_filt</span> <span class="o">=</span> <span class="n">am_df_filt</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="nb">str</span><span class="o">.</span><span class="n">lower</span><span class="p">)</span>
+
+                <span class="c1"># Check for columns that are not in the database</span>
+                <span class="n">upload_cols</span> <span class="o">=</span> <span class="p">[]</span>
+
+                <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">am_df_filt</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">am_cols</span><span class="p">:</span>
+                        <span class="n">upload_cols</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">col</span><span class="p">)</span>
+
+                <span class="bp">self</span><span class="o">.</span><span class="n">_upload_to_database</span><span class="p">(</span><span class="n">am_df_filt</span><span class="p">[</span><span class="n">upload_cols</span><span class="p">],</span> <span class="n">stats</span><span class="p">,</span> <span class="n">dat</span><span class="p">)</span>
+
+                <span class="bp">self</span><span class="o">.</span><span class="n">_print_processing_summary</span><span class="p">(</span><span class="n">station</span><span class="p">,</span> <span class="n">stats</span><span class="p">)</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_prepare_upload_stats</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span>
+        <span class="n">stationid</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">tabletype</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">pack_size</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="n">raw_len</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">filtered_len</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">stationtime</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">comptime</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Prepare statistics for upload.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="s2">&quot;stationid&quot;</span><span class="p">:</span> <span class="n">stationid</span><span class="p">,</span>
+            <span class="s2">&quot;talbetype&quot;</span><span class="p">:</span> <span class="n">tabletype</span><span class="p">,</span>
+            <span class="s2">&quot;mindate&quot;</span><span class="p">:</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;TIMESTAMP_START&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">min</span><span class="p">(),</span>
+            <span class="s2">&quot;maxdate&quot;</span><span class="p">:</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;TIMESTAMP_START&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">max</span><span class="p">(),</span>
+            <span class="s2">&quot;datasize_mb&quot;</span><span class="p">:</span> <span class="n">pack_size</span><span class="p">,</span>
+            <span class="s2">&quot;stationdf_len&quot;</span><span class="p">:</span> <span class="n">raw_len</span><span class="p">,</span>
+            <span class="s2">&quot;uploaddf_len&quot;</span><span class="p">:</span> <span class="n">filtered_len</span><span class="p">,</span>
+            <span class="s2">&quot;stationtime&quot;</span><span class="p">:</span> <span class="n">stationtime</span><span class="p">,</span>
+            <span class="s2">&quot;comptime&quot;</span><span class="p">:</span> <span class="n">comptime</span><span class="p">,</span>
+        <span class="p">}</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_upload_to_database</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">stats</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">dat</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Upload data and stats to database.&quot;&quot;&quot;</span>
+        <span class="n">df</span><span class="o">.</span><span class="n">to_sql</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;amflux</span><span class="si">{</span><span class="n">dat</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">con</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="p">,</span> <span class="n">if_exists</span><span class="o">=</span><span class="s2">&quot;append&quot;</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">([</span><span class="n">stats</span><span class="p">])</span><span class="o">.</span><span class="n">to_sql</span><span class="p">(</span>
+            <span class="s2">&quot;uploadstats&quot;</span><span class="p">,</span> <span class="n">con</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="p">,</span> <span class="n">if_exists</span><span class="o">=</span><span class="s2">&quot;append&quot;</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span>
+        <span class="p">)</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_print_processing_summary</span><span class="p">(</span><span class="n">station</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">stats</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Print processing summary.&quot;&quot;&quot;</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Station </span><span class="si">{</span><span class="n">station</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Mindate </span><span class="si">{</span><span class="n">stats</span><span class="p">[</span><span class="s1">&#39;mindate&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">  Maxdate </span><span class="si">{</span><span class="n">stats</span><span class="p">[</span><span class="s1">&#39;maxdate&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;data size = </span><span class="si">{</span><span class="n">stats</span><span class="p">[</span><span class="s1">&#39;datasize_mb&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">stats</span><span class="p">[</span><span class="s1">&#39;uploaddf_len&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2"> vs </span><span class="si">{</span><span class="n">stats</span><span class="p">[</span><span class="s1">&#39;stationdf_len&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2"> rows&quot;</span><span class="p">)</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Paul Inkenbrandt &amp; Kathryn Ladig.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "micromet"
-version = "0.1.7"
+version = "0.1.8"
 description = "A comprehensive Python package for micrometeorological data analysis"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -44,4 +44,4 @@ test = [
 
 [project.urls]
 "Homepage" = "https://github.com/yourname/your_package"
-"Documentation" = "https://your_package.readthedocs.io/en/latest/"
+"Documentation" = "https://micromet.readthedocs.io/en/latest/"
