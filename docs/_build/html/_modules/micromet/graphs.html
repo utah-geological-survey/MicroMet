@@ -39,8 +39,14 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <!-- Local TOC -->
-              <div class="local-toc"></div>
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../about_ufn.html">About the Utah Flux Network</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../ameriflux_variables.html">AmeriFlux Data Variables</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../data_processing.html">Data Processing and Management</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../modules.html">MicroMet</a></li>
+</ul>
+
         </div>
       </div>
     </nav>
@@ -75,7 +81,7 @@
 <span class="kn">import</span><span class="w"> </span><span class="nn">statsmodels.api</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sm</span>
 
 <div class="viewcode-block" id="energy_sankey">
-<a class="viewcode-back" href="../../source/micromet.html#micromet.graphs.energy_sankey">[docs]</a>
+<a class="viewcode-back" href="../../micromet.html#micromet.graphs.energy_sankey">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">energy_sankey</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">date_text</span><span class="o">=</span><span class="s2">&quot;2024-06-19 12:00&quot;</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Create a Sankey diagram representing the energy balance for a specific date and time.</span>
@@ -203,7 +209,7 @@
 
 
 <div class="viewcode-block" id="scatterplot_instrument_comparison">
-<a class="viewcode-back" href="../../source/micromet.html#micromet.graphs.scatterplot_instrument_comparison">[docs]</a>
+<a class="viewcode-back" href="../../micromet.html#micromet.graphs.scatterplot_instrument_comparison">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">scatterplot_instrument_comparison</span><span class="p">(</span><span class="n">edmet</span><span class="p">,</span> <span class="n">compare_dict</span><span class="p">,</span> <span class="n">station</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Generate a scatterplot comparing two instrument measurements with regression analysis.</span>
@@ -296,7 +302,7 @@
 
 
 <div class="viewcode-block" id="bland_alt_plot">
-<a class="viewcode-back" href="../../source/micromet.html#micromet.graphs.bland_alt_plot">[docs]</a>
+<a class="viewcode-back" href="../../micromet.html#micromet.graphs.bland_alt_plot">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">bland_alt_plot</span><span class="p">(</span><span class="n">edmet</span><span class="p">,</span> <span class="n">compare_dict</span><span class="p">,</span> <span class="n">station</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.5</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Create a Bland–Altman plot to assess agreement between two instruments.</span>
@@ -385,7 +391,7 @@
 
 <span class="c1"># Example of filtering by date range</span>
 <div class="viewcode-block" id="plot_timeseries_daterange">
-<a class="viewcode-back" href="../../source/micromet.html#micromet.graphs.plot_timeseries_daterange">[docs]</a>
+<a class="viewcode-back" href="../../micromet.html#micromet.graphs.plot_timeseries_daterange">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">plot_timeseries_daterange</span><span class="p">(</span>
     <span class="n">input_df</span><span class="p">,</span> <span class="n">selected_station</span><span class="p">,</span> <span class="n">selected_field</span><span class="p">,</span> <span class="n">start_date</span><span class="p">,</span> <span class="n">end_date</span>
 <span class="p">):</span>
@@ -443,7 +449,7 @@
 
 
 <div class="viewcode-block" id="save_plot">
-<a class="viewcode-back" href="../../source/micromet.html#micromet.graphs.save_plot">[docs]</a>
+<a class="viewcode-back" href="../../micromet.html#micromet.graphs.save_plot">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">save_plot</span><span class="p">(</span><span class="n">b</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Saves plot for an interactive notebook button function</span>

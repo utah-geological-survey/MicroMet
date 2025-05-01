@@ -39,8 +39,14 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <!-- Local TOC -->
-              <div class="local-toc"></div>
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../about_ufn.html">About the Utah Flux Network</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../ameriflux_variables.html">AmeriFlux Data Variables</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../data_processing.html">Data Processing and Management</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../modules.html">MicroMet</a></li>
+</ul>
+
         </div>
       </div>
     </nav>
@@ -100,7 +106,7 @@
 <span class="c1"># -----------------------------------------------------------------------------#</span>
 
 <div class="viewcode-block" id="load_yaml">
-<a class="viewcode-back" href="../../source/micromet.html#micromet.converter.load_yaml">[docs]</a>
+<a class="viewcode-back" href="../../micromet.html#micromet.converter.load_yaml">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">load_yaml</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="n">Path</span> <span class="o">|</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Load a YAML file and return as dict.&quot;&quot;&quot;</span>
     <span class="n">path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
@@ -111,7 +117,7 @@
 
 
 <div class="viewcode-block" id="logger_check">
-<a class="viewcode-back" href="../../source/micromet.html#micromet.converter.logger_check">[docs]</a>
+<a class="viewcode-back" href="../../micromet.html#micromet.converter.logger_check">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">logger_check</span><span class="p">(</span><span class="n">logger</span><span class="p">:</span> <span class="n">logging</span><span class="o">.</span><span class="n">Logger</span> <span class="o">|</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">logging</span><span class="o">.</span><span class="n">Logger</span><span class="p">:</span>
     <span class="k">if</span> <span class="n">logger</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
@@ -134,7 +140,7 @@
 <span class="c1"># AmerifluxDataProcessor</span>
 <span class="c1"># -----------------------------------------------------------------------------#</span>
 <div class="viewcode-block" id="AmerifluxDataProcessor">
-<a class="viewcode-back" href="../../source/micromet.html#micromet.converter.AmerifluxDataProcessor">[docs]</a>
+<a class="viewcode-back" href="../../micromet.html#micromet.converter.AmerifluxDataProcessor">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">AmerifluxDataProcessor</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Read Campbell Scientific TOA5 or AmeriFlux output CSV into a tidy DataFrame.</span>
@@ -165,7 +171,7 @@
     <span class="c1"># Public API</span>
     <span class="c1"># --------------------------------------------------------------------- #</span>
 <div class="viewcode-block" id="AmerifluxDataProcessor.to_dataframe">
-<a class="viewcode-back" href="../../source/micromet.html#micromet.converter.AmerifluxDataProcessor.to_dataframe">[docs]</a>
+<a class="viewcode-back" href="../../micromet.html#micromet.converter.AmerifluxDataProcessor.to_dataframe">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">to_dataframe</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Return parsed CSV as pandas DataFrame.&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_determine_header_rows</span><span class="p">(</span><span class="n">file</span><span class="p">)</span>
@@ -218,7 +224,7 @@
     <span class="c1"># --------------------------------------------------------------------- #</span>
 
 <div class="viewcode-block" id="AmerifluxDataProcessor.raw_file_compile">
-<a class="viewcode-back" href="../../source/micromet.html#micromet.converter.AmerifluxDataProcessor.raw_file_compile">[docs]</a>
+<a class="viewcode-back" href="../../micromet.html#micromet.converter.AmerifluxDataProcessor.raw_file_compile">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">raw_file_compile</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">main_dir</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span><span class="n">Path</span><span class="p">],</span>
@@ -268,7 +274,7 @@
 
 
 <div class="viewcode-block" id="AmerifluxDataProcessor.iterate_through_stations">
-<a class="viewcode-back" href="../../source/micromet.html#micromet.converter.AmerifluxDataProcessor.iterate_through_stations">[docs]</a>
+<a class="viewcode-back" href="../../micromet.html#micromet.converter.AmerifluxDataProcessor.iterate_through_stations">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">iterate_through_stations</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Iterate through all stations.&quot;&quot;&quot;</span>
         <span class="n">site_folders</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;US-UTD&#39;</span><span class="p">:</span> <span class="s1">&#39;Dugout_Ranch&#39;</span><span class="p">,</span>
@@ -301,7 +307,7 @@
 <span class="c1"># Reformatter</span>
 <span class="c1"># ----------------------------------------------------------------------------</span>
 <div class="viewcode-block" id="Reformatter">
-<a class="viewcode-back" href="../../source/micromet.html#micromet.converter.Reformatter">[docs]</a>
+<a class="viewcode-back" href="../../micromet.html#micromet.converter.Reformatter">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">Reformatter</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Clean and standardize station data.</span>
@@ -362,7 +368,7 @@
     <span class="c1"># Pipeline entry</span>
     <span class="c1"># ------------------------------------------------------------------</span>
 <div class="viewcode-block" id="Reformatter.prepare">
-<a class="viewcode-back" href="../../source/micromet.html#micromet.converter.Reformatter.prepare">[docs]</a>
+<a class="viewcode-back" href="../../micromet.html#micromet.converter.Reformatter.prepare">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">prepare</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">data_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;eddy&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Starting reformat (</span><span class="si">%s</span><span class="s2"> rows)&quot;</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">df</span><span class="p">))</span>
 
@@ -393,7 +399,7 @@
     <span class="c1"># 1. Timestamp handling</span>
     <span class="c1"># ------------------------------------------------------------------</span>
 <div class="viewcode-block" id="Reformatter.infer_datetime_col">
-<a class="viewcode-back" href="../../source/micromet.html#micromet.converter.Reformatter.infer_datetime_col">[docs]</a>
+<a class="viewcode-back" href="../../micromet.html#micromet.converter.Reformatter.infer_datetime_col">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">infer_datetime_col</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="o">|</span><span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Return the name of the TIMESTAMP column.&quot;&quot;&quot;</span>
         <span class="n">datetime_col_options</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;TIMESTAMP_START&quot;</span><span class="p">,</span> <span class="s2">&quot;TIMESTAMP_START_1&quot;</span><span class="p">]</span>
@@ -422,7 +428,7 @@
         <span class="k">return</span> <span class="n">df</span>
 
 <div class="viewcode-block" id="Reformatter.resample_timestamps">
-<a class="viewcode-back" href="../../source/micromet.html#micromet.converter.Reformatter.resample_timestamps">[docs]</a>
+<a class="viewcode-back" href="../../micromet.html#micromet.converter.Reformatter.resample_timestamps">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">resample_timestamps</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Resample a DataFrame to 30-minute intervals based on the &#39;datetime_start&#39; column.</span>
@@ -453,7 +459,7 @@
 
 
 <div class="viewcode-block" id="Reformatter.timestamp_reset">
-<a class="viewcode-back" href="../../source/micromet.html#micromet.converter.Reformatter.timestamp_reset">[docs]</a>
+<a class="viewcode-back" href="../../micromet.html#micromet.converter.Reformatter.timestamp_reset">[docs]</a>
     <span class="nd">@staticmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">timestamp_reset</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">minutes</span><span class="o">=</span><span class="mi">30</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
@@ -485,7 +491,7 @@
     <span class="c1"># 2. Column renaming &amp; legacy conversions</span>
     <span class="c1"># ------------------------------------------------------------------</span>
 <div class="viewcode-block" id="Reformatter.rename_columns">
-<a class="viewcode-back" href="../../source/micromet.html#micromet.converter.Reformatter.rename_columns">[docs]</a>
+<a class="viewcode-back" href="../../micromet.html#micromet.converter.Reformatter.rename_columns">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">rename_columns</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">data_type</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Rename DataFrame columns based on configuration and standardize column names.</span>
@@ -518,7 +524,7 @@
 
 
 <div class="viewcode-block" id="Reformatter.normalize_prefixes">
-<a class="viewcode-back" href="../../source/micromet.html#micromet.converter.Reformatter.normalize_prefixes">[docs]</a>
+<a class="viewcode-back" href="../../micromet.html#micromet.converter.Reformatter.normalize_prefixes">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">normalize_prefixes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Normalize column name prefixes related to soil and temperature measurements.</span>
@@ -563,7 +569,7 @@
 
 
 <div class="viewcode-block" id="Reformatter.modernize_soil_legacy">
-<a class="viewcode-back" href="../../source/micromet.html#micromet.converter.Reformatter.modernize_soil_legacy">[docs]</a>
+<a class="viewcode-back" href="../../micromet.html#micromet.converter.Reformatter.modernize_soil_legacy">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">modernize_soil_legacy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Update legacy soil sensor column names to a standardized format.</span>
@@ -618,7 +624,7 @@
     <span class="c1"># ------------------------------------------------------------------ #</span>
 
 <div class="viewcode-block" id="Reformatter.clean_columns">
-<a class="viewcode-back" href="../../source/micromet.html#micromet.converter.Reformatter.clean_columns">[docs]</a>
+<a class="viewcode-back" href="../../micromet.html#micromet.converter.Reformatter.clean_columns">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">clean_columns</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">df</span><span class="p">,</span> <span class="n">replace_w</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Replace out-of-range values in float64 columns with a specified placeholder.</span>
@@ -666,7 +672,7 @@
     <span class="c1"># Stage 4 – variable‑specific fixes</span>
     <span class="c1"># ------------------------------------------------------------------ #</span>
 <div class="viewcode-block" id="Reformatter.apply_fixes">
-<a class="viewcode-back" href="../../source/micromet.html#micromet.converter.Reformatter.apply_fixes">[docs]</a>
+<a class="viewcode-back" href="../../micromet.html#micromet.converter.Reformatter.apply_fixes">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">apply_fixes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Apply a set of minor, variable-specific data corrections.</span>
@@ -700,7 +706,7 @@
 
 
 <div class="viewcode-block" id="Reformatter.tau_fixer">
-<a class="viewcode-back" href="../../source/micromet.html#micromet.converter.Reformatter.tau_fixer">[docs]</a>
+<a class="viewcode-back" href="../../micromet.html#micromet.converter.Reformatter.tau_fixer">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">tau_fixer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Replace zero values in the &#39;Tau&#39; column with NaN.</span>
@@ -731,7 +737,7 @@
 
 
 <div class="viewcode-block" id="Reformatter.fix_swc_percent">
-<a class="viewcode-back" href="../../source/micromet.html#micromet.converter.Reformatter.fix_swc_percent">[docs]</a>
+<a class="viewcode-back" href="../../micromet.html#micromet.converter.Reformatter.fix_swc_percent">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">fix_swc_percent</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Convert fractional soil water content values to percent if applicable.</span>
@@ -766,7 +772,7 @@
 
 
 <div class="viewcode-block" id="Reformatter.ssitc_scale">
-<a class="viewcode-back" href="../../source/micromet.html#micromet.converter.Reformatter.ssitc_scale">[docs]</a>
+<a class="viewcode-back" href="../../micromet.html#micromet.converter.Reformatter.ssitc_scale">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">ssitc_scale</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Scale SSITC test columns if values exceed expected thresholds.</span>
@@ -809,7 +815,7 @@
 
 
 <div class="viewcode-block" id="Reformatter.scale_and_convert">
-<a class="viewcode-back" href="../../source/micromet.html#micromet.converter.Reformatter.scale_and_convert">[docs]</a>
+<a class="viewcode-back" href="../../micromet.html#micromet.converter.Reformatter.scale_and_convert">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">scale_and_convert</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">column</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Apply a rating transformation and convert values to float.</span>
@@ -840,7 +846,7 @@
 
 
 <div class="viewcode-block" id="Reformatter.rating">
-<a class="viewcode-back" href="../../source/micromet.html#micromet.converter.Reformatter.rating">[docs]</a>
+<a class="viewcode-back" href="../../micromet.html#micromet.converter.Reformatter.rating">[docs]</a>
     <span class="nd">@staticmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">rating</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
@@ -942,7 +948,7 @@
     <span class="c1"># 6. Final housekeeping</span>
     <span class="c1"># ------------------------------------------------------------------</span>
 <div class="viewcode-block" id="Reformatter.set_number_types">
-<a class="viewcode-back" href="../../source/micromet.html#micromet.converter.Reformatter.set_number_types">[docs]</a>
+<a class="viewcode-back" href="../../micromet.html#micromet.converter.Reformatter.set_number_types">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">set_number_types</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Convert columns in the DataFrame to numeric types where appropriate.</span>
@@ -1013,7 +1019,7 @@
         <span class="k">return</span> <span class="n">df</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;drop_cols&quot;</span><span class="p">,</span> <span class="p">[]),</span> <span class="n">errors</span><span class="o">=</span><span class="s2">&quot;ignore&quot;</span><span class="p">)</span>
 
 <div class="viewcode-block" id="Reformatter.col_order">
-<a class="viewcode-back" href="../../source/micromet.html#micromet.converter.Reformatter.col_order">[docs]</a>
+<a class="viewcode-back" href="../../micromet.html#micromet.converter.Reformatter.col_order">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">col_order</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Reorder DataFrame columns to place priority columns first.</span>

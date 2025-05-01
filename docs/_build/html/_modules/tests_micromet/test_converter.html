@@ -39,8 +39,14 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <!-- Local TOC -->
-              <div class="local-toc"></div>
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../about_ufn.html">About the Utah Flux Network</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../ameriflux_variables.html">AmeriFlux Data Variables</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../data_processing.html">Data Processing and Management</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../modules.html">MicroMet</a></li>
+</ul>
+
         </div>
       </div>
     </nav>
@@ -91,7 +97,7 @@
 <span class="c1"># Helper: provide a deterministic _infer_datetime_col that the class expects.</span>
 <span class="c1"># --------------------------------------------------------------------------- #</span>
 <div class="viewcode-block" id="patch_infer_datetime_col">
-<a class="viewcode-back" href="../../source/tests_micromet.html#tests_micromet.test_converter.patch_infer_datetime_col">[docs]</a>
+<a class="viewcode-back" href="../../tests_micromet.html#tests_micromet.test_converter.patch_infer_datetime_col">[docs]</a>
 <span class="nd">@pytest</span><span class="o">.</span><span class="n">fixture</span><span class="p">(</span><span class="n">autouse</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">patch_infer_datetime_col</span><span class="p">(</span><span class="n">monkeypatch</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
@@ -110,7 +116,7 @@
 <span class="c1"># 1.  Header-row detection</span>
 <span class="c1"># --------------------------------------------------------------------------- #</span>
 <div class="viewcode-block" id="test_header_rows_tidy_file">
-<a class="viewcode-back" href="../../source/tests_micromet.html#tests_micromet.test_converter.test_header_rows_tidy_file">[docs]</a>
+<a class="viewcode-back" href="../../tests_micromet.html#tests_micromet.test_converter.test_header_rows_tidy_file">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">test_header_rows_tidy_file</span><span class="p">(</span><span class="n">tmp_path</span><span class="p">:</span> <span class="n">Path</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;A tidy (non-TOA5) file should yield header_rows == 0.&quot;&quot;&quot;</span>
     <span class="n">csv</span> <span class="o">=</span> <span class="n">tmp_path</span> <span class="o">/</span> <span class="s2">&quot;tidy.csv&quot;</span>
@@ -125,7 +131,7 @@
 
 
 <div class="viewcode-block" id="test_header_rows_toa5">
-<a class="viewcode-back" href="../../source/tests_micromet.html#tests_micromet.test_converter.test_header_rows_toa5">[docs]</a>
+<a class="viewcode-back" href="../../tests_micromet.html#tests_micromet.test_converter.test_header_rows_toa5">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">test_header_rows_toa5</span><span class="p">(</span><span class="n">tmp_path</span><span class="p">:</span> <span class="n">Path</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;A TOA5 file must keep the default four header rows.&quot;&quot;&quot;</span>
     <span class="n">csv</span> <span class="o">=</span> <span class="n">tmp_path</span> <span class="o">/</span> <span class="s2">&quot;toa5.csv&quot;</span>
@@ -147,7 +153,7 @@
 <span class="c1"># 2.  DataFrame parsing &amp; sorting</span>
 <span class="c1"># --------------------------------------------------------------------------- #</span>
 <div class="viewcode-block" id="test_to_dataframe_sorted_and_coerced">
-<a class="viewcode-back" href="../../source/tests_micromet.html#tests_micromet.test_converter.test_to_dataframe_sorted_and_coerced">[docs]</a>
+<a class="viewcode-back" href="../../tests_micromet.html#tests_micromet.test_converter.test_to_dataframe_sorted_and_coerced">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">test_to_dataframe_sorted_and_coerced</span><span class="p">(</span><span class="n">tmp_path</span><span class="p">:</span> <span class="n">Path</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    The returned DataFrame should</span>
@@ -182,7 +188,7 @@
 <span class="c1"># Fixtures</span>
 <span class="c1">###############################################################################</span>
 <div class="viewcode-block" id="mod">
-<a class="viewcode-back" href="../../source/tests_micromet.html#tests_micromet.test_converter.mod">[docs]</a>
+<a class="viewcode-back" href="../../tests_micromet.html#tests_micromet.test_converter.mod">[docs]</a>
 <span class="nd">@pytest</span><span class="o">.</span><span class="n">fixture</span><span class="p">(</span><span class="n">scope</span><span class="o">=</span><span class="s2">&quot;session&quot;</span><span class="p">)</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">mod</span><span class="p">():</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Import the module that contains `Reformatter` once for all tests.&quot;&quot;&quot;</span>
@@ -192,7 +198,7 @@
 
 
 <div class="viewcode-block" id="cfg_dict">
-<a class="viewcode-back" href="../../source/tests_micromet.html#tests_micromet.test_converter.cfg_dict">[docs]</a>
+<a class="viewcode-back" href="../../tests_micromet.html#tests_micromet.test_converter.cfg_dict">[docs]</a>
 <span class="nd">@pytest</span><span class="o">.</span><span class="n">fixture</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">cfg_dict</span><span class="p">():</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;A minimal YAML config that exercises every pipeline branch.&quot;&quot;&quot;</span>
@@ -210,7 +216,7 @@
 
 
 <div class="viewcode-block" id="tmp_cfg">
-<a class="viewcode-back" href="../../source/tests_micromet.html#tests_micromet.test_converter.tmp_cfg">[docs]</a>
+<a class="viewcode-back" href="../../tests_micromet.html#tests_micromet.test_converter.tmp_cfg">[docs]</a>
 <span class="nd">@pytest</span><span class="o">.</span><span class="n">fixture</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">tmp_cfg</span><span class="p">(</span><span class="n">tmp_path</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="n">cfg_dict</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="n">tmp_path</span> <span class="o">/</span> <span class="s2">&quot;cfg.yml&quot;</span>
@@ -220,7 +226,7 @@
 
 
 <div class="viewcode-block" id="var_limits_csv">
-<a class="viewcode-back" href="../../source/tests_micromet.html#tests_micromet.test_converter.var_limits_csv">[docs]</a>
+<a class="viewcode-back" href="../../tests_micromet.html#tests_micromet.test_converter.var_limits_csv">[docs]</a>
 <span class="nd">@pytest</span><span class="o">.</span><span class="n">fixture</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">var_limits_csv</span><span class="p">(</span><span class="n">tmp_path</span><span class="p">:</span> <span class="n">Path</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Provide hard min/max limits for one variable to test clipping.&quot;&quot;&quot;</span>
@@ -233,7 +239,7 @@
 
 
 <div class="viewcode-block" id="monkeypatched_reformatter">
-<a class="viewcode-back" href="../../source/tests_micromet.html#tests_micromet.test_converter.monkeypatched_reformatter">[docs]</a>
+<a class="viewcode-back" href="../../tests_micromet.html#tests_micromet.test_converter.monkeypatched_reformatter">[docs]</a>
 <span class="nd">@pytest</span><span class="o">.</span><span class="n">fixture</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">monkeypatched_reformatter</span><span class="p">(</span><span class="n">monkeypatch</span><span class="p">,</span> <span class="n">mod</span><span class="p">,</span> <span class="n">tmp_cfg</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
@@ -264,7 +270,7 @@
 <span class="c1"># Timestamp handling</span>
 <span class="c1"># ---------------------------------------------------------------------------</span>
 <div class="viewcode-block" id="test_fix_timestamps_resample_and_interpolate">
-<a class="viewcode-back" href="../../source/tests_micromet.html#tests_micromet.test_converter.test_fix_timestamps_resample_and_interpolate">[docs]</a>
+<a class="viewcode-back" href="../../tests_micromet.html#tests_micromet.test_converter.test_fix_timestamps_resample_and_interpolate">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">test_fix_timestamps_resample_and_interpolate</span><span class="p">(</span><span class="n">monkeypatched_reformatter</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    _fix_timestamps should:</span>
@@ -309,7 +315,7 @@
 
 
 <div class="viewcode-block" id="test_prefix_and_legacy_conversion">
-<a class="viewcode-back" href="../../source/tests_micromet.html#tests_micromet.test_converter.test_prefix_and_legacy_conversion">[docs]</a>
+<a class="viewcode-back" href="../../tests_micromet.html#tests_micromet.test_converter.test_prefix_and_legacy_conversion">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">test_prefix_and_legacy_conversion</span><span class="p">(</span><span class="n">monkeypatched_reformatter</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    BulkEC_, VWC_, Ka_, and T_*cm_* must be normalised AND converted to the</span>
@@ -329,7 +335,7 @@
 
 
 <div class="viewcode-block" id="test_tau_fixer_sets_zero_to_missing">
-<a class="viewcode-back" href="../../source/tests_micromet.html#tests_micromet.test_converter.test_tau_fixer_sets_zero_to_missing">[docs]</a>
+<a class="viewcode-back" href="../../tests_micromet.html#tests_micromet.test_converter.test_tau_fixer_sets_zero_to_missing">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">test_tau_fixer_sets_zero_to_missing</span><span class="p">(</span><span class="n">monkeypatched_reformatter</span><span class="p">):</span>
     <span class="n">df</span> <span class="o">=</span> <span class="n">_base_frame</span><span class="p">()</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">Tau</span><span class="o">=</span><span class="p">[</span><span class="mf">0.0</span><span class="p">],</span> <span class="n">u_star</span><span class="o">=</span><span class="p">[</span><span class="mf">0.2</span><span class="p">])</span>
     <span class="n">out</span> <span class="o">=</span> <span class="n">monkeypatched_reformatter</span><span class="o">.</span><span class="n">prepare</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
@@ -340,7 +346,7 @@
 
 
 <div class="viewcode-block" id="test_swc_scaled_to_percent">
-<a class="viewcode-back" href="../../source/tests_micromet.html#tests_micromet.test_converter.test_swc_scaled_to_percent">[docs]</a>
+<a class="viewcode-back" href="../../tests_micromet.html#tests_micromet.test_converter.test_swc_scaled_to_percent">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">test_swc_scaled_to_percent</span><span class="p">(</span><span class="n">monkeypatched_reformatter</span><span class="p">):</span>
     <span class="n">df</span> <span class="o">=</span> <span class="n">_base_frame</span><span class="p">()</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">SWC_3_1_1</span><span class="o">=</span><span class="p">[</span><span class="mf">0.30</span><span class="p">])</span>   <span class="c1"># 0–1 volumetric</span>
     <span class="n">out</span> <span class="o">=</span> <span class="n">monkeypatched_reformatter</span><span class="o">.</span><span class="n">prepare</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
@@ -349,7 +355,7 @@
 
 
 <div class="viewcode-block" id="test_ssitc_rating">
-<a class="viewcode-back" href="../../source/tests_micromet.html#tests_micromet.test_converter.test_ssitc_rating">[docs]</a>
+<a class="viewcode-back" href="../../tests_micromet.html#tests_micromet.test_converter.test_ssitc_rating">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">test_ssitc_rating</span><span class="p">(</span><span class="n">monkeypatched_reformatter</span><span class="p">):</span>
     <span class="n">df</span> <span class="o">=</span> <span class="n">_base_frame</span><span class="p">()</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">FC_SSITC_TEST</span><span class="o">=</span><span class="p">[</span><span class="mi">5</span><span class="p">])</span>  <span class="c1"># falls in 4–6 ➜ rating 1</span>
     <span class="n">out</span> <span class="o">=</span> <span class="n">monkeypatched_reformatter</span><span class="o">.</span><span class="n">prepare</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
@@ -358,7 +364,7 @@
 
 
 <div class="viewcode-block" id="test_varlimits_clipping">
-<a class="viewcode-back" href="../../source/tests_micromet.html#tests_micromet.test_converter.test_varlimits_clipping">[docs]</a>
+<a class="viewcode-back" href="../../tests_micromet.html#tests_micromet.test_converter.test_varlimits_clipping">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">test_varlimits_clipping</span><span class="p">(</span><span class="n">monkeypatch</span><span class="p">,</span> <span class="n">mod</span><span class="p">,</span> <span class="n">tmp_cfg</span><span class="p">,</span> <span class="n">var_limits_csv</span><span class="p">):</span>
     <span class="n">fmt</span> <span class="o">=</span> <span class="n">mod</span><span class="o">.</span><span class="n">Reformatter</span><span class="p">(</span><span class="n">tmp_cfg</span><span class="p">,</span> <span class="n">var_limits_csv</span><span class="o">=</span><span class="n">var_limits_csv</span><span class="p">,</span> <span class="n">drop_soil</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
     <span class="c1"># patch helpers/constants again for this instance</span>
@@ -371,7 +377,7 @@
 
 
 <div class="viewcode-block" id="test_ssitc_scale_and_rating">
-<a class="viewcode-back" href="../../source/tests_micromet.html#tests_micromet.test_converter.test_ssitc_scale_and_rating">[docs]</a>
+<a class="viewcode-back" href="../../tests_micromet.html#tests_micromet.test_converter.test_ssitc_scale_and_rating">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">test_ssitc_scale_and_rating</span><span class="p">(</span><span class="n">monkeypatched_reformatter</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    FC_SSITC_TEST values should be re-rated:</span>

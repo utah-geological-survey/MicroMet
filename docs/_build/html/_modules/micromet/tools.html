@@ -39,8 +39,14 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <!-- Local TOC -->
-              <div class="local-toc"></div>
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../about_ufn.html">About the Utah Flux Network</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../ameriflux_variables.html">AmeriFlux Data Variables</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../data_processing.html">Data Processing and Management</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../modules.html">MicroMet</a></li>
+</ul>
+
         </div>
       </div>
     </nav>
@@ -80,7 +86,7 @@
 
 
 <div class="viewcode-block" id="find_irr_dates">
-<a class="viewcode-back" href="../../source/micromet.html#micromet.tools.find_irr_dates">[docs]</a>
+<a class="viewcode-back" href="../../micromet.html#micromet.tools.find_irr_dates">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">find_irr_dates</span><span class="p">(</span>
     <span class="n">df</span><span class="p">,</span> <span class="n">swc_col</span><span class="o">=</span><span class="s2">&quot;SWC_1_1_1&quot;</span><span class="p">,</span> <span class="n">do_plot</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">dist</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span> <span class="n">prom</span><span class="o">=</span><span class="mf">0.6</span>
 <span class="p">):</span>
@@ -136,7 +142,7 @@
 
 
 <div class="viewcode-block" id="find_gaps">
-<a class="viewcode-back" href="../../source/micromet.html#micromet.tools.find_gaps">[docs]</a>
+<a class="viewcode-back" href="../../micromet.html#micromet.tools.find_gaps">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">find_gaps</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">columns</span><span class="p">,</span> <span class="n">missing_value</span><span class="o">=-</span><span class="mi">9999</span><span class="p">,</span> <span class="n">min_gap_periods</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Find gaps in time series data where values are either NaN or equal to missing_value</span>
@@ -221,7 +227,7 @@
 
 
 <div class="viewcode-block" id="plot_gaps">
-<a class="viewcode-back" href="../../source/micromet.html#micromet.tools.plot_gaps">[docs]</a>
+<a class="viewcode-back" href="../../micromet.html#micromet.tools.plot_gaps">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">plot_gaps</span><span class="p">(</span><span class="n">gaps_df</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="s2">&quot;Time Series Data Gaps&quot;</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Create a Gantt chart visualization of gaps in time series data.</span>
@@ -304,7 +310,7 @@
 
 
 <div class="viewcode-block" id="detect_extreme_variations">
-<a class="viewcode-back" href="../../source/micromet.html#micromet.tools.detect_extreme_variations">[docs]</a>
+<a class="viewcode-back" href="../../micromet.html#micromet.tools.detect_extreme_variations">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">detect_extreme_variations</span><span class="p">(</span>
     <span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span>
     <span class="n">fields</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -401,7 +407,7 @@
 
 
 <div class="viewcode-block" id="clean_extreme_variations">
-<a class="viewcode-back" href="../../source/micromet.html#micromet.tools.clean_extreme_variations">[docs]</a>
+<a class="viewcode-back" href="../../micromet.html#micromet.tools.clean_extreme_variations">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">clean_extreme_variations</span><span class="p">(</span>
     <span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span>
     <span class="n">fields</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -513,7 +519,7 @@
 
 
 <div class="viewcode-block" id="polar_to_cartesian_dataframe">
-<a class="viewcode-back" href="../../source/micromet.html#micromet.tools.polar_to_cartesian_dataframe">[docs]</a>
+<a class="viewcode-back" href="../../micromet.html#micromet.tools.polar_to_cartesian_dataframe">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">polar_to_cartesian_dataframe</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">wd_column</span><span class="o">=</span><span class="s2">&quot;WD&quot;</span><span class="p">,</span> <span class="n">dist_column</span><span class="o">=</span><span class="s2">&quot;Dist&quot;</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Convert polar coordinates from a DataFrame to Cartesian coordinates.</span>
@@ -549,7 +555,7 @@
 
 
 <div class="viewcode-block" id="aggregate_to_daily_centroid">
-<a class="viewcode-back" href="../../source/micromet.html#micromet.tools.aggregate_to_daily_centroid">[docs]</a>
+<a class="viewcode-back" href="../../micromet.html#micromet.tools.aggregate_to_daily_centroid">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">aggregate_to_daily_centroid</span><span class="p">(</span>
     <span class="n">df</span><span class="p">,</span>
     <span class="n">date_column</span><span class="o">=</span><span class="s2">&quot;Timestamp&quot;</span><span class="p">,</span>
@@ -605,7 +611,7 @@
 
 
 <div class="viewcode-block" id="generate_density_raster">
-<a class="viewcode-back" href="../../source/micromet.html#micromet.tools.generate_density_raster">[docs]</a>
+<a class="viewcode-back" href="../../micromet.html#micromet.tools.generate_density_raster">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">generate_density_raster</span><span class="p">(</span>
     <span class="n">gdf</span><span class="p">,</span>
     <span class="n">resolution</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span>  <span class="c1"># Cell size in meters</span>
