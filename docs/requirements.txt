@@ -5,7 +5,7 @@ pandas
 numpy
 plotly
 sqlalchemy
-matplotlib-base
+matplotlib
 scipy
 statsmodels
 scikit-learn
