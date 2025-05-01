@@ -44,4 +44,4 @@ test = [
 
 [project.urls]
 "Homepage" = "https://github.com/yourname/your_package"
-"Documentation" = "https://micromet.readthedocs.io/en/latest/"
+"Documentation" = "https://micromet.readthedocs.io/en/stable/"

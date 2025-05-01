@@ -18,7 +18,7 @@ import micromet
 project = "micromet"
 copyright = "2025, Paul Inkenbrandt & Kathryn Ladig"
 author = "Paul Inkenbrandt & Kathryn Ladig"
-release = "0.1.0"
+release = "0.1.11"
 
 master_doc = "index"  # The name of the master document (without the .rst extension)
 # -- General configuration ---------------------------------------------------
@@ -33,7 +33,11 @@ extensions = [
 ]
 
 templates_path = ["_templates"]
-exclude_patterns = ["tests_micromet/*"]
+exclude_patterns = [
+    "tests_micromet/*",
+    "_build/*",
+    "docs/_build/*",
+]  # Exclude the tests_micromet directory and _build directory
 
 napoleon_google_docstring = False  # You can still use Google-style if True
 napoleon_numpy_docstring = True  # Set this to True for NumPy-style

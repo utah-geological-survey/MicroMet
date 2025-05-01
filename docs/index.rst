@@ -1,3 +1,8 @@
+Micromet Documentation
+================
+
+Welcome to Micromet's documentation!
+
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
@@ -7,3 +12,4 @@
    data_processing
    modules
    links
+   micromet
