@@ -1,12 +1,12 @@
 {% set name = "MicroMet" %}
-{% set version = "0.1.15" %}
+{% set version = "0.1.16" %}
 
 package:
   name: {{ name|lower }}
   version: {{ version }}
 
 source:
-  url: https://github.com/inkenbrandt/MicroMet/archive/{{ version }}.tar.gz
+  url: https://github.com/inkenbrandt/MicroMet/archive/v{{ version }}.tar.gz
   sha256: 49cdb1ed517257734ff9b649e9e173da96efcee83e848521f86c5db81f3d7cb0
 
 build:
