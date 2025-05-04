@@ -8,6 +8,22 @@ This guide walks you through installation, basic usage, and how to start working
 Installation
 ------------
 
+Micromet is available on PyPI and can be installed using pip:
+.. code-block:: bash
+
+    pip install micromet
+
+Alternatively, if you want to use the latest development version, you can install it directly from GitHub:
+.. code-block:: bash
+
+    pip install git+https://github.com/inkenbrandt/MicroMet.git
+
+MicroMet is also available as a conda package. You can install it using the following command:
+.. code-block:: bash
+
+    conda install -c conda-forge micromet
+
+
 Micromet can be installed from source. First, clone the repository:
 
 .. code-block:: bash
