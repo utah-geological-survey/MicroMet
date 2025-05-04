@@ -6,7 +6,7 @@ package:
   version: {{ version }}
 
 source:
-  url: https://github.com/inkenbrandt/MicroMet/archive/v{{ version }}.tar.gz
+  url: https://github.com/inkenbrandt/MicroMet/archive/{{ version }}.tar.gz
   sha256: 49cdb1ed517257734ff9b649e9e173da96efcee83e848521f86c5db81f3d7cb0
 
 build:
