@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "micromet"
 description = "A comprehensive Python package for micrometeorological data analysis"
 readme = "README.md"
-version = "0.1.20"
+version = "0.1.21"
 requires-python = ">=3.10"
 license = {text = "GNU General Public License v3.0"}
 authors = [
@@ -43,8 +43,6 @@ test = [
 [tool.setuptools]
 package-dir = {"" = "src"}
 
-[tool.setuptools_scm]
-version_file = "src/micromet/_version.py"
 
 [project.urls]
 "Homepage" = "https://github.com/inkenbrandt/micromet"
