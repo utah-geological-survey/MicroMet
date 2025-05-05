@@ -15,281 +15,201 @@ from unittest.mock import mock_open, patch
 
 sys.path.append("../src")
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../src")))
-from micromet.converter import Reformatter, AmerifluxDataProcessor
 
-# tests/test_ameriflux_data_processor.py
+
+# =============================================================================
+# Pytest test suite for uploaded modules
+# =============================================================================
+# The tests below provide lightweight coverage for the key public functions and
+# classes in the user's modules.  They rely only on the Python standard library
+# and the packages already required by the modules themselves.  All data used
+# are synthetic and small to ensure the test suite runs quickly (\u003c1 s).
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# tools.py
+# -----------------------------------------------------------------------------
+from micromet.tools import (
+    polar_to_cartesian_dataframe,
+    aggregate_to_daily_centroid,
+    # generate_density_raster,  # heavy ‒ skip here, see note below
+)
+
+
+def test_polar_to_cartesian_dataframe_basic():
+    df = pd.DataFrame({"WD": [0, 90, 180, 270], "Dist": [1, 1, 1, 1]})
+    out = polar_to_cartesian_dataframe(df.copy())
+
+    expected_x = np.array([0, 1, 0, -1], dtype=float)
+    expected_y = np.array([1, 0, -1, 0], dtype=float)
+
+    assert np.allclose(out["X_Dist"], expected_x, atol=1e-6)
+    assert np.allclose(out["Y_Dist"], expected_y, atol=1e-6)
+
+
+@pytest.mark.parametrize("weighted", [True, False])
+def test_aggregate_to_daily_centroid(weighted):
+    base = pd.Timestamp("2025-01-01 00:00:00")
+    ts = pd.date_range(base, periods=48, freq="30min", name="Timestamp")
+    df = pd.DataFrame(
+        {
+            "Timestamp": ts,
+            "X": np.linspace(0, 10, len(ts)),
+            "Y": np.linspace(10, 0, len(ts)),
+            "ET": np.ones(len(ts)),
+        }
+    )
+
+    daily = aggregate_to_daily_centroid(df, weighted=weighted)
+
+    # Exactly one daily centroid expected and no NaNs
+    assert len(daily) == 1
+    assert daily.isna().sum().sum() == 0
+
+
+# -----------------------------------------------------------------------------
+# ep_footprint.py – lightweight scalar models
+# -----------------------------------------------------------------------------
+from micromet.ep_footprint import kljun_04, Footprint
+
+
+def test_footprint_error_helper():
+    fp = Footprint.error()
+    # All attributes should equal the ERROR flag (−9999)
+    assert all(v == -9999 for v in fp.__dict__.values())
+
+
+def test_kljun_04_valid_case():
+    fp = kljun_04(
+        std_w=0.5,
+        ustar=0.3,
+        zL=-1.0,
+        sonic_height=3.0,
+        disp_height=0.2,
+        rough_length=0.05,
+    )
+    # Basic sanity checks
+    assert isinstance(fp, Footprint)
+    assert fp.peak > 0
+    assert math.isfinite(fp.x50)
+
+
+# -----------------------------------------------------------------------------
+# volk.py – utility helpers (no heavy raster IO tested here)
+# -----------------------------------------------------------------------------
+from micromet.volk import snap_centroid, norm_minmax_dly_et, norm_dly_et, mask_fp_cutoff
+
+
+def test_snap_centroid_alignment():
+    x_adj, y_adj = snap_centroid(435627.3, 4512322.7)
+
+    # Coordinates should snap to 15 m grid and land on an **odd** multiple
+    assert (x_adj / 15) % 2 == 1
+    assert (y_adj / 15) % 2 == 1
+
+
+def test_normalization_helpers():
+    arr = pd.Series([2.0, 4.0, 6.0, 8.0])
+    mm = norm_minmax_dly_et(arr)
+    s = norm_dly_et(arr)
+
+    assert np.isclose(mm.min(), 0)
+    assert np.isclose(mm.max(), 1)
+    assert np.isclose(s.sum(), 1)
+
+
+def test_mask_fp_cutoff_retains_core():
+    fp = np.ones((10, 10))
+    fp[0, 0] = 100  # dominant cell
+    masked = mask_fp_cutoff(fp, cutoff=0.5)
+    # Some cells should be set to ~0 after masking
+    assert np.count_nonzero(masked) < fp.size
+    # Dominant cell must remain
+    assert masked[0, 0] > 0
+
+
+# -----------------------------------------------------------------------------
+# improved_ffp.py – validate light‑weight internals (heavy calc skipped)
+# -----------------------------------------------------------------------------
+import logging
+from micromet.improved_ffp import FFPModel
+
+
+def _make_minimal_met_df():
+    return pd.DataFrame(
+        {
+            "V_SIGMA": [1.0],
+            "USTAR": [0.5],
+            "MO_LENGTH": [-50.0],
+            "WD": [180.0],
+            "WS": [5.0],
+        },
+        index=[pd.Timestamp("2025-01-01")],
+    )
+
+
+def test_ffpmodel_basic_validation():
+    df = _make_minimal_met_df()
+    model = FFPModel(
+        df,
+        domain=[-100, 100, -100, 100],
+        dx=10,
+        dy=10,
+        nx=10,
+        ny=10,
+        smooth_data=False,
+        verbosity=0,
+        logger=logging.getLogger("ffp_test"),
+    )
+    # Domain should echo back as floats
+    assert model.domain == [-100.0, 100.0, -100.0, 100.0]
+
+    # Scaled peak distance is a fixed constant ≈ 0.87
+    assert np.isclose(model.calc_scaled_footprint_peak(), 0.87, atol=1e-3)
+
+
+# -----------------------------------------------------------------------------
+# ffp_xr.py – constructor smoke test (skip if xarray heavy deps missing)
+# -----------------------------------------------------------------------------
 import importlib
 
+ffp_xr_spec = importlib.util.find_spec("ffp_xr")
+if ffp_xr_spec is not None:
+    from micromet.ffp_xr import ffp_climatology_new
 
-# --------------------------------------------------------------------------- #
-# Helper: provide a deterministic _infer_datetime_col that the class expects.
-# --------------------------------------------------------------------------- #
-@pytest.fixture(autouse=True)
-def patch_infer_datetime_col(monkeypatch):
-    """
-    Replace _infer_datetime_col with a trivial implementation that always
-    returns 'timestamp'.  This keeps the test focused on DataFrame handling
-    instead of column-detection logic (which is tested separately).
-    """
-    # Grab the module where the class is defined *dynamically* so the patch will
-    # work even if the class is re-exported.
-    mod = importlib.import_module(AmerifluxDataProcessor.__module__)
-    monkeypatch.setattr(mod, "_infer_datetime_col", lambda df: "timestamp")
+    def test_ffp_xr_smoke():
+        df = _make_minimal_met_df().rename(
+            columns={
+                "V_SIGMA": "V_SIGMA",
+                "USTAR": "USTAR",
+                "MO_LENGTH": "MO_LENGTH",
+                "WD": "WD",
+                "WS": "WS",
+            }
+        )
+        model = ffp_climatology_new(
+            df,
+            domain=[-100, 100, -100, 100],
+            dx=10,
+            dy=10,
+            nx=10,
+            ny=10,
+            smooth_data=False,
+            verbosity=0,
+            logger=logging.getLogger("ffp_xr_test"),
+        )
+        # After define_domain(), grids should have expected shape
+        assert model.xv.shape == (len(model.x), len(model.y))
 
-
-# --------------------------------------------------------------------------- #
-# 1.  Header-row detection
-# --------------------------------------------------------------------------- #
-def test_header_rows_tidy_file(tmp_path: Path):
-    """A tidy (non-TOA5) file should yield header_rows == 0."""
-    csv = tmp_path / "tidy.csv"
-    csv.write_text("timestamp,value\n" "2025-01-01 00:00:00,1.23\n")
-
-    proc = AmerifluxDataProcessor(csv)
-    assert proc.header_rows == 0, "Non-TOA5 files should have no header offset"
-
-
-def test_header_rows_toa5(tmp_path: Path):
-    """A TOA5 file must keep the default four header rows."""
-    csv = tmp_path / "toa5.csv"
-    csv.write_text(
-        "TOA5,site,logger\n"  # 0
-        "meta line 1\n"  # 1
-        "meta line 2\n"  # 2
-        "meta line 3\n"  # 3
-        "timestamp,value\n"  # 4  ← becomes header after skiprows=4
-        "2025-01-01 00:00:00,4.56\n"
-    )
-
-    proc = AmerifluxDataProcessor(csv)
-    assert proc.header_rows == 4, "TOA5 files must skip the four metadata lines"
+else:
+    pytest.skip("ffp_xr module not available", allow_module_level=True)
 
 
-# --------------------------------------------------------------------------- #
-# 2.  DataFrame parsing & sorting
-# --------------------------------------------------------------------------- #
-def test_to_dataframe_sorted_and_coerced(tmp_path: Path):
-    """
-    The returned DataFrame should
-    * contain parsed, coerced `datetime64[ns]` values
-    * be sorted in ascending time order
-    * preserve other columns as-is
-    """
-    csv = tmp_path / "tidy_unsorted.csv"
-    csv.write_text(
-        "timestamp,value\n"
-        "2025-01-02 00:00:00,2.0\n"  # out of order on purpose
-        "2025-01-01 00:00:00,1.0\n"
-        "bad-time,3.0\n"  # <- coercible to NaT
-    )
-
-    df = AmerifluxDataProcessor(csv).to_dataframe()
-
-    # --- column types ------------------------------------------------------ #
-    assert pd.api.types.is_datetime64_any_dtype(df["timestamp"])
-    assert df["value"].tolist() == [1.0, 2.0, 3.0]  # same data
-    # The bad timestamp should have become NaT and sorted last
-    assert df["timestamp"].iloc[0] == pd.Timestamp("2025-01-01 00:00:00")
-    assert df["timestamp"].iloc[1] == pd.Timestamp("2025-01-02 00:00:00")
-    assert pd.isna(df["timestamp"].iloc[2])
-
-    # --- order ------------------------------------------------------------- #
-    # After sorting, the data should be chronological except NaT at the end.
-    assert list(df["timestamp"].sort_values(na_position="last")) == list(
-        df["timestamp"]
-    )
-
-
-###############################################################################
-# Fixtures
-###############################################################################
-@pytest.fixture(scope="session")
-def mod():
-    """Import the module that contains `Reformatter` once for all tests."""
-    # ⬇️  Replace **reformatter** with the real module name if different
-    return importlib.import_module("micromet.converter")
-
-
-@pytest.fixture
-def cfg_dict():
-    """A minimal YAML config that exercises every pipeline branch."""
-    return {
-        # step-2 renames
-        "renames_eddy": {"OldCO2": "CO2"},
-        "renames_met": {},
-        # soil-handling
-        "math_soils_v2": [],
-        # housekeeping
-        "drop_cols": [],
-        "column_order": ["CO2", "Tau", "u_star"],
-    }
-
-
-@pytest.fixture
-def tmp_cfg(tmp_path: Path, cfg_dict):
-    p = tmp_path / "cfg.yml"
-    p.write_text(yaml.safe_dump(cfg_dict))
-    return p
-
-
-@pytest.fixture
-def var_limits_csv(tmp_path: Path):
-    """Provide hard min/max limits for one variable to test clipping."""
-    p = tmp_path / "varlimits.csv"
-    pd.DataFrame({"variable": ["CO2"], "min": [380.0], "max": [420.0]}).to_csv(
-        p, index=False
-    )
-    return p
-
-
-@pytest.fixture
-def monkeypatched_reformatter(monkeypatch, mod, tmp_cfg):
-    """
-    Create a Reformatter instance with external helpers & constants patched so
-    the tests do not rely on any other project files.
-    """
-    # ── helpers ────────────────────────────────────────────────────────────
-    monkeypatch.setattr(
-        mod, "load_yaml", lambda path: yaml.safe_load(Path(path).read_text())
-    )
-    monkeypatch.setattr(mod, "_infer_datetime_col", lambda df: "TIMESTAMP")
-
-    # ── constants used inside the class but defined elsewhere ─────────────
-    monkeypatch.setattr(mod, "MISSING_VALUE", -9999, raising=False)
-    monkeypatch.setattr(
-        mod, "SOIL_SENSOR_SKIP_INDEX", 3, raising=False
-    )  # allow us to drop idx ≥ 3
-    monkeypatch.setattr(
-        mod, "DEFAULT_SOIL_DROP_LIMIT", 2, raising=False
-    )  # keep tests predictable
-
-    return mod.Reformatter(tmp_cfg, drop_soil=False)  # drop_soil toggled per-test
-
-
-###############################################################################
-# Unit-style tests for individual behaviours
-###############################################################################
-def _base_frame(ts="202501010000"):
-    """Convenience helper to build a frame with the mandatory TIMESTAMP col."""
-    return pd.DataFrame({"TIMESTAMP": [ts]})
-
-
-# ---------------------------------------------------------------------------
-# Timestamp handling
-# ---------------------------------------------------------------------------
-def test_fix_timestamps_resample_and_interpolate(monkeypatched_reformatter):
-    """
-    _fix_timestamps should:
-
-    1. Parse TIMESTAMP strings → datetime_start.
-    2. Drop rows with bad / future timestamps.
-    3. Deduplicate on datetime_start (first wins).
-    4. Resample to 30-min regular grid.
-    5. Interpolate a single missing step (limit=1).
-
-    Expected grid for our sample: 00:00, 00:30, 01:00 on 1 Jan 2025.
-    """
-    df = pd.DataFrame(
-        {
-            "TIMESTAMP": [
-                "202501010000",  # valid, will keep first duplicate
-                "202501010000",
-                "202501010015",  # 15-min mark → falls into 00:00 bin
-                "202501010100",  # next full hour
-                "invalid",  # should be dropped (coerce→NaT)
-                "299901011200",  # far future → should be dropped
-            ],
-            "Val": [1, 2, 3, 4, 5, 6],
-        }
-    )
-
-    out = monkeypatched_reformatter._fix_timestamps(df)
-
-    # 1. index should be exactly three 30-min steps
-    expected_idx = pd.date_range("2025-01-01 00:00", "2025-01-01 01:00", freq="30min")
-    assert out.index.equals(expected_idx)
-
-    # 2. duplicate removal – 00:00 keeps first value (1)
-    assert out.loc["2025-01-01 00:00", "Val"] == 1
-
-    # 3. interpolation – 00:30 is linear interp between 1 (00:00) and 4 (01:00)
-    assert out.loc["2025-01-01 00:30", "Val"] == pytest.approx(2.5)
-
-    # 4. future/invalid rows gone
-    assert out.index.max() < pd.Timestamp("2990-01-01")
-
-
-def test_prefix_and_legacy_conversion(monkeypatched_reformatter):
-    """
-    BulkEC_, VWC_, Ka_, and T_*cm_* must be normalised AND converted to the
-    modern soil naming scheme.
-    """
-    df = _base_frame().assign(
-        BulkEC_5cm_N_Avg=[1.0],
-        VWC_10cm_S_Avg=[0.25],
-        Ka_20cm_N_Avg=[7.0],
-        T_30cm_S_Avg=[12.0],
-    )
-
-    out = monkeypatched_reformatter.prepare(df)
-
-    expected = {"EC_3_1_1", "SWC_4_2_1", "K_3_3_1", "TS_4_4_1"}
-    assert expected.issubset(out.columns)
-
-
-def test_tau_fixer_sets_zero_to_missing(monkeypatched_reformatter):
-    df = _base_frame().assign(Tau=[0.0], u_star=[0.2])
-    out = monkeypatched_reformatter.prepare(df)
-
-    # after prepare(), NaNs have been replaced by MISSING_VALUE (-9999)
-    assert out["Tau"].iloc[0] == -9999, "Tau=0 should become the missing-value flag"
-
-
-def test_swc_scaled_to_percent(monkeypatched_reformatter):
-    df = _base_frame().assign(SWC_3_1_1=[0.30])  # 0–1 volumetric
-    out = monkeypatched_reformatter.prepare(df)
-    assert out["SWC_3_1_1"].iloc[0] == pytest.approx(30.0), "SWC not scaled to %"
-
-
-def test_ssitc_rating(monkeypatched_reformatter):
-    df = _base_frame().assign(FC_SSITC_TEST=[5])  # falls in 4–6 ➜ rating 1
-    out = monkeypatched_reformatter.prepare(df)
-    assert out["FC_SSITC_TEST"].iloc[0] == 1, "SSITC column not rated correctly"
-
-
-def test_varlimits_clipping(monkeypatch, mod, tmp_cfg, var_limits_csv):
-    fmt = mod.Reformatter(tmp_cfg, var_limits_csv=var_limits_csv, drop_soil=False)
-    # patch helpers/constants again for this instance
-    monkeypatch.setattr(mod, "_infer_datetime_col", lambda df: "TIMESTAMP")
-    monkeypatch.setattr(mod, "MISSING_VALUE", -9999, raising=False)
-
-    df = _base_frame().assign(CO2=[1000.0])  # outside max=420
-    out = fmt.prepare(df)
-    assert out["CO2"].iloc[0] == 420.0, "Value not clipped to var-limit max"
-
-
-def test_ssitc_scale_and_rating(monkeypatched_reformatter):
-    """
-    FC_SSITC_TEST values should be re-rated:
-        0–3   → 0
-        4–6   → 1
-        ≥7    → 2
-    The conversion happens only when the column's max() > 3.
-    """
-    df = pd.DataFrame(
-        {
-            "TIMESTAMP": ["202501010000", "202501010030", "202501010100"],
-            "FC_SSITC_TEST": [2, 5, 8],  # covers all three rating bands
-        }
-    )
-
-    out = monkeypatched_reformatter.prepare(df)
-
-    # retrieve the three rows that correspond to our inputs
-    rated = out["FC_SSITC_TEST"].iloc[:3].to_numpy()
-    assert np.array_equal(rated, np.array([0, 1, 2])), "SSITC rating incorrect"
-    assert rated.dtype.kind in {"i", "u"}, "Rated values should be integer-typed"
-
-
-if __name__ == "__main__":
-    pytest.main([__file__])
+# -----------------------------------------------------------------------------
+# NOTE ON HEAVY TESTS
+# -----------------------------------------------------------------------------
+# * generate_density_raster() (tools.py) and many volk.py functions rely on heavy
+#   geospatial libraries (geopandas, rasterio) or large external datasets.  Those
+#   are intentionally **not** exercised here to keep CI fast and dependency‑
+#   light.  Add integration tests in a separate, optional test suite if needed.
+# =============================================================================

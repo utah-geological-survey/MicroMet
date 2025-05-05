@@ -62,3 +62,4 @@ station_config/output/US-UTW_monthly_data.csv
 /src/micromet.egg-info
 /dist
 /recipes/meta.yaml
+/MicroMet
