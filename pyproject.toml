@@ -38,6 +38,8 @@ test = [
     "pytest-cov>=2.0",
 ]
 
+[tool.setuptools]
+package-dir = {"" = "src"}
 
 [project.urls]
 "Homepage" = "https://github.com/inkenbrandt/micromet"
