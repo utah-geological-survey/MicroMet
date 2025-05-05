@@ -6,9 +6,8 @@ dependencies:
   - scipy
   - pandas
   - numpy
-  - statsmodels
-  - scikit-learn
   - plotly
   - matplotlib
-  - affine
-  - rasterio
+  - pyyaml
+  - sqlalchemy
+  - requests

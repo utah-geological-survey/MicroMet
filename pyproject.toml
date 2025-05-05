@@ -1,13 +1,13 @@
 [build-system]
-requires = ["setuptools>=45", "wheel", "setuptools_scm>=6.2"]
+requires = ["setuptools>=64", "wheel", "setuptools_scm>=8"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "micromet"
-version = "0.1.17"
+dynamic = ["version"]
 description = "A comprehensive Python package for micrometeorological data analysis"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 license = {text = "GNU General Public License v3.0"}
 authors = [
     {name = "Paul Inkenbrandt", email = "paulinkenbrandt@utah.gov"},
@@ -40,6 +40,9 @@ test = [
 
 [tool.setuptools]
 package-dir = {"" = "src"}
+
+[tool.setuptools_scm]
+version_file = "pkg/_version.py"
 
 [project.urls]
 "Homepage" = "https://github.com/inkenbrandt/micromet"

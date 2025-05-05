@@ -3,6 +3,4 @@ from .tools import *
 from .graphs import *
 from .station_data_pull import *
 from .headers import *
-
-
-__version__ = "0.1.17"
+from ._version import __version__
