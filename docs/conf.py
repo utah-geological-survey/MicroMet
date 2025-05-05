@@ -5,13 +5,12 @@ import sys
 sys.path.insert(0, os.path.abspath("../src"))  # adjust path as needed
 # sys.path.append("../..")  # Adjust this path as needed
 import micromet
-from _version import __version__ as vrelease
 
 # -- Project information -----------------------------------------------------
 project = "micromet"
 copyright = "2025, Paul Inkenbrandt & Kathryn Ladig"
 author = "Paul Inkenbrandt & Kathryn Ladig"
-release = vrelease
+release = micromet._get_version()
 
 master_doc = "index"  # The name of the master document (without the .rst extension)
 # -- General configuration ---------------------------------------------------
