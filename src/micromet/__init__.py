@@ -7,14 +7,4 @@ from .headers import *
 import pathlib
 import sys
 
-import tomllib
-
-
-def _get_version():
-    pyproject_path = pathlib.Path(__file__).parent.parent / "pyproject.toml"
-    with pyproject_path.open("rb") as f:
-        data = tomllib.load(f)
-    return data["project"]["version"]
-
-
-__version__ = _get_version()
+__version__ = 0.1.26
